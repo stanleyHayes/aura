@@ -26,9 +26,15 @@ permissions:
 
 jobs:
   # Resolve the target environment + the immutable image tag (commit SHA).
+  # Opt-in: this is the Kubernetes/Helm deploy path. Set repo variable
+  # K8S_DEPLOY_ENABLED=true (and the KUBE_CONFIG / DATABASE_URL secrets) to use it.
+  # Render deployments use render.yaml (auto-deploy) and leave this disabled, so
+  # pushes don't produce failing deploy runs. setup gates the whole pipeline
+  # (migrate/rollout `needs` it and skip when it is skipped).
   setup:
     name: resolve target
     runs-on: ubuntu-latest
+    if: ${{ vars.K8S_DEPLOY_ENABLED == 'true' }}
     outputs:
       environment: ${{ steps.target.outputs.environment }}
       image_tag: sha-${{ github.sha }}
