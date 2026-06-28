@@ -64,6 +64,13 @@ test-cover: ## Run tests with coverage
 	$(GO) test ./... -count=1 -coverprofile=coverage.out
 	$(GO) tool cover -func=coverage.out | tail -1
 
+.PHONY: ci
+ci: ## Run the full local quality gate (fmt check, vet, lint, vuln, tests)
+	@gofmt -l cmd internal db | tee /dev/stderr | (! read) || (echo "gofmt: files need formatting" && exit 1)
+	$(GO) vet ./...
+	golangci-lint run ./...
+	$(GO) test ./... -count=1
+
 ## ── Local isolated Postgres 18 (no Docker) ─────────────────────
 .PHONY: pg-init
 pg-init: ## Initialise the local .pgdata cluster
