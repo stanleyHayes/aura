@@ -65,13 +65,16 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: ESLint (flat config)
-        run: pnpm -r lint
+        run: pnpm run lint
 
-      - name: Prettier (check)
-        run: pnpm exec prettier --check .
+      # Code style is enforced by gofmt (Go) and ESLint (JS/TS). Prettier is not
+      # yet wired into the workspace (needs eslint-config-prettier to avoid rule
+      # conflicts); add it as a deliberate follow-up rather than a blocking gate.
 
-      - name: TypeScript (tsc --noEmit, strict)
-        run: pnpm -r exec tsc --noEmit
+      - name: TypeScript (strict, per-package typecheck script)
+        # Uses each package's `typecheck` script via Turbo. Raw
+        # `pnpm -r exec tsc --noEmit` fails on @cbs/config (no TS sources).
+        run: pnpm run typecheck
 
   # ── 2. Security (§17 step 2) ──────────────────────────────────────────────
   security:

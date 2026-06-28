@@ -1,0 +1,2 @@
+$ eslint src
+sh: eslint: command not found
