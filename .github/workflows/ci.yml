@@ -102,7 +102,10 @@ jobs:
       - name: gosec
         uses: securego/gosec@master
         with:
-          args: -no-fail -fmt sarif -out gosec.sarif ./...
+          # Exclude sqlc-generated code (false-positive G101 on query constants)
+          # and G115 (noisy int->int32 conversions on bounded values; user inputs
+          # are range-validated at the service boundary). Advisory (-no-fail).
+          args: -no-fail -exclude-dir=dbgen -exclude=G115 -fmt sarif -out gosec.sarif ./...
 
       - name: Upload gosec SARIF
         uses: github/codeql-action/upload-sarif@v3

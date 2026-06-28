@@ -37,6 +37,7 @@ func main() {
 		log.Fatalf("dialect: %v", err)
 	}
 	if err := goose.RunContext(context.Background(), command, db, "."); err != nil {
+		// #nosec G706 -- command is an operator-supplied CLI subcommand, not untrusted input.
 		log.Fatalf("goose %s: %v", command, err)
 	}
 }

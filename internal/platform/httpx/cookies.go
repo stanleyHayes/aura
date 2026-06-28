@@ -37,20 +37,23 @@ func csrfCookieName(secure bool) string {
 }
 
 func base(secure bool) http.Cookie {
+	// #nosec G124 -- Secure is true in production (TLS); the dev path runs over
+	// plain HTTP where the browser rejects Secure/__Host- cookies (see §9.2 and the
+	// cookie-name comment above). The prod/dev split is deliberate.
 	return http.Cookie{Path: "/", HttpOnly: true, Secure: secure, SameSite: http.SameSiteLaxMode}
 }
 
 // SetAuthCookies sets the access, refresh and (non-HttpOnly) CSRF cookies (§9.2).
 func SetAuthCookies(w http.ResponseWriter, access, refresh, csrf string, accessTTL, refreshTTL time.Duration, secure bool) {
-	ac := base(secure)
+	ac := base(secure) // #nosec G124 -- prod sets Secure; dev HTTP intentional
 	ac.Name, ac.Value, ac.Expires = accessCookieName(secure), access, time.Now().Add(accessTTL)
 	http.SetCookie(w, &ac)
 
-	rc := base(secure)
+	rc := base(secure) // #nosec G124 -- prod sets Secure; dev HTTP intentional
 	rc.Name, rc.Value, rc.Expires = refreshCookieName(secure), refresh, time.Now().Add(refreshTTL)
 	http.SetCookie(w, &rc)
 
-	cc := base(secure)
+	cc := base(secure)  // #nosec G124 -- prod sets Secure; dev HTTP intentional
 	cc.HttpOnly = false // readable by JS for the double-submit header
 	cc.Name, cc.Value, cc.Expires = csrfCookieName(secure), csrf, time.Now().Add(refreshTTL)
 	http.SetCookie(w, &cc)
@@ -59,7 +62,7 @@ func SetAuthCookies(w http.ResponseWriter, access, refresh, csrf string, accessT
 // ClearAuthCookies expires the auth cookies on logout.
 func ClearAuthCookies(w http.ResponseWriter, secure bool) {
 	for _, name := range []string{accessCookieName(secure), refreshCookieName(secure), csrfCookieName(secure)} {
-		c := base(secure)
+		c := base(secure) // #nosec G124 -- prod sets Secure; dev HTTP intentional
 		c.Name, c.Value, c.MaxAge, c.Expires = name, "", -1, time.Unix(0, 0)
 		http.SetCookie(w, &c)
 	}

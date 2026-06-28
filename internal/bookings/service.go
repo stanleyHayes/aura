@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/aura/cbs/internal/availability"
 	"github.com/aura/cbs/internal/platform/apperr"
@@ -53,8 +54,8 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (SubmitResult, err
 	if in.Purpose == "" {
 		return SubmitResult{}, apperr.ErrValidation.WithFields(apperr.FieldError{Field: "purpose", Message: "required"})
 	}
-	if in.AttendeeCount <= 0 {
-		return SubmitResult{}, apperr.ErrValidation.WithFields(apperr.FieldError{Field: "attendee_count", Message: "must be > 0"})
+	if in.AttendeeCount <= 0 || in.AttendeeCount > 100000 {
+		return SubmitResult{}, apperr.ErrValidation.WithFields(apperr.FieldError{Field: "attendee_count", Message: "must be between 1 and 100000"})
 	}
 	if !in.EndsAt.After(in.StartsAt) {
 		return SubmitResult{}, apperr.ErrValidation.WithFields(apperr.FieldError{Field: "ends_at", Message: "must be after starts_at"})
@@ -224,21 +225,9 @@ func (s *Service) Override(ctx context.Context, bookingID, adminID uuid.UUID, no
 		if err := db.AdvisoryXactLock(ctx, tx, b.RoomID.String()); err != nil {
 			return err
 		}
-		conflicts, err := q.ListConflictingApprovedBookings(ctx, dbgen.ListConflictingApprovedBookingsParams{
-			RoomID: b.RoomID, ExcludeID: bookingID, WinStart: b.StartsAt, WinEnd: b.EndsAt,
-		})
+		cancelled, err = cancelConflicting(ctx, q, b.RoomID, bookingID, b.StartsAt, b.EndsAt, adminID)
 		if err != nil {
 			return err
-		}
-		for _, c := range conflicts {
-			row, err := q.SetBookingStatus(ctx, dbgen.SetBookingStatusParams{
-				ID: c.ID, Status: dbgen.BookingStatusCANCELLED, ReviewedBy: &adminID,
-				ReviewNote: ptr("cancelled by administrative override"),
-			})
-			if err != nil {
-				return db.MapError(err)
-			}
-			cancelled = append(cancelled, viewFromStatus(row))
 		}
 		row, err := q.SetBookingStatus(ctx, dbgen.SetBookingStatusParams{
 			ID: bookingID, Status: dbgen.BookingStatusAPPROVED, ReviewedBy: &adminID, ReviewNote: note,
@@ -286,6 +275,29 @@ func (s *Service) getStatus(ctx context.Context, id uuid.UUID) (dbgen.BookingSta
 		return "", err
 	}
 	return b.Status, nil
+}
+
+// cancelConflicting cancels the approved bookings overlapping the window for a
+// room (used by admin override, BR6) and returns their views.
+func cancelConflicting(ctx context.Context, q *dbgen.Queries, roomID, excludeID uuid.UUID, winStart, winEnd pgtype.Timestamptz, adminID uuid.UUID) ([]BookingView, error) {
+	conflicts, err := q.ListConflictingApprovedBookings(ctx, dbgen.ListConflictingApprovedBookingsParams{
+		RoomID: roomID, ExcludeID: excludeID, WinStart: winStart, WinEnd: winEnd,
+	})
+	if err != nil {
+		return nil, err
+	}
+	var cancelled []BookingView
+	for _, c := range conflicts {
+		row, err := q.SetBookingStatus(ctx, dbgen.SetBookingStatusParams{
+			ID: c.ID, Status: dbgen.BookingStatusCANCELLED, ReviewedBy: &adminID,
+			ReviewNote: ptr("cancelled by administrative override"),
+		})
+		if err != nil {
+			return nil, db.MapError(err)
+		}
+		cancelled = append(cancelled, viewFromStatus(row))
+	}
+	return cancelled, nil
 }
 
 func ptr[T any](v T) *T { return &v }

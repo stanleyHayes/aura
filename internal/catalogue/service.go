@@ -68,8 +68,8 @@ type RoomInput struct {
 }
 
 func (s *Service) CreateRoom(ctx context.Context, in RoomInput) (dbgen.Room, error) {
-	if in.Capacity <= 0 {
-		return dbgen.Room{}, apperr.ErrValidation.WithFields(apperr.FieldError{Field: "capacity", Message: "must be > 0"})
+	if in.Capacity <= 0 || in.Capacity > 1000000 {
+		return dbgen.Room{}, apperr.ErrValidation.WithFields(apperr.FieldError{Field: "capacity", Message: "must be between 1 and 1000000"})
 	}
 	if in.Status == "" {
 		in.Status = dbgen.RoomStatusACTIVE

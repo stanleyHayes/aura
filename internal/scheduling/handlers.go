@@ -197,6 +197,9 @@ func (h *Handler) importTimetable(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, r, h.log, err)
 		return
 	}
+	// Hard-cap the request body to bound memory/disk use (§14 file uploads).
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes+(1<<20))
+	// #nosec G120 -- the body is hard-capped by MaxBytesReader above.
 	if err := r.ParseMultipartForm(maxUploadBytes); err != nil {
 		httpx.Error(w, r, h.log, apperr.ErrValidation.WithDetail("invalid multipart form: %v", err))
 		return
