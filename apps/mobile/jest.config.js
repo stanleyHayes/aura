@@ -5,7 +5,8 @@
  */
 module.exports = {
   preset: 'jest-expo',
-  setupFilesAfterEnv: ['@testing-library/react-native/extend-expect'],
+  // @testing-library/react-native v12.4+ auto-extends Jest matchers; the old
+  // `/extend-expect` entry point was removed, so no setup file is needed.
   transformIgnorePatterns: [
     'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|nativewind|react-native-css-interop|@sentry/.*)/)',
   ],
