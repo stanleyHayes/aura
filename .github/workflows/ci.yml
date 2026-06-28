@@ -270,9 +270,10 @@ jobs:
     name: sonarqube gate
     runs-on: ubuntu-latest
     needs: [test-go, test-web]
-    # SonarCloud/SonarQube credentials are required; the gate is enforced by the
-    # quality-gate action below. Skipped automatically on forks without secrets.
-    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    # Opt-in: set repo variable SONARQUBE_ENABLED=true (and the SONAR_TOKEN /
+    # SONAR_HOST_URL secrets) to run the gate. Skipped otherwise so CI stays green
+    # for deployments that don't run SonarQube (e.g. Render).
+    if: ${{ vars.SONARQUBE_ENABLED == 'true' && github.event.pull_request.head.repo.full_name == github.repository }}
     steps:
       - uses: actions/checkout@v4
         with:

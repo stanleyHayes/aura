@@ -2,7 +2,7 @@
 # migrate). The api service runs /api (default), the worker service overrides the
 # start command to /worker, and the pre-deploy step runs /migrate up. Distroless
 # static + nonroot (§14, §17).
-FROM golang:1.25-alpine AS build
+FROM golang:1.25.11-alpine AS build
 RUN apk add --no-cache git
 WORKDIR /src
 COPY go.mod go.sum* ./
