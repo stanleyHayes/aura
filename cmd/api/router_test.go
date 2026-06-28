@@ -102,11 +102,46 @@ func TestEndToEndHTTP(t *testing.T) {
 	require.Equal(t, http.StatusOK, c.do("POST", "/api/v1/bookings/"+created.Booking.ID.String()+"/approve", offTok, map[string]any{}, &approved))
 	require.Equal(t, "APPROVED", approved.Status)
 
+	// Idempotency (§8.1): same key replays the same booking; same key with a
+	// different body is rejected.
+	key := uuid.NewString()
+	slot := map[string]any{
+		"room_id": room.ID, "purpose": "Idem", "attendee_count": 8,
+		"starts_at": tmrw + "T09:00:00Z", "ends_at": tmrw + "T10:00:00Z",
+	}
+	var first, replay struct {
+		Booking struct {
+			ID uuid.UUID `json:"id"`
+		} `json:"booking"`
+	}
+	require.Equal(t, http.StatusCreated, c.postIdem("/api/v1/bookings", reqTok, key, slot, &first))
+	require.Equal(t, http.StatusCreated, c.postIdem("/api/v1/bookings", reqTok, key, slot, &replay))
+	require.Equal(t, first.Booking.ID, replay.Booking.ID, "same Idempotency-Key must replay the same booking")
+	slot["purpose"] = "Changed"
+	require.Equal(t, http.StatusUnprocessableEntity, c.postIdem("/api/v1/bookings", reqTok, key, slot, nil))
+
 	// Security + rate-limit headers are present on responses.
 	resp := c.raw("GET", "/healthz", "", nil)
 	require.NotEmpty(t, resp.Header.Get("X-Content-Type-Options"))
 	require.NotEmpty(t, resp.Header.Get("RateLimit-Limit"))
 	_ = resp.Body.Close()
+}
+
+func (c *apiClient) postIdem(path, token, key string, body, out any) int {
+	b, _ := json.Marshal(body)
+	req, err := http.NewRequest("POST", c.base+path, bytes.NewReader(b))
+	require.NoError(c.t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Idempotency-Key", key)
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(c.t, err)
+	defer func() { _ = resp.Body.Close() }()
+	if out != nil {
+		data, _ := io.ReadAll(resp.Body)
+		require.NoError(c.t, json.Unmarshal(data, out), "body: %s", string(data))
+	}
+	return resp.StatusCode
 }
 
 type apiClient struct {
