@@ -1,3 +1,0 @@
-$ eslint src
-sh: eslint: command not found
-[ELIFECYCLE] Command failed.

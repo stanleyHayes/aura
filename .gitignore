@@ -24,3 +24,8 @@ dist/
 .DS_Store
 .idea/
 .vscode/
+
+# Turborepo / build caches
+.turbo/
+**/.turbo/
+*.tsbuildinfo
