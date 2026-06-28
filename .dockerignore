@@ -1,0 +1,40 @@
+# Keep the Docker build context small. The images (deploy/compose/Dockerfile.api,
+# deploy/render/Dockerfile) build the Go binaries only; the Next.js web service on
+# Render builds natively (not via Docker), so JS app/package sources are excluded.
+
+.git
+.gitignore
+
+# Local + build artefacts
+bin/
+.pgdata/
+.tmp/
+coverage.*
+*.test
+*.out
+
+# Node / web / mobile (not needed for the Go image build)
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+.expo/
+**/.expo/
+.turbo/
+**/.turbo/
+apps/
+packages/
+pnpm-lock.yaml
+package.json
+pnpm-workspace.yaml
+turbo.json
+
+# Infra/docs not needed at build time (migrations ARE copied — keep db/)
+deploy/helm/
+deploy/terraform/
+docs/
+
+# Secrets
+.env
+.env.*
+!.env.example
