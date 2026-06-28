@@ -1,0 +1,25 @@
+{
+  "name": "@cbs/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Typed openapi-fetch client for the CBS Go API (§5.2, §8). Shared by web + mobile.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts"
+  },
+  "scripts": {
+    "generate": "openapi-typescript ../../api/openapi.yaml -o ./src/schema.gen.ts",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "openapi-fetch": "catalog:"
+  },
+  "devDependencies": {
+    "@cbs/config": "workspace:*",
+    "openapi-typescript": "catalog:",
+    "typescript": "catalog:"
+  }
+}

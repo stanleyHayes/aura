@@ -1,0 +1,12 @@
+{
+  "extends": "@cbs/config/tsconfig/react-library.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@cbs/ui/*": ["./src/*"]
+    }
+  },
+  "include": ["src", "*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,0 +1,398 @@
+openapi: 3.1.0
+info:
+  title: Classroom Booking System API
+  version: "1.0.0"
+  description: >
+    Contract-first REST API for the Classroom Booking System (§8). JSON over HTTPS,
+    versioned under /api/v1. Errors use application/problem+json (RFC 9457) with a
+    stable machine `code`. Cursor pagination via ?limit & ?cursor. This document is
+    the source of truth from which the web and mobile typed clients are generated.
+servers:
+  - url: http://localhost:8080
+    description: Local development
+  - url: https://api.cbs.example.edu
+    description: Production
+security:
+  - bearerAuth: []
+  - cookieAuth: []
+
+tags:
+  - { name: Auth }
+  - { name: Users }
+  - { name: Catalogue }
+  - { name: Scheduling }
+  - { name: Availability }
+  - { name: Bookings }
+  - { name: Notifications }
+  - { name: Reports }
+  - { name: Operational }
+
+paths:
+  /healthz:
+    get:
+      tags: [Operational]
+      summary: Liveness probe
+      security: []
+      responses: { "200": { description: OK } }
+  /readyz:
+    get:
+      tags: [Operational]
+      summary: Readiness probe (DB connectivity)
+      security: []
+      responses:
+        "200": { description: Ready }
+        "503": { description: Not ready }
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate with email + password (+ MFA code if enabled)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+                mfa_code: { type: string }
+      responses:
+        "200":
+          description: Tokens issued; cookies set
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "423": { $ref: "#/components/responses/Problem" }
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rotate refresh token → new access token
+      security: []
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/TokenResponse" } } } }
+        "401": { $ref: "#/components/responses/Problem" }
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke the current refresh token
+      responses: { "204": { description: No Content } }
+  /api/v1/auth/me:
+    get:
+      tags: [Auth]
+      summary: Current user and resolved permissions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: "#/components/schemas/User" }
+                  permissions: { type: array, items: { type: string } }
+  /api/v1/auth/password/forgot:
+    post:
+      tags: [Auth]
+      summary: Request a password reset (always 200; no user enumeration)
+      security: []
+      requestBody:
+        content: { application/json: { schema: { type: object, properties: { email: { type: string } } } } }
+      responses: { "200": { description: OK } }
+  /api/v1/auth/password/reset:
+    post:
+      tags: [Auth]
+      summary: Reset password with a token
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, new_password]
+              properties: { token: { type: string }, new_password: { type: string } }
+      responses: { "204": { description: No Content }, "401": { $ref: "#/components/responses/Problem" } }
+  /api/v1/auth/mfa/enrol:
+    post: { tags: [Auth], summary: Begin TOTP enrolment, responses: { "200": { description: Provisioning URI } } }
+  /api/v1/auth/mfa/verify:
+    post: { tags: [Auth], summary: Confirm TOTP and enable MFA, responses: { "204": { description: Enabled } } }
+
+  /api/v1/users:
+    get:
+      tags: [Users]
+      summary: List users (SYSTEM_ADMIN)
+      parameters:
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Cursor" }
+        - { name: role, in: query, schema: { $ref: "#/components/schemas/Role" } }
+        - { name: status, in: query, schema: { type: string } }
+      responses: { "200": { description: OK }, "403": { $ref: "#/components/responses/Problem" } }
+    post:
+      tags: [Users]
+      summary: Create a user (SYSTEM_ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, full_name, role]
+              properties:
+                email: { type: string }
+                password: { type: string }
+                full_name: { type: string }
+                role: { $ref: "#/components/schemas/Role" }
+                department_id: { type: string, format: uuid, nullable: true }
+      responses: { "201": { description: Created }, "403": { $ref: "#/components/responses/Problem" } }
+
+  /api/v1/rooms:
+    get:
+      tags: [Catalogue]
+      summary: List/filter rooms (FR6 filters)
+      parameters:
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Cursor" }
+        - { name: building_id, in: query, schema: { type: string, format: uuid } }
+        - { name: min_capacity, in: query, schema: { type: integer } }
+        - { name: room_type, in: query, schema: { $ref: "#/components/schemas/RoomType" } }
+        - { name: equipment, in: query, schema: { type: string }, description: Comma-separated equipment codes }
+        - { name: q, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/Room" } }
+                  next_cursor: { type: string, nullable: true }
+
+  /api/v1/availability/search:
+    get:
+      tags: [Availability]
+      summary: Find rooms free for an entire window (FR6, §7.1)
+      parameters:
+        - { name: date, in: query, required: true, schema: { type: string, format: date } }
+        - { name: start, in: query, required: true, schema: { type: string, example: "14:00" } }
+        - { name: end, in: query, required: true, schema: { type: string, example: "16:00" } }
+        - { name: building_id, in: query, schema: { type: string, format: uuid } }
+        - { name: min_capacity, in: query, schema: { type: integer } }
+        - { name: room_type, in: query, schema: { $ref: "#/components/schemas/RoomType" } }
+        - { name: equipment, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Available rooms with free sub-intervals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        room: { $ref: "#/components/schemas/Room" }
+                        free_intervals:
+                          type: array
+                          items: { type: object, properties: { start: { type: integer }, end: { type: integer } } }
+
+  /api/v1/calendar:
+    get:
+      tags: [Availability]
+      summary: Unified calendar blocks (FR10)
+      parameters:
+        - { name: view, in: query, schema: { type: string, enum: [day, week, month] } }
+        - { name: date, in: query, required: true, schema: { type: string, format: date } }
+        - { name: room_id, in: query, schema: { type: string, format: uuid } }
+        - { name: building_id, in: query, schema: { type: string, format: uuid } }
+      responses: { "200": { description: OK } }
+
+  /api/v1/bookings:
+    post:
+      tags: [Bookings]
+      summary: Submit a booking request (FR7)
+      parameters:
+        - { name: Idempotency-Key, in: header, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [room_id, purpose, attendee_count, starts_at, ends_at]
+              properties:
+                room_id: { type: string, format: uuid }
+                purpose: { type: string }
+                attendee_count: { type: integer, minimum: 1 }
+                starts_at: { type: string, format: date-time }
+                ends_at: { type: string, format: date-time }
+      responses:
+        "201":
+          description: Created (PENDING)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  booking: { $ref: "#/components/schemas/Booking" }
+                  competing_pending: { type: integer }
+        "422": { $ref: "#/components/responses/Problem", description: "Conflicts with lecture/maintenance, capacity, or past" }
+    get:
+      tags: [Bookings]
+      summary: List bookings (scope mine|pending|all)
+      parameters:
+        - { name: scope, in: query, schema: { type: string, enum: [mine, pending, all] } }
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/BookingStatus" } }
+        - { name: room_id, in: query, schema: { type: string, format: uuid } }
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Cursor" }
+      responses: { "200": { description: OK } }
+
+  /api/v1/bookings/{id}:
+    get:
+      tags: [Bookings]
+      summary: Booking detail (owner or BOOKING_OFFICER)
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses: { "200": { description: OK }, "403": { $ref: "#/components/responses/Problem" } }
+  /api/v1/bookings/{id}/approve:
+    post:
+      tags: [Bookings]
+      summary: Approve (BOOKING_OFFICER) — atomic, concurrency-safe (§7.3)
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Approved }
+        "409": { $ref: "#/components/responses/Problem", description: "SLOT_NO_LONGER_AVAILABLE" }
+  /api/v1/bookings/{id}/reject:
+    post:
+      tags: [Bookings]
+      summary: Reject with a required note (BOOKING_OFFICER)
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody: { content: { application/json: { schema: { type: object, required: [note], properties: { note: { type: string } } } } } }
+      responses: { "200": { description: Rejected } }
+  /api/v1/bookings/{id}/cancel:
+    post:
+      tags: [Bookings]
+      summary: Cancel (owner or BOOKING_OFFICER)
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses: { "200": { description: Cancelled } }
+  /api/v1/bookings/{id}/override:
+    post:
+      tags: [Bookings]
+      summary: Admin override (BR6) — force approve, cancelling conflicts
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses: { "200": { description: Overridden } }
+
+  /api/v1/semesters/{id}/timetable/import:
+    post:
+      tags: [Scheduling]
+      summary: Import a semester timetable (xlsx/csv) (FR4)
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+                mode: { type: string, enum: [replace, append] }
+      responses: { "202": { description: Import processed; returns status + error report } }
+
+  /api/v1/notifications:
+    get: { tags: [Notifications], summary: List notifications, responses: { "200": { description: OK } } }
+  /api/v1/notifications/stream:
+    get: { tags: [Notifications], summary: Live in-app notifications (SSE), responses: { "200": { description: text/event-stream } } }
+  /api/v1/devices:
+    post: { tags: [Notifications], summary: Register an Expo push token (mobile), responses: { "204": { description: Registered } } }
+
+  /api/v1/reports/utilisation:
+    get:
+      tags: [Reports]
+      summary: Room utilisation (FR12). format=csv for export.
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+        - { name: building_id, in: query, schema: { type: string, format: uuid } }
+        - { name: format, in: query, schema: { type: string, enum: [json, csv] } }
+      responses: { "200": { description: OK } }
+  /api/v1/reports/bookings:
+    get: { tags: [Reports], summary: Booking statistics (FR12), responses: { "200": { description: OK } } }
+  /api/v1/reports/conflicts:
+    get: { tags: [Reports], summary: Conflict statistics (FR12), responses: { "200": { description: OK } } }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+    cookieAuth: { type: apiKey, in: cookie, name: __Host-access }
+  parameters:
+    Id: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    Limit: { name: limit, in: query, schema: { type: integer, default: 50, maximum: 200 } }
+    Cursor: { name: cursor, in: query, schema: { type: string } }
+  responses:
+    Problem:
+      description: RFC 9457 problem document
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+  schemas:
+    Problem:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string, description: Stable machine-readable error code }
+        errors:
+          type: array
+          items: { type: object, properties: { field: { type: string }, message: { type: string } } }
+    Role: { type: string, enum: [SYSTEM_ADMIN, TIMETABLE_ADMIN, BOOKING_OFFICER, REQUESTER] }
+    RoomType: { type: string, enum: [LECTURE_HALL, LAB, SEMINAR_ROOM, AUDITORIUM, CONFERENCE_ROOM] }
+    BookingStatus: { type: string, enum: [PENDING, APPROVED, REJECTED, CANCELLED, EXPIRED] }
+    TokenResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        token_type: { type: string, example: Bearer }
+        expires_in: { type: integer }
+        user: { $ref: "#/components/schemas/User" }
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        full_name: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        department_id: { type: string, format: uuid, nullable: true }
+        status: { type: string }
+        mfa_enabled: { type: boolean }
+    Room:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        room_code: { type: string }
+        name: { type: string }
+        building_id: { type: string, format: uuid }
+        capacity: { type: integer }
+        room_type: { $ref: "#/components/schemas/RoomType" }
+        status: { type: string }
+        building_code: { type: string }
+        building_name: { type: string }
+    Booking:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        room_id: { type: string, format: uuid }
+        requested_by: { type: string, format: uuid }
+        purpose: { type: string }
+        attendee_count: { type: integer }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        status: { $ref: "#/components/schemas/BookingStatus" }
+        review_note: { type: string, nullable: true }

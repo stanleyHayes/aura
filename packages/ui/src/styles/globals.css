@@ -1,0 +1,147 @@
+/**
+ * CBS global stylesheet (§10.2, §12.2).
+ * Imports Tailwind v4 + the shared tokens, then binds shadcn/ui semantic
+ * variables to the token scale for light + dark themes.
+ */
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Dark mode driven by a `.dark` class on <html> (next-themes friendly). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Semantic surface bindings (shadcn contract) ───────────────── */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius: var(--radius-lg);
+}
+
+:root {
+  --background: var(--color-paper-50);
+  --foreground: var(--color-ink-950);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--color-ink-950);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--color-ink-950);
+  --primary: var(--color-ink-700);
+  --primary-foreground: var(--color-paper-50);
+  --secondary: var(--color-paper-200);
+  --secondary-foreground: var(--color-ink-900);
+  --muted: var(--color-paper-200);
+  --muted-foreground: var(--color-paper-600);
+  --accent: var(--color-ink-100);
+  --accent-foreground: var(--color-ink-800);
+  --destructive: var(--color-danger);
+  --destructive-foreground: var(--color-paper-50);
+  --border: var(--color-paper-300);
+  --input: var(--color-paper-300);
+  --ring: var(--color-ink-500);
+}
+
+.dark {
+  --background: var(--color-paper-950);
+  --foreground: var(--color-paper-100);
+  --card: var(--color-ink-950);
+  --card-foreground: var(--color-paper-100);
+  --popover: var(--color-ink-950);
+  --popover-foreground: var(--color-paper-100);
+  --primary: var(--color-ink-300);
+  --primary-foreground: var(--color-ink-950);
+  --secondary: var(--color-ink-900);
+  --secondary-foreground: var(--color-paper-100);
+  --muted: var(--color-ink-900);
+  --muted-foreground: var(--color-paper-400);
+  --accent: var(--color-ink-800);
+  --accent-foreground: var(--color-paper-100);
+  --destructive: oklch(0.65 0.19 25);
+  --destructive-foreground: var(--color-paper-50);
+  --border: oklch(0.3 0.04 264);
+  --input: oklch(0.32 0.04 264);
+  --ring: var(--color-ink-400);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-serif);
+    font-weight: 560;
+    letter-spacing: -0.01em;
+  }
+
+  /* §12.2 — always-visible, high-contrast focus ring. */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* §12.2 — respect reduced-motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Accessible "visually hidden" but screen-reader available. */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .skip-link {
+    position: absolute;
+    left: 0.5rem;
+    top: -3rem;
+    z-index: 100;
+    transition: top 120ms var(--ease-out-quart);
+  }
+  .skip-link:focus {
+    top: 0.5rem;
+  }
+}

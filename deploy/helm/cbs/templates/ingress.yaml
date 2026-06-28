@@ -1,0 +1,94 @@
+{{- if and .Values.ingress.enabled .Values.api.enabled -}}
+{{- $fullName := include "cbs.fullname" . -}}
+{{- $svcPort := .Values.api.service.port -}}
+---
+{{- /*
+Traefik Middleware: HTTP→HTTPS redirect, HSTS and the §14 security headers.
+Applied to the Ingress via the traefik.ingress.kubernetes.io/router.middlewares
+annotation below. (If using Caddy/nginx instead, drop these and set the
+equivalent annotations — see ADR-0010.)
+*/ -}}
+{{- if eq .Values.ingress.className "traefik" }}
+{{- if .Values.ingress.redirectToHTTPS }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ $fullName }}-redirect-https
+  labels:
+    {{- include "cbs.labels" . | nindent 4 }}
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+---
+{{- end }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ $fullName }}-security-headers
+  labels:
+    {{- include "cbs.labels" . | nindent 4 }}
+spec:
+  headers:
+    {{- if .Values.ingress.hsts.enabled }}
+    stsSeconds: {{ .Values.ingress.hsts.maxAge }}
+    stsIncludeSubdomains: {{ .Values.ingress.hsts.includeSubDomains }}
+    stsPreload: {{ .Values.ingress.hsts.preload }}
+    forceSTSHeader: true
+    {{- end }}
+    {{- if .Values.ingress.securityHeaders.contentTypeNosniff }}
+    contentTypeNosniff: true
+    {{- end }}
+    {{- if .Values.ingress.securityHeaders.frameDeny }}
+    frameDeny: true
+    {{- end }}
+    referrerPolicy: {{ .Values.ingress.securityHeaders.referrerPolicy | quote }}
+    customResponseHeaders:
+      Permissions-Policy: {{ .Values.ingress.securityHeaders.permissionsPolicy | quote }}
+      X-Frame-Options: "DENY"
+---
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "cbs.labels" . | nindent 4 }}
+  annotations:
+    {{- if .Values.ingress.certManager.enabled }}
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.certManager.clusterIssuer | quote }}
+    {{- end }}
+    {{- if eq .Values.ingress.className "traefik" }}
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: >-
+      {{- $mw := list }}
+      {{- if .Values.ingress.redirectToHTTPS }}{{ $mw = append $mw (printf "%s-%s-redirect-https@kubernetescrd" .Release.Namespace $fullName) }}{{- end }}
+      {{- $mw = append $mw (printf "%s-%s-security-headers@kubernetescrd" .Release.Namespace $fullName) }}
+      {{ join "," $mw }}
+    {{- end }}
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host | quote }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          - path: {{ .Values.ingress.path }}
+            pathType: {{ .Values.ingress.pathType }}
+            backend:
+              service:
+                name: {{ $fullName }}-api
+                port:
+                  number: {{ $svcPort }}
+{{- end }}

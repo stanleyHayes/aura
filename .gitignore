@@ -1,0 +1,26 @@
+# Go
+/bin/
+*.test
+*.out
+coverage.*
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Node / web / mobile
+node_modules/
+.next/
+dist/
+.expo/
+*.tsbuildinfo
+
+# Local Postgres test cluster
+/.pgdata/
+/.tmp/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,58 @@
+# Staging overlay (§17 "Environments": prod-like, seeded). Apply with:
+#   helm upgrade --install cbs deploy/helm/cbs \
+#     -n cbs-staging -f deploy/helm/cbs/values-staging.yaml
+config:
+  APP_ENV: staging
+  S3_BUCKET: cbs-staging
+  JWT_KEY_ID: staging-key-1
+  CORS_ALLOWED_ORIGINS: https://staging.cbs.example.edu
+
+api:
+  replicaCount: 2
+  hpa:
+    minReplicas: 2
+    maxReplicas: 4
+
+worker:
+  replicaCount: 1
+
+ingress:
+  host: staging.cbs.example.edu
+  tls:
+    secretName: cbs-staging-tls
+  certManager:
+    clusterIssuer: letsencrypt-staging
+
+externalSecret:
+  remoteRefPrefix: cbs/staging
+  data:
+    - secretKey: DATABASE_URL
+      remoteKey: cbs/staging/database
+      property: url
+    - secretKey: DATABASE_REPLICA_URL
+      remoteKey: cbs/staging/database
+      property: replica_url
+    - secretKey: REDIS_URL
+      remoteKey: cbs/staging/redis
+      property: url
+    - secretKey: S3_ACCESS_KEY
+      remoteKey: cbs/staging/s3
+      property: access_key
+    - secretKey: S3_SECRET_KEY
+      remoteKey: cbs/staging/s3
+      property: secret_key
+    - secretKey: JWT_SIGNING_KEY
+      remoteKey: cbs/staging/jwt
+      property: signing_key
+    - secretKey: MFA_ENCRYPTION_KEY
+      remoteKey: cbs/staging/mfa
+      property: encryption_key
+    - secretKey: MAIL_USERNAME
+      remoteKey: cbs/staging/mail
+      property: username
+    - secretKey: MAIL_PASSWORD
+      remoteKey: cbs/staging/mail
+      property: password
+    - secretKey: SENTRY_DSN
+      remoteKey: cbs/staging/sentry
+      property: dsn

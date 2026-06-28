@@ -1,0 +1,29 @@
+/**
+ * App stylesheet. Pulls in the shared CBS design system (tokens + shadcn
+ * bindings) and tells Tailwind v4 to scan the app + workspace UI package.
+ */
+@import "@cbs/ui/globals.css";
+
+/* Tailwind v4 content sources: scan the app and the shared UI package so
+   utility classes used in @cbs/ui are emitted. */
+@source "../";
+@source "../../../packages/ui/src";
+
+/* Schedule-X calendar theme bridged to CBS tokens (ADR-0005). */
+.sx-react-calendar-wrapper {
+  --sx-color-primary: var(--color-ink-600);
+  --sx-color-on-primary: var(--color-paper-50);
+  --sx-color-primary-container: color-mix(
+    in oklch,
+    var(--color-ink-200) 60%,
+    transparent
+  );
+  --sx-color-background: var(--color-card);
+  --sx-color-on-background: var(--color-foreground);
+  --sx-color-surface: var(--color-card);
+  --sx-color-on-surface: var(--color-foreground);
+  --sx-color-border: var(--color-border);
+  font-family: var(--font-sans);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}

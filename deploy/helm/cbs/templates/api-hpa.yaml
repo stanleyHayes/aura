@@ -1,0 +1,48 @@
+{{- if and .Values.api.enabled .Values.api.hpa.enabled -}}
+{{- $component := "api" -}}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "cbs.fullname" . }}-api
+  labels:
+    {{- include "cbs.componentLabels" (merge (dict "component" $component) .) | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "cbs.fullname" . }}-api
+  minReplicas: {{ .Values.api.hpa.minReplicas }}
+  maxReplicas: {{ .Values.api.hpa.maxReplicas }}
+  metrics:
+    {{- if .Values.api.hpa.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.api.hpa.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.api.hpa.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.api.hpa.targetMemoryUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.api.hpa.requestsPerSecond.enabled }}
+    # RPS-based scaling (§18.2). Requires prometheus-adapter publishing this
+    # per-pod metric to the custom.metrics.k8s.io API.
+    - type: Pods
+      pods:
+        metric:
+          name: {{ .Values.api.hpa.requestsPerSecond.metricName }}
+        target:
+          type: AverageValue
+          averageValue: {{ .Values.api.hpa.requestsPerSecond.targetAverageValue | quote }}
+    {{- end }}
+  {{- with .Values.api.hpa.behavior }}
+  behavior:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

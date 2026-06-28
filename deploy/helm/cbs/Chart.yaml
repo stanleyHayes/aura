@@ -1,0 +1,35 @@
+apiVersion: v2
+name: cbs
+description: |
+  Classroom Booking System — Helm chart for the Go API and River worker
+  (§18.2). Deploys two workloads (api, worker) plus the supporting
+  Kubernetes objects: Service, HPA, Ingress, NetworkPolicy,
+  PodDisruptionBudget, ConfigMap (non-secret env), Secret/ExternalSecret
+  references and a Prometheus ServiceMonitor.
+type: application
+
+# Chart version is independent of the application version. Bump on any
+# template change per semver; CI re-pins appVersion to the released image tag.
+version: 0.1.0
+
+# Matches the container image tag deployed (commit SHA in CI; see values.yaml).
+appVersion: "0.1.0"
+
+kubeVersion: ">=1.28.0-0"
+
+home: https://github.com/aura/cbs
+sources:
+  - https://github.com/aura/cbs
+
+keywords:
+  - classroom-booking
+  - go
+  - api
+  - worker
+
+maintainers:
+  - name: CBS Platform Team
+    email: platform@cbs.example.edu
+
+annotations:
+  category: Application

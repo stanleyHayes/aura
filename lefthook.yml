@@ -1,0 +1,43 @@
+# Local git hooks (§17 step 1). Run: `lefthook install` after cloning.
+# Mirrors the CI gate so problems surface before they reach a PR.
+#   - pre-commit: gitleaks, lint-staged (ESLint/Prettier), gofmt, golangci-lint.
+#   - commit-msg: commitlint (Conventional Commits).
+
+pre-commit:
+  parallel: true
+  commands:
+    gitleaks:
+      # Block secrets from ever being committed (§14 "Secrets").
+      run: gitleaks protect --staged --redact --verbose
+      tags: security
+
+    lint-staged:
+      # ESLint + Prettier on staged JS/TS via lint-staged (config below).
+      glob: "*.{js,jsx,ts,tsx,json,css,md,yml,yaml}"
+      run: pnpm exec lint-staged
+
+    gofmt:
+      glob: "*.go"
+      run: |
+        unformatted="$(gofmt -l {staged_files})"
+        if [ -n "$unformatted" ]; then
+          echo "gofmt would reformat:"; echo "$unformatted"
+          echo "Run: gofmt -w ."; exit 1
+        fi
+
+    golangci-lint:
+      glob: "*.go"
+      run: golangci-lint run --new-from-rev=HEAD --timeout=3m
+
+commit-msg:
+  commands:
+    commitlint:
+      # Enforce Conventional Commits (§17 step 1).
+      run: pnpm exec commitlint --edit {1}
+
+pre-push:
+  commands:
+    go-test-short:
+      # Fast unit pass before pushing; full suite runs in CI.
+      glob: "*.go"
+      run: go test -short ./...

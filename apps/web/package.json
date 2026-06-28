@@ -1,0 +1,50 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "CBS Next.js 16 app — public + requester portal + admin console (§10–12).",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf .next .turbo node_modules/.cache"
+  },
+  "dependencies": {
+    "@cbs/api-client": "workspace:*",
+    "@cbs/schemas": "workspace:*",
+    "@cbs/ui": "workspace:*",
+    "@hookform/resolvers": "catalog:",
+    "@schedule-x/calendar": "catalog:",
+    "@schedule-x/events-service": "catalog:",
+    "@schedule-x/react": "catalog:",
+    "@schedule-x/theme-default": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "@tanstack/react-table": "catalog:",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "date-fns": "catalog:",
+    "lucide-react": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-hook-form": "catalog:",
+    "recharts": "catalog:",
+    "tailwind-merge": "catalog:",
+    "zod": "catalog:",
+    "zustand": "catalog:"
+  },
+  "devDependencies": {
+    "@cbs/config": "workspace:*",
+    "@tailwindcss/postcss": "catalog:",
+    "@types/node": "22.10.10",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "eslint": "catalog:",
+    "eslint-config-next": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:"
+  }
+}

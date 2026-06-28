@@ -1,0 +1,32 @@
+Classroom Booking System ({{ .Chart.Name }}-{{ .Chart.Version }}) deployed to
+namespace "{{ .Release.Namespace }}" as release "{{ .Release.Name }}".
+
+Image:    {{ include "cbs.image" . }}
+API:      {{ if .Values.api.enabled }}{{ .Values.api.replicaCount }} replica(s){{ if .Values.api.hpa.enabled }}, HPA {{ .Values.api.hpa.minReplicas }}–{{ .Values.api.hpa.maxReplicas }}{{ end }}{{ else }}disabled{{ end }}
+Worker:   {{ if .Values.worker.enabled }}{{ .Values.worker.replicaCount }} replica(s){{ else }}disabled{{ end }}
+
+Health endpoints (probed by Kubernetes, §15):
+  liveness  → /healthz
+  readiness → /readyz
+  metrics   → /metrics (scraped by ServiceMonitor: {{ .Values.serviceMonitor.enabled }})
+
+{{- if .Values.ingress.enabled }}
+
+Public URL: https://{{ .Values.ingress.host }}
+TLS:        {{ if .Values.ingress.certManager.enabled }}cert-manager ({{ .Values.ingress.certManager.clusterIssuer }}){{ else }}{{ .Values.ingress.tls.secretName }}{{ end }}
+{{- end }}
+
+Secrets:
+{{- if .Values.existingSecret }}
+  Using pre-provisioned Secret "{{ .Values.existingSecret }}".
+{{- else if .Values.externalSecret.enabled }}
+  Synced from secret manager via ExternalSecret (store: {{ .Values.externalSecret.secretStoreRef.name }}).
+{{- else if .Values.secret.create }}
+  WARNING: chart-managed Secret in use. Acceptable for throwaway clusters only.
+{{- else }}
+  No secret source configured — set externalSecret.enabled or existingSecret.
+{{- end }}
+
+Verify the rollout:
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "cbs.fullname" . }}-api
+  kubectl -n {{ .Release.Namespace }} get hpa,pdb,servicemonitor -l app.kubernetes.io/instance={{ .Release.Name }}

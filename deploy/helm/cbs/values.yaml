@@ -1,0 +1,346 @@
+# ── Classroom Booking System — Helm values (§18.2) ──
+# Defaults target a production-like deployment. Override per environment with
+# values-staging.yaml / values-production.yaml and per-environment secrets.
+#
+# SECURITY: this file contains NO secrets. Every secret value is supplied at
+# runtime via an ExternalSecret (preferred) or a pre-provisioned Kubernetes
+# Secret. See `externalSecret` and `existingSecret` below and §14 "Secrets".
+
+# Fully-qualified image references. CI tags by commit SHA (§17 step 5); the
+# pinned digest is recorded for supply-chain integrity (§14 A08).
+image:
+  registry: ghcr.io
+  repository: aura/cbs
+  # Overridden by CI to the immutable commit SHA, e.g. "sha-1a2b3c4".
+  tag: "0.1.0"
+  # Pin by digest in production for reproducibility (overrides tag when set).
+  digest: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+  # - name: ghcr-pull
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Common labels merged onto every rendered object.
+commonLabels: {}
+commonAnnotations: {}
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+# ── API workload ────────────────────────────────────────────────────────────
+api:
+  enabled: true
+  replicaCount: 2 # ≥2 replicas (§18.2). HPA scales above this floor.
+  command: ["/api"]
+  containerPort: 8080 # matches HTTP_PORT in config below.
+
+  image:
+    target: api # Dockerfile stage (deploy/compose/Dockerfile.api).
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+  # Probes wired to the spec health endpoints (§15).
+  livenessProbe:
+    httpGet:
+      path: /healthz # process liveness.
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /readyz # DB ping + migration version + Redis.
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+  startupProbe:
+    httpGet:
+      path: /healthz
+      port: http
+    periodSeconds: 5
+    failureThreshold: 30 # up to 150s for cold start before liveness engages.
+
+  # Graceful shutdown: drain in-flight requests before SIGTERM completes.
+  terminationGracePeriodSeconds: 30
+  lifecycle:
+    preStop:
+      exec:
+        command: ["/bin/sh", "-c", "sleep 5"]
+
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+
+  service:
+    type: ClusterIP
+    port: 80
+    annotations: {}
+
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    # CPU target (§18.2 HPA on CPU/RPS).
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+    # RPS-based scaling via a custom Prometheus-sourced metric. Requires the
+    # prometheus-adapter exposing `http_requests_per_second` per pod.
+    requestsPerSecond:
+      enabled: true
+      targetAverageValue: "50"
+      metricName: http_requests_per_second
+    behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+          - type: Percent
+            value: 50
+            periodSeconds: 60
+      scaleUp:
+        stabilizationWindowSeconds: 30
+        policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 30
+
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+# ── Worker workload (River) ─────────────────────────────────────────────────
+worker:
+  enabled: true
+  replicaCount: 1 # scale up for import/notification throughput.
+  command: ["/worker"]
+
+  image:
+    target: worker
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+  # The worker has no HTTP server; liveness uses a process check. If a metrics
+  # listener is enabled in the worker, point a probe at it instead.
+  livenessProbe:
+    exec:
+      command: ["/bin/sh", "-c", "pgrep -x worker >/dev/null || exit 1"]
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  terminationGracePeriodSeconds: 60 # let in-flight jobs finish.
+
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+
+  pdb:
+    enabled: true
+    minAvailable: 0 # single worker may be evicted; jobs are durable in Postgres.
+
+# ── Non-secret configuration (rendered into a ConfigMap) ─────────────────────
+# Names match §19.1 exactly. SECRETS LIVE ELSEWHERE — see `secret`/`externalSecret`.
+config:
+  APP_ENV: production
+  APP_INSTITUTION_TZ: Africa/Accra
+  HTTP_PORT: "8080"
+  ACCESS_TOKEN_TTL: 15m
+  REFRESH_TOKEN_TTL: 720h
+  ARGON2_MEMORY_KIB: "65536"
+  ARGON2_ITERATIONS: "3"
+  ARGON2_PARALLELISM: "2"
+  LOGIN_MAX_ATTEMPTS: "5"
+  LOGIN_LOCK_WINDOW: 15m
+  JWT_KEY_ID: prod-key-1
+  S3_BUCKET: cbs-prod
+  S3_REGION: eu-west-2
+  S3_ENDPOINT: "" # empty → AWS default endpoint; set for MinIO/self-host.
+  MAIL_HOST: smtp.eu.postmarkapp.com
+  MAIL_PORT: "587"
+  MAIL_FROM: no-reply@cbs.example.edu
+  CORS_ALLOWED_ORIGINS: https://cbs.example.edu
+  RATE_LIMIT_DEFAULT_PER_MIN: "120"
+  RATE_LIMIT_AUTH_PER_MIN: "10"
+  # In-cluster OTLP to the Tempo collector over the pod network (not exposed
+  # externally; egress is constrained by the NetworkPolicy). Use https:// here
+  # only if the collector terminates TLS.
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo.observability.svc:4318
+
+# Extra non-secret env supplied verbatim into the ConfigMap.
+extraConfig: {}
+
+# ── Secrets ─────────────────────────────────────────────────────────────────
+# NEVER inline secret values here. Two supported modes:
+#
+#  1. externalSecret.enabled: true  →  an ExternalSecret (external-secrets.io)
+#     pulls keys from the cloud secret manager into the K8s Secret named below.
+#  2. existingSecret: "<name>"      →  reference a Secret you provisioned out of
+#     band (e.g. SOPS-decrypted at deploy time, or sealed-secrets).
+#
+# The Secret MUST contain these keys (names from §19.1):
+#   DATABASE_URL, DATABASE_REPLICA_URL, REDIS_URL,
+#   S3_ACCESS_KEY, S3_SECRET_KEY,
+#   JWT_SIGNING_KEY, MFA_ENCRYPTION_KEY,
+#   MAIL_USERNAME, MAIL_PASSWORD, SENTRY_DSN
+secret:
+  # Set true ONLY for local/throwaway clusters; populates a Secret from `data`.
+  # Leave false in real environments — use externalSecret or existingSecret.
+  create: false
+  data: {}
+
+# Reference an already-provisioned Secret instead of creating one.
+existingSecret: ""
+
+externalSecret:
+  enabled: true
+  # external-secrets.io ClusterSecretStore/SecretStore name.
+  secretStoreRef:
+    name: cbs-secret-store
+    kind: ClusterSecretStore
+  refreshInterval: 1h
+  # Path/prefix in the backing secret manager (e.g. AWS Secrets Manager).
+  remoteRefPrefix: cbs/production
+  # Each entry: K8s Secret key ← remote property.
+  data:
+    - secretKey: DATABASE_URL
+      remoteKey: cbs/production/database
+      property: url
+    - secretKey: DATABASE_REPLICA_URL
+      remoteKey: cbs/production/database
+      property: replica_url
+    - secretKey: REDIS_URL
+      remoteKey: cbs/production/redis
+      property: url
+    - secretKey: S3_ACCESS_KEY
+      remoteKey: cbs/production/s3
+      property: access_key
+    - secretKey: S3_SECRET_KEY
+      remoteKey: cbs/production/s3
+      property: secret_key
+    - secretKey: JWT_SIGNING_KEY
+      remoteKey: cbs/production/jwt
+      property: signing_key
+    - secretKey: MFA_ENCRYPTION_KEY
+      remoteKey: cbs/production/mfa
+      property: encryption_key
+    - secretKey: MAIL_USERNAME
+      remoteKey: cbs/production/mail
+      property: username
+    - secretKey: MAIL_PASSWORD
+      remoteKey: cbs/production/mail
+      property: password
+    - secretKey: SENTRY_DSN
+      remoteKey: cbs/production/sentry
+      property: dsn
+
+# ── Ingress (Traefik default; cert-manager TLS; HSTS; HTTP→HTTPS) ────────────
+ingress:
+  enabled: true
+  className: traefik # set "" to use the cluster default; see ADR-0010.
+  host: cbs.example.edu
+  path: /
+  pathType: Prefix
+
+  tls:
+    enabled: true
+    secretName: cbs-tls
+  # cert-manager issues and renews the certificate (§18.2).
+  certManager:
+    enabled: true
+    clusterIssuer: letsencrypt-prod
+
+  # Middleware that forces HTTP→HTTPS, HSTS and the §14 security headers.
+  # Rendered as a Traefik Middleware + IngressRoute-compatible annotations.
+  redirectToHTTPS: true
+  hsts:
+    enabled: true
+    maxAge: 63072000 # 2 years.
+    includeSubDomains: true
+    preload: true
+  securityHeaders:
+    contentTypeNosniff: true
+    frameDeny: true # X-Frame-Options: DENY.
+    referrerPolicy: strict-origin-when-cross-origin
+    permissionsPolicy: "camera=(), microphone=(), geolocation=()"
+    # CSP is set by the app/edge (nonce-based, §14); not duplicated here.
+
+  annotations: {}
+
+# ── NetworkPolicy ───────────────────────────────────────────────────────────
+networkPolicy:
+  enabled: true
+  # Ingress to the API is permitted only from the ingress controller namespace.
+  ingressControllerNamespace: traefik
+  # Allow scraping from the Prometheus namespace.
+  monitoringNamespace: observability
+  # Egress allow-list (§14 A10 SSRF): DNS, Postgres, Redis, S3/HTTPS, SMTP, OTLP.
+  egress:
+    dnsEnabled: true
+    postgresPort: 5432
+    redisPort: 6379
+    smtpPort: 587
+    httpsPort: 443 # S3, mail API, OTLP/HTTP, Sentry.
+    otlpPort: 4318
+
+# ── Prometheus ServiceMonitor ───────────────────────────────────────────────
+serviceMonitor:
+  enabled: true
+  # Namespace/label the kube-prometheus-stack selects on.
+  labels:
+    release: kube-prometheus-stack
+  path: /metrics
+  interval: 30s
+  scrapeTimeout: 10s
+  scheme: http
+
+# ── Pre-deploy migration job (goose up) ─────────────────────────────────────
+# Run by the deploy pipeline (§17 step 6). Disabled by default so `helm upgrade`
+# does not couple deploys to migrations; deploy.yml runs it as a discrete step.
+migrationJob:
+  enabled: false
+  command: ["/migrate", "up"]
+  backoffLimit: 1
+  activeDeadlineSeconds: 600
+
+# Pod-level security context (defence in depth; distroless nonroot images).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532 # distroless "nonroot".
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL

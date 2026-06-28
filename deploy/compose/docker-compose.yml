@@ -1,0 +1,105 @@
+# Local development stack (§18.1). One command brings up the full environment.
+#   make dev   (or: docker compose -f deploy/compose/docker-compose.yml up --build)
+name: cbs
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: cbs
+      POSTGRES_PASSWORD: cbs
+      POSTGRES_DB: cbs
+    command: ["postgres", "-c", "timezone=UTC"]
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cbs -d cbs"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: valkey/valkey:8-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports: ["9000:9000", "9001:9001"]
+    volumes:
+      - miniodata:/data
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports: ["1025:1025", "8025:8025"]
+
+  migrate:
+    build:
+      context: ../..
+      dockerfile: deploy/compose/Dockerfile.api
+      target: build
+    command: ["/src/bin/migrate", "up"]
+    environment:
+      DATABASE_URL: postgres://cbs:cbs@postgres:5432/cbs?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/compose/Dockerfile.api
+      target: api
+    environment:
+      APP_ENV: development
+      APP_INSTITUTION_TZ: Africa/Accra
+      HTTP_PORT: "8080"
+      DATABASE_URL: postgres://cbs:cbs@postgres:5432/cbs?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: cbs-local
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
+      MAIL_FROM: no-reply@cbs.example.edu
+      JWT_SIGNING_KEY: ZGV2LW9ubHktY2hhbmdlLW1lLXRoaXMtaXMtbm90LWEtcmVhbC1rZXk=
+      MFA_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+    ports: ["8080:8080"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: deploy/compose/Dockerfile.api
+      target: worker
+    environment:
+      DATABASE_URL: postgres://cbs:cbs@postgres:5432/cbs?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: cbs-local
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  miniodata:

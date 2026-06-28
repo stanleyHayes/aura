@@ -1,0 +1,100 @@
+# Render Blueprint (Infrastructure as Code) for the Classroom Booking System.
+# Deploy: push to a Git repo, then "New + > Blueprint" in Render and point it here.
+# See docs/decisions/0007-render-deployment-and-postgres-portability.md.
+#
+# Object storage: Render has no managed S3. Leave S3_* unset (uploads processed
+# in-memory) or point them at Cloudflare R2 / AWS S3.
+
+databases:
+  - name: cbs-postgres
+    databaseName: cbs
+    user: cbs
+    # Render's managed Postgres; the uuidv7() polyfill (migration 00001) makes the
+    # schema run on PG 16/17. Use the highest version Render offers.
+    postgresMajorVersion: "17"
+    plan: starter
+    ipAllowList: []   # only Render services may connect
+
+services:
+  # ── Redis / Valkey (cache, rate limit, SSE fan-out) ──────────────────────────
+  - type: keyvalue
+    name: cbs-redis
+    plan: starter
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru
+
+  # ── API (HTTP) ───────────────────────────────────────────────────────────────
+  - type: web
+    name: cbs-api
+    runtime: docker
+    dockerfilePath: ./deploy/render/Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /healthz
+    # Run migrations before each deploy (expand → migrate → contract, §6.10).
+    preDeployCommand: /migrate up
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_INSTITUTION_TZ
+        value: Africa/Accra
+      - key: DATABASE_URL
+        fromDatabase: { name: cbs-postgres, property: connectionString }
+      - key: REDIS_URL
+        fromService: { type: keyvalue, name: cbs-redis, property: connectionString }
+      # JWT signing key (HMAC dev / set a real EdDSA key for prod). Random is fine
+      # for HMAC; rotate via JWT_KEY_ID.
+      - key: JWT_SIGNING_KEY
+        generateValue: true
+      - key: JWT_KEY_ID
+        value: render-key-1
+      # AES-256 key for MFA secrets — must be exactly 32 bytes, base64. Generate
+      # with: openssl rand -base64 32   (set in the dashboard; not auto-generated
+      # because length must be exact).
+      - key: MFA_ENCRYPTION_KEY
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false   # e.g. https://cbs-web.onrender.com
+      # Transactional email (Resend/Postmark/SES SMTP relay). Optional; without it
+      # the API logs emails instead of sending.
+      - key: MAIL_HOST
+        sync: false
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_FROM
+        value: no-reply@cbs.example.edu
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+
+  # ── Background worker (expiry sweep, cleanup, async dispatch) ─────────────────
+  - type: worker
+    name: cbs-worker
+    runtime: docker
+    dockerfilePath: ./deploy/render/Dockerfile
+    dockerContext: .
+    plan: starter
+    dockerCommand: /worker
+    envVars:
+      - key: APP_INSTITUTION_TZ
+        value: Africa/Accra
+      - key: DATABASE_URL
+        fromDatabase: { name: cbs-postgres, property: connectionString }
+      - key: REDIS_URL
+        fromService: { type: keyvalue, name: cbs-redis, property: connectionString }
+
+  # ── Web (Next.js public + requester + admin) ─────────────────────────────────
+  # Adjust build/start to match apps/web once its package layout is finalised.
+  - type: web
+    name: cbs-web
+    runtime: node
+    plan: starter
+    rootDir: apps/web
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_PUBLIC_API_BASE_URL
+        fromService: { type: web, name: cbs-api, property: host }

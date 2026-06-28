@@ -1,0 +1,64 @@
+{{- if .Values.networkPolicy.enabled -}}
+{{- $np := .Values.networkPolicy -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "cbs.fullname" . }}
+  labels:
+    {{- include "cbs.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "cbs.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # HTTP from the ingress controller namespace (to the API only).
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $np.ingressControllerNamespace }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.api.containerPort }}
+    # Prometheus scrape of /metrics from the monitoring namespace.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $np.monitoringNamespace }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.api.containerPort }}
+  egress:
+    {{- if $np.egress.dnsEnabled }}
+    # DNS resolution.
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    {{- end }}
+    # Managed Postgres (primary + replica).
+    - ports:
+        - protocol: TCP
+          port: {{ $np.egress.postgresPort }}
+    # Managed Redis/Valkey.
+    - ports:
+        - protocol: TCP
+          port: {{ $np.egress.redisPort }}
+    # SMTP (transactional mail).
+    - ports:
+        - protocol: TCP
+          port: {{ $np.egress.smtpPort }}
+    # HTTPS egress: S3, mail API, Sentry. SSRF-limited to 443 (§14 A10).
+    - ports:
+        - protocol: TCP
+          port: {{ $np.egress.httpsPort }}
+    # OTLP/HTTP to the in-cluster collector (Tempo).
+    - ports:
+        - protocol: TCP
+          port: {{ $np.egress.otlpPort }}
+{{- end }}

@@ -1,0 +1,22 @@
+# Multi-stage build (§17 step 5): Go → distroless static.
+FROM golang:1.25-alpine AS build
+RUN apk add --no-cache git
+WORKDIR /src
+COPY go.mod go.sum* ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/api ./cmd/api && \
+    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/worker ./cmd/worker && \
+    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/migrate ./cmd/migrate
+
+FROM gcr.io/distroless/static-debian12:nonroot AS api
+COPY --from=build /src/bin/api /api
+COPY --from=build /src/db/migrations /db/migrations
+USER nonroot:nonroot
+EXPOSE 8080
+ENTRYPOINT ["/api"]
+
+FROM gcr.io/distroless/static-debian12:nonroot AS worker
+COPY --from=build /src/bin/worker /worker
+USER nonroot:nonroot
+ENTRYPOINT ["/worker"]

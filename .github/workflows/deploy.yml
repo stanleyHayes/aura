@@ -1,0 +1,139 @@
+# Deployment pipeline (§17 step 6). Migrate (goose) pre-deploy, then a
+# health-gated rollout:
+#   - push to main           → deploy to STAGING automatically.
+#   - tagged release (v*)    → deploy to PRODUCTION with manual approval
+#                              (GitHub Environment protection rules).
+name: deploy
+
+on:
+  push:
+    branches: [main] # → staging.
+    tags: ["v*"] # → production (gated).
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [staging, production]
+        required: true
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false # never interrupt an in-flight deploy.
+
+permissions:
+  contents: read
+
+jobs:
+  # Resolve the target environment + the immutable image tag (commit SHA).
+  setup:
+    name: resolve target
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.target.outputs.environment }}
+      image_tag: sha-${{ github.sha }}
+    steps:
+      - id: target
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          DISPATCH_ENV: ${{ github.event.inputs.environment }}
+        run: |
+          if [ -n "$DISPATCH_ENV" ]; then
+            echo "environment=$DISPATCH_ENV" >> "$GITHUB_OUTPUT"
+          elif [ "$REF_TYPE" = "tag" ]; then
+            echo "environment=production" >> "$GITHUB_OUTPUT"
+          else
+            echo "environment=staging" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ── Pre-deploy migrations (goose up, expand/contract) (§17 step 6) ────────
+  migrate:
+    name: migrate (${{ needs.setup.outputs.environment }})
+    needs: setup
+    runs-on: ubuntu-latest
+    # Environment protection: production requires manual approval here, BEFORE
+    # any schema change is applied.
+    environment:
+      name: ${{ needs.setup.outputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+
+      - name: Install goose
+        run: go install github.com/pressly/goose/v3/cmd/goose@latest
+
+      - name: goose up (expand phase)
+        env:
+          # DATABASE_URL is an environment-scoped secret (per environment).
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: goose -dir db/migrations postgres "$DATABASE_URL" up
+
+      - name: Verify migration version
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: goose -dir db/migrations postgres "$DATABASE_URL" status
+
+  # ── Rollout: helm upgrade with health-gated cutover (§17 step 6) ──────────
+  rollout:
+    name: rollout (${{ needs.setup.outputs.environment }})
+    needs: [setup, migrate]
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ needs.setup.outputs.environment }}
+      url: ${{ needs.setup.outputs.environment == 'production' && 'https://cbs.example.edu' || 'https://staging.cbs.example.edu' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.0
+
+      - name: Configure kubeconfig
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          mkdir -p "$HOME/.kube"
+          printf '%s' "$KUBE_CONFIG" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Helm upgrade (health-gated; --wait --atomic)
+        env:
+          ENVIRONMENT: ${{ needs.setup.outputs.environment }}
+          IMAGE_TAG: ${{ needs.setup.outputs.image_tag }}
+        run: |
+          helm upgrade --install cbs deploy/helm/cbs \
+            --namespace "cbs-${ENVIRONMENT}" --create-namespace \
+            --values "deploy/helm/cbs/values-${ENVIRONMENT}.yaml" \
+            --set image.tag="${IMAGE_TAG}" \
+            --wait \
+            --timeout 10m \
+            --atomic   # auto-rollback on failed readiness (§17).
+
+      - name: Post-deploy health gate (/readyz)
+        env:
+          ENVIRONMENT: ${{ needs.setup.outputs.environment }}
+        run: |
+          kubectl -n "cbs-${ENVIRONMENT}" rollout status \
+            deploy/cbs-api --timeout=5m
+          kubectl -n "cbs-${ENVIRONMENT}" rollout status \
+            deploy/cbs-worker --timeout=5m
+
+      - name: Smoke test public health endpoint
+        env:
+          ENVIRONMENT: ${{ needs.setup.outputs.environment }}
+        run: |
+          base="https://staging.cbs.example.edu"
+          if [ "$ENVIRONMENT" = "production" ]; then base="https://cbs.example.edu"; fi
+          for i in $(seq 1 10); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' "${base}/readyz" || true)"
+            if [ "$code" = "200" ]; then echo "readyz OK"; exit 0; fi
+            echo "attempt $i: /readyz returned ${code}; retrying"; sleep 6
+          done
+          echo "::error::/readyz never returned 200 — failing deploy (helm --atomic rolled back)"
+          exit 1

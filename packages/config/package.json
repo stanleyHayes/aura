@@ -1,0 +1,33 @@
+{
+  "name": "@cbs/config",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared TypeScript / ESLint config for the CBS JS workspace (§5.2, §18.4).",
+  "type": "module",
+  "exports": {
+    "./tsconfig/base.json": "./tsconfig/base.json",
+    "./tsconfig/nextjs.json": "./tsconfig/nextjs.json",
+    "./tsconfig/react-library.json": "./tsconfig/react-library.json",
+    "./eslint/base.js": "./eslint/base.js",
+    "./eslint/next.js": "./eslint/next.js"
+  },
+  "files": ["tsconfig", "eslint"],
+  "scripts": {
+    "typecheck": "echo 'no typescript sources in @cbs/config'",
+    "lint": "echo 'no lintable sources in @cbs/config'",
+    "clean": "echo 'nothing to clean'"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.4",
+    "typescript-eslint": "8.62.0",
+    "eslint-plugin-jsx-a11y": "6.10.2"
+  },
+  "peerDependencies": {
+    "eslint": ">=9",
+    "eslint-config-next": ">=16"
+  },
+  "peerDependenciesMeta": {
+    "eslint": { "optional": true },
+    "eslint-config-next": { "optional": true }
+  }
+}

@@ -1,0 +1,343 @@
+# Continuous integration — runs the full quality gate on every PR (spec §17).
+# main is protected: no direct pushes, required reviews, green CI required.
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: "1.25"
+  NODE_VERSION: "22"
+  COVERAGE_THRESHOLD: "80" # ≥80% on domain/service packages (§16).
+
+jobs:
+  # ── 1. Lint / format (§17 step 1) ─────────────────────────────────────────
+  lint:
+    name: lint & format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: gofmt (must be clean)
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::gofmt found unformatted files:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: golangci-lint (zero issues)
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install JS deps
+        run: pnpm install --frozen-lockfile
+
+      - name: ESLint (flat config)
+        run: pnpm -r lint
+
+      - name: Prettier (check)
+        run: pnpm exec prettier --check .
+
+      - name: TypeScript (tsc --noEmit, strict)
+        run: pnpm -r exec tsc --noEmit
+
+  # ── 2. Security (§17 step 2) ──────────────────────────────────────────────
+  security:
+    name: security scans
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # upload SARIF.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # gitleaks needs full history.
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+      - name: gosec
+        uses: securego/gosec@master
+        with:
+          args: -no-fail -fmt sarif -out gosec.sarif ./...
+
+      - name: Upload gosec SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gosec.sarif
+          category: gosec
+
+      - name: gitleaks (secret scanning)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: pnpm audit (prod deps)
+        run: pnpm audit --prod --audit-level=high
+
+      - name: Trivy filesystem scan (deps + IaC misconfig)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scanners: vuln,secret,misconfig
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Generate SBOM (Syft)
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: sbom.spdx.json
+
+      - name: Upload SBOM artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.spdx.json
+
+  # ── 3. Test: Go unit + integration (§17 step 3, §16) ──────────────────────
+  test-go:
+    name: go tests (unit + integration)
+    runs-on: ubuntu-latest
+    services:
+      # Real PostgreSQL 18 for integration tests (exclusion constraints,
+      # triggers, concurrent-approval race — §16). testcontainers may also be
+      # used; this service container is the default DSN target.
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: cbs
+          POSTGRES_PASSWORD: cbs
+          POSTGRES_DB: cbs_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cbs -d cbs_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: valkey/valkey:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://cbs:cbs@localhost:5432/cbs_test?sslmode=disable
+      REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install sqlc + goose
+        run: |
+          go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+          go install github.com/pressly/goose/v3/cmd/goose@latest
+
+      - name: Apply migrations (goose up)
+        run: goose -dir db/migrations postgres "$DATABASE_URL" up
+
+      - name: sqlc drift check (no uncommitted generated code)
+        run: |
+          sqlc generate
+          if ! git diff --exit-code; then
+            echo "::error::sqlc-generated code is out of date. Run 'sqlc generate' and commit."
+            exit 1
+          fi
+
+      - name: Go tests with coverage
+        run: |
+          go test -race -covermode=atomic \
+            -coverprofile=coverage.out \
+            -coverpkg=./internal/... ./...
+
+      - name: Enforce coverage gate (≥80% on domain/service)
+        run: |
+          pkgs='internal/availability|internal/bookings|internal/scheduling|internal/iam'
+          total="$(go tool cover -func=coverage.out \
+            | grep -E "$pkgs" \
+            | awk '{gsub(/%/,"",$3); s+=$3; n++} END {if (n>0) printf "%.1f", s/n; else print "0"}')"
+          echo "Domain/service coverage: ${total}%"
+          awk -v c="$total" -v t="${COVERAGE_THRESHOLD}" \
+            'BEGIN { exit (c+0 >= t+0) ? 0 : 1 }' \
+            || { echo "::error::coverage ${total}% below ${COVERAGE_THRESHOLD}% gate"; exit 1; }
+
+      - name: Upload coverage artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage
+          path: coverage.out
+
+  # ── 3b. Test: web (Vitest) (§17 step 3) ───────────────────────────────────
+  test-web:
+    name: web tests (vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install JS deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Vitest (with coverage)
+        run: pnpm --filter ./apps/web test -- --coverage --run
+
+  # ── 4. Quality gate (§17 step 4) — SonarQube ──────────────────────────────
+  quality:
+    name: sonarqube gate
+    runs-on: ubuntu-latest
+    needs: [test-go, test-web]
+    # SonarCloud/SonarQube credentials are required; the gate is enforced by the
+    # quality-gate action below. Skipped automatically on forks without secrets.
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Go coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: go-coverage
+
+      - name: SonarQube scan + zero-tolerance quality gate
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: Wait for quality gate result (fails PR if red)
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+  # ── 5. Build: multi-stage Docker → GHCR, tag by SHA (§17 step 5) ──────────
+  build:
+    name: build & push image
+    runs-on: ubuntu-latest
+    needs: [lint, security, test-go, test-web]
+    permissions:
+      contents: read
+      packages: write # push to GHCR.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push api + worker (tag by SHA)
+        uses: docker/build-push-action@v6
+        with:
+          context: . # repo root.
+          file: deploy/compose/Dockerfile.api
+          target: api
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ghcr.io/${{ github.repository }}/api:sha-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
+
+      - name: Build & push worker image (tag by SHA)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/compose/Dockerfile.api
+          target: worker
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ghcr.io/${{ github.repository }}/worker:sha-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
+
+      - name: Trivy image scan (api)
+        if: ${{ github.event_name == 'push' }}
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ghcr.io/${{ github.repository }}/api:sha-${{ github.sha }}
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true

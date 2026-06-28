@@ -1,0 +1,51 @@
+{{- /*
+Pre-deploy migration Job (goose up, §17 step 6 — expand/contract discipline).
+Disabled by default: the deploy pipeline runs migrations as a discrete, gated
+step BEFORE the app rollout. Enable for clusters where a Helm-managed pre-install
+/ pre-upgrade hook is preferred. Helm hook ordering ensures it runs first.
+*/ -}}
+{{- if .Values.migrationJob.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "cbs.fullname" . }}-migrate-{{ .Release.Revision }}
+  labels:
+    {{- include "cbs.componentLabels" (merge (dict "component" "migrate") .) | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.migrationJob.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.migrationJob.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "cbs.componentSelectorLabels" (merge (dict "component" "migrate") .) | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "cbs.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: migrate
+          image: {{ include "cbs.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: {{ toYaml .Values.migrationJob.command | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          envFrom:
+            {{- include "cbs.envFrom" . | nindent 12 }}
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+{{- end }}

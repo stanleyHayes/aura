@@ -1,0 +1,21 @@
+# Terraform runtime artifacts — never commit these.
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfplan
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# The provider lock file IS committed (pins provider versions/hashes):
+!.terraform.lock.hcl
+
+# Do NOT commit real secret values in tfvars; *.tfvars here are placeholder
+# skeletons. If you ever add a tfvars holding real values, ignore it explicitly.
+*.auto.tfvars
+secrets.tfvars
