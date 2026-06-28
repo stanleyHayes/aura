@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@cbs/config": "workspace:*",
+    "eslint": "catalog:",
     "typescript": "catalog:"
   }
 }

@@ -374,6 +374,9 @@ importers:
       '@cbs/config':
         specifier: workspace:*
         version: link:../config
+      eslint:
+        specifier: 'catalog:'
+        version: 9.39.4(jiti@2.7.0)
       openapi-typescript:
         specifier: 'catalog:'
         version: 7.13.0(typescript@6.0.3)
@@ -409,6 +412,9 @@ importers:
       '@cbs/config':
         specifier: workspace:*
         version: link:../config
+      eslint:
+        specifier: 'catalog:'
+        version: 9.39.4(jiti@2.7.0)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -482,6 +488,9 @@ importers:
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.2.3(@types/react@19.2.17)
+      eslint:
+        specifier: 'catalog:'
+        version: 9.39.4(jiti@2.7.0)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

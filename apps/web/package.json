@@ -8,7 +8,7 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .next .turbo node_modules/.cache"
   },

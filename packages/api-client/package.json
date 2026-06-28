@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@cbs/config": "workspace:*",
+    "eslint": "catalog:",
     "openapi-typescript": "catalog:",
     "typescript": "catalog:"
   }
