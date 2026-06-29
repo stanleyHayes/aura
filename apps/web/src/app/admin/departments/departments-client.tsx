@@ -5,7 +5,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { GraduationCap, Plus } from "lucide-react";
 import {
   DepartmentForm as Schema,
   type DepartmentForm as Values,
@@ -115,6 +115,7 @@ export function DepartmentsClient() {
   return (
     <>
       <PageHeader
+        icon={GraduationCap}
         title="Departments"
         description="Academic departments that users and courses belong to."
         actions={

@@ -8,9 +8,9 @@ import { Card, CardContent } from "@cbs/ui/components/card";
 import { Badge } from "@cbs/ui/components/badge";
 
 export const metadata: Metadata = {
-  title: "Room directory",
+  title: "Facility directory",
   description:
-    "Browse the university's bookable classrooms — lecture halls, laboratories, seminar rooms, auditoria and conference rooms, with capacity and equipment.",
+    "Browse Ashesi University's bookable spaces — lecture halls, laboratories, seminar rooms, auditoria and conference rooms, with capacity and equipment.",
   alternates: { canonical: "/rooms" },
 };
 
@@ -63,10 +63,12 @@ export default async function RoomDirectoryPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <header className="mb-8">
-        <h1 className="font-serif text-3xl tracking-tight">Room directory</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Facility directory
+        </h1>
         <p className="mt-2 max-w-2xl text-[var(--color-muted-foreground)]">
-          Every bookable classroom across the campus. Sign in to check live
-          availability and submit a booking request.
+          Every bookable space across the Ashesi campus. Sign in to check live
+          availability and submit a reservation request.
         </p>
       </header>
 

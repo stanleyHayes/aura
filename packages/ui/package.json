@@ -4,7 +4,9 @@
   "private": true,
   "description": "Shared design tokens + shadcn/ui components for CBS web (§10.2).",
   "type": "module",
-  "sideEffects": ["**/*.css"],
+  "sideEffects": [
+    "**/*.css"
+  ],
   "exports": {
     "./globals.css": "./src/styles/globals.css",
     "./tokens.css": "./src/styles/tokens.css",
@@ -45,6 +47,7 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "eslint": "catalog:",
+    "tailwindcss": "catalog:",
     "typescript": "catalog:"
   }
 }

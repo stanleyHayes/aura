@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LockKeyhole } from "lucide-react";
+import { AuthHeader } from "@/components/auth-header";
 import { ResetPasswordForm } from "./reset-form";
 
 export const metadata: Metadata = {
@@ -16,12 +18,19 @@ export default async function ResetPasswordPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-serif text-2xl tracking-tight">Set a new password</h1>
-        <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-          Choose a strong password you don&apos;t use elsewhere.
-        </p>
-      </div>
+      <AuthHeader
+        icon={<LockKeyhole className="size-6" />}
+        title="Set a new password"
+        description="Choose a strong password you don't use elsewhere."
+        help={{
+          title: "Choosing a password",
+          steps: [
+            "Use at least 10 characters.",
+            "Mix letters, numbers and symbols for strength.",
+            "Saving signs you out of all other sessions.",
+          ],
+        }}
+      />
       {token ? (
         <ResetPasswordForm token={token} />
       ) : (

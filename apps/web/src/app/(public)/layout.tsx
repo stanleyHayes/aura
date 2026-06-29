@@ -20,7 +20,8 @@ export default function PublicLayout({
           <div className="flex flex-col gap-1">
             <Brand />
             <p className="text-sm text-[var(--color-muted-foreground)]">
-              Centralised classroom availability &amp; booking for the university.
+              Smart space management for Ashesi — classrooms and campus
+              facilities in one place.
             </p>
           </div>
           <nav aria-label="Footer" className="flex flex-wrap gap-4 text-sm">
@@ -34,7 +35,7 @@ export default function PublicLayout({
         </div>
         <div className="border-t border-[var(--color-border)] px-4 py-4">
           <p className="mx-auto max-w-6xl text-xs text-[var(--color-muted-foreground)]">
-            © {new Date().getFullYear()} University ICT Directorate. All times
+            © {new Date().getFullYear()} Ashesi University · AURA. All times
             shown in West Africa Time (Africa/Accra).
           </p>
         </div>

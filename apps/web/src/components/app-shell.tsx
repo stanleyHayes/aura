@@ -141,7 +141,7 @@ export function AppShell({
       {/* Desktop sidebar */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-card)] lg:flex">
         <div className="flex h-16 items-center border-b border-[var(--color-border)] px-5">
-          <Link href="/" aria-label="Roomwise home">
+          <Link href="/" aria-label="AURA home">
             <Brand />
           </Link>
         </div>

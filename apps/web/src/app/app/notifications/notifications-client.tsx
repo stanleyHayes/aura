@@ -1,6 +1,6 @@
 "use client";
 
-import { BellOff } from "lucide-react";
+import { Bell, BellOff } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Notification } from "@cbs/schemas";
 import { Button } from "@cbs/ui/components/button";
@@ -51,6 +51,7 @@ export function NotificationsClient() {
   return (
     <>
       <PageHeader
+        icon={Bell}
         title="Notifications"
         actions={
           items.some((n) => !n.read_at) ? (

@@ -5,7 +5,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Plus, Wrench } from "lucide-react";
 import {
   EquipmentForm as Schema,
   type EquipmentForm as Values,
@@ -110,6 +110,7 @@ export function EquipmentClient() {
   return (
     <>
       <PageHeader
+        icon={Wrench}
         title="Equipment"
         description="Equipment types that rooms can be fitted with (projector, smart board, audio, and so on)."
         actions={

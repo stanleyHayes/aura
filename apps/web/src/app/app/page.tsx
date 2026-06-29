@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarSearch, CheckCircle2, Clock, Ticket } from "lucide-react";
+import {
+  CalendarSearch,
+  CheckCircle2,
+  Clock,
+  LayoutDashboard,
+  Ticket,
+} from "lucide-react";
 import type { Booking } from "@cbs/schemas";
 import { getSession, serverApi } from "@/lib/api/server";
 import { Button } from "@cbs/ui/components/button";
@@ -46,6 +52,7 @@ export default async function AppDashboard() {
   return (
     <>
       <PageHeader
+        icon={LayoutDashboard}
         title={`Welcome, ${firstName}`}
         description="Your bookings at a glance."
         actions={

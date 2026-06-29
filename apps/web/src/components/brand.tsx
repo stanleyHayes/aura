@@ -1,7 +1,7 @@
-import { CalendarRange } from "lucide-react";
 import { cn } from "@cbs/ui/lib/cn";
+import { AuraLogo } from "@/components/aura-logo";
 
-/** The Roomwise wordmark + glyph. */
+/** The AURA wordmark + mark (BRAND.md). Maroon mark, Outfit 600/700 wordmark. */
 export function Brand({
   className,
   withText = true,
@@ -13,13 +13,13 @@ export function Brand({
     <span className={cn("inline-flex items-center gap-2", className)}>
       <span
         aria-hidden="true"
-        className="grid size-8 place-items-center rounded-lg bg-[var(--color-ink-700)] text-[var(--color-paper-50)]"
+        className="grid size-8 place-items-center rounded-lg bg-[var(--color-maroon-tint)] text-[var(--color-maroon)]"
       >
-        <CalendarRange className="size-5" />
+        <AuraLogo className="size-5" />
       </span>
       {withText ? (
-        <span className="font-serif text-lg font-semibold tracking-tight text-[var(--color-foreground)]">
-          Roomwise
+        <span className="text-lg font-bold tracking-tight text-[var(--color-foreground)]">
+          AURA
         </span>
       ) : null}
     </span>

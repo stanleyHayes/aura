@@ -5,7 +5,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 import {
   BuildingForm as Schema,
   type BuildingForm as Values,
@@ -120,6 +120,7 @@ export function BuildingsClient() {
   return (
     <>
       <PageHeader
+        icon={Building2}
         title="Buildings"
         description="Campus buildings that contain bookable rooms."
         actions={

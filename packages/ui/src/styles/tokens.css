@@ -1,21 +1,23 @@
 /**
- * CBS design tokens (§10.2) — Tailwind CSS v4 CSS-first `@theme`.
+ * AURA design tokens (§10.2, BRAND.md) — Tailwind CSS v4 CSS-first `@theme`.
  *
- * Visual direction: an institutional but modern academic system. A deep
- * "ink" indigo/navy as the brand anchor, warm paper-tinted neutrals, and a
- * disciplined status palette (lecture / booking-states / maintenance) that
- * doubles as the calendar legend. Everything is expressed in OKLCH so light
- * and dark stay perceptually consistent.
+ * Visual direction: the Ashesi University identity — maroon/burgundy as the
+ * brand anchor (primary actions, active nav, links, brand marks), warm
+ * paper-tinted neutrals for large surfaces, and a disciplined status palette
+ * (success / warning / danger) kept perceptually distinct from maroon so
+ * "approved / pending / rejected" never read as the brand. Everything is
+ * OKLCH so light and dark stay perceptually consistent. The brand "ink" scale
+ * is a maroon ramp; `--color-maroon*` expose the exact BRAND.md anchors.
  *
  * These tokens are the single source of truth shared with mobile (NativeWind).
  */
 
 @theme {
-  /* ── Typography ─────────────────────────────────────────────── */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+  /* ── Typography (BRAND.md: Outfit is the body/UI + heading font) ── */
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-serif: var(--font-fraunces), ui-serif, Georgia, Cambria,
-    "Times New Roman", serif;
+  --font-serif: var(--font-outfit), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
 
   --text-xs: 0.75rem;
@@ -35,49 +37,56 @@
   --radius-xl: 1rem;
   --radius-2xl: 1.5rem;
 
-  /* ── Brand "ink" scale (indigo-navy) ───────────────────────── */
-  --color-ink-50: oklch(0.971 0.014 264);
-  --color-ink-100: oklch(0.936 0.03 264);
-  --color-ink-200: oklch(0.87 0.056 264);
-  --color-ink-300: oklch(0.78 0.09 264);
-  --color-ink-400: oklch(0.66 0.13 264);
-  --color-ink-500: oklch(0.55 0.16 264);
-  --color-ink-600: oklch(0.47 0.16 264);
-  --color-ink-700: oklch(0.4 0.14 264);
-  --color-ink-800: oklch(0.33 0.11 264);
-  --color-ink-900: oklch(0.27 0.08 264);
-  --color-ink-950: oklch(0.19 0.05 264);
+  /* ── Brand maroon anchors (BRAND.md exact hexes) ───────────── */
+  --color-maroon: oklch(0.377 0.14 27); /* #7B1113 primary           */
+  --color-maroon-dark: oklch(0.314 0.113 26); /* #5E0D0F hover/pressed     */
+  --color-maroon-tint: oklch(0.924 0.02 18); /* #F3E1E1 subtle bg/badges  */
 
-  /* ── Warm paper neutrals ───────────────────────────────────── */
-  --color-paper-50: oklch(0.992 0.003 90);
-  --color-paper-100: oklch(0.976 0.005 90);
-  --color-paper-200: oklch(0.94 0.006 90);
-  --color-paper-300: oklch(0.89 0.007 90);
-  --color-paper-400: oklch(0.74 0.008 90);
-  --color-paper-500: oklch(0.6 0.009 90);
-  --color-paper-600: oklch(0.48 0.009 90);
-  --color-paper-700: oklch(0.38 0.008 90);
-  --color-paper-800: oklch(0.27 0.007 90);
-  --color-paper-900: oklch(0.2 0.006 90);
-  --color-paper-950: oklch(0.14 0.005 90);
+  /* ── Brand "ink" scale — now a maroon ramp anchored on #7B1113 ─ */
+  --color-ink-50: oklch(0.971 0.012 27);
+  --color-ink-100: oklch(0.936 0.022 27);
+  --color-ink-200: oklch(0.88 0.045 27);
+  --color-ink-300: oklch(0.8 0.075 27);
+  --color-ink-400: oklch(0.66 0.115 27);
+  --color-ink-500: oklch(0.52 0.15 27);
+  --color-ink-600: oklch(0.44 0.15 27);
+  --color-ink-700: oklch(0.377 0.14 27); /* = #7B1113 */
+  --color-ink-800: oklch(0.33 0.118 27);
+  --color-ink-900: oklch(0.3 0.1 27);
+  --color-ink-950: oklch(0.25 0.075 27);
 
-  /* ── Calendar / status sources (also the calendar legend) ──── */
-  --color-lecture: oklch(0.6 0.13 264); /* indigo — recurring lectures   */
+  /* ── Warm paper neutrals (BRAND.md paper #FBFBF9 / border #E6E3DF
+        / gray #6B6B6B / ink text #23201F) ──────────────────────── */
+  --color-paper-50: oklch(0.988 0.003 106); /* #FBFBF9 app background */
+  --color-paper-100: oklch(0.976 0.004 95);
+  --color-paper-200: oklch(0.945 0.005 90);
+  --color-paper-300: oklch(0.917 0.006 75); /* ≈ #E6E3DF border      */
+  --color-paper-400: oklch(0.74 0.006 80);
+  --color-paper-500: oklch(0.6 0.005 85);
+  --color-paper-600: oklch(0.528 0.004 90); /* ≈ #6B6B6B muted text  */
+  --color-paper-700: oklch(0.38 0.006 60);
+  --color-paper-800: oklch(0.27 0.006 50);
+  --color-paper-900: oklch(0.2 0.006 45);
+  --color-paper-950: oklch(0.14 0.005 40);
+
+  /* ── Calendar / status sources (also the calendar legend) ────
+        Kept distinct from maroon so sources/states never read as brand. */
+  --color-lecture: oklch(0.55 0.14 255); /* indigo — recurring lectures   */
   --color-booking: oklch(0.62 0.15 162); /* teal-green — approved bookings */
-  --color-maintenance: oklch(0.62 0.12 50); /* amber-brown — maintenance     */
+  --color-maintenance: oklch(0.614 0.13 70); /* amber — maintenance           */
   --color-available: oklch(0.95 0.02 162); /* faint green — free gaps       */
 
-  /* ── Semantic status (booking workflow) ────────────────────── */
-  --color-pending: oklch(0.74 0.15 75); /* amber  */
-  --color-approved: oklch(0.62 0.15 152); /* green  */
-  --color-rejected: oklch(0.58 0.2 25); /* red    */
-  --color-cancelled: oklch(0.6 0.01 90); /* grey   */
-  --color-expired: oklch(0.55 0.04 50); /* muted brown */
+  /* ── Semantic status (booking workflow) — BRAND.md status hues ─ */
+  --color-pending: oklch(0.614 0.13 70); /* #B5740B amber  */
+  --color-approved: oklch(0.525 0.11 159); /* #1E7D52 green  */
+  --color-rejected: oklch(0.5 0.182 30); /* #B42318 red    */
+  --color-cancelled: oklch(0.6 0.004 90); /* grey   */
+  --color-expired: oklch(0.55 0.03 60); /* muted brown */
 
-  --color-success: oklch(0.62 0.15 152);
-  --color-warning: oklch(0.74 0.15 75);
-  --color-danger: oklch(0.58 0.2 25);
-  --color-info: oklch(0.6 0.13 240);
+  --color-success: oklch(0.525 0.11 159); /* #1E7D52 */
+  --color-warning: oklch(0.614 0.13 70); /* #B5740B */
+  --color-danger: oklch(0.5 0.182 30); /* #B42318 */
+  --color-info: oklch(0.55 0.13 255);
 
   /* ── Motion ─────────────────────────────────────────────────── */
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
@@ -90,6 +99,20 @@
     opacity: 0;
   }
   to {
+    opacity: 1;
+  }
+}
+
+/* §6 — three-dot wave loader inside buttons. */
+@keyframes button-wave {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.55;
+  }
+  30% {
+    transform: translateY(-0.28rem);
     opacity: 1;
   }
 }

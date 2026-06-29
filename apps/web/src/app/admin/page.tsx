@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ClipboardCheck, DoorOpen, Percent, TriangleAlert } from "lucide-react";
+import {
+  ClipboardCheck,
+  DoorOpen,
+  LayoutDashboard,
+  Percent,
+  TriangleAlert,
+} from "lucide-react";
 import type { Booking, UtilisationReport } from "@cbs/schemas";
 import { getSession, serverApi } from "@/lib/api/server";
 import { Button } from "@cbs/ui/components/button";
@@ -81,6 +87,7 @@ export default async function AdminDashboard() {
   return (
     <>
       <PageHeader
+        icon={LayoutDashboard}
         title="Admin dashboard"
         description="A snapshot of approvals and utilisation across the institution."
       />

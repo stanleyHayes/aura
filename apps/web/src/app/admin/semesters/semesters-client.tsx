@@ -5,7 +5,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { CalendarCog, Plus } from "lucide-react";
 import {
   SemesterForm as Schema,
   type SemesterForm as Values,
@@ -154,6 +154,7 @@ export function SemestersClient() {
   return (
     <>
       <PageHeader
+        icon={CalendarCog}
         title="Semesters"
         description="Create semesters and set the active one. Only the active semester affects availability (BR2)."
         actions={

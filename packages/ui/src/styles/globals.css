@@ -31,6 +31,11 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --radius: var(--radius-lg);
+
+  /* Expose the AURA brand maroon anchors as utilities/vars. */
+  --color-maroon: var(--color-maroon);
+  --color-maroon-dark: var(--color-maroon-dark);
+  --color-maroon-tint: var(--color-maroon-tint);
 }
 
 :root {
@@ -40,19 +45,19 @@
   --card-foreground: var(--color-ink-950);
   --popover: oklch(1 0 0);
   --popover-foreground: var(--color-ink-950);
-  --primary: var(--color-ink-700);
+  --primary: var(--color-maroon);
   --primary-foreground: var(--color-paper-50);
   --secondary: var(--color-paper-200);
   --secondary-foreground: var(--color-ink-900);
   --muted: var(--color-paper-200);
   --muted-foreground: var(--color-paper-600);
-  --accent: var(--color-ink-100);
+  --accent: var(--color-maroon-tint);
   --accent-foreground: var(--color-ink-800);
   --destructive: var(--color-danger);
   --destructive-foreground: var(--color-paper-50);
   --border: var(--color-paper-300);
   --input: var(--color-paper-300);
-  --ring: var(--color-ink-500);
+  --ring: var(--color-maroon);
 }
 
 .dark {
@@ -62,18 +67,18 @@
   --card-foreground: var(--color-paper-100);
   --popover: var(--color-ink-950);
   --popover-foreground: var(--color-paper-100);
-  --primary: var(--color-ink-300);
-  --primary-foreground: var(--color-ink-950);
+  --primary: var(--color-ink-400);
+  --primary-foreground: var(--color-paper-50);
   --secondary: var(--color-ink-900);
   --secondary-foreground: var(--color-paper-100);
   --muted: var(--color-ink-900);
   --muted-foreground: var(--color-paper-400);
   --accent: var(--color-ink-800);
   --accent-foreground: var(--color-paper-100);
-  --destructive: oklch(0.65 0.19 25);
+  --destructive: oklch(0.62 0.19 30);
   --destructive-foreground: var(--color-paper-50);
-  --border: oklch(0.3 0.04 264);
-  --input: oklch(0.32 0.04 264);
+  --border: oklch(0.32 0.03 30);
+  --input: oklch(0.34 0.03 30);
   --ring: var(--color-ink-400);
 }
 

@@ -110,6 +110,7 @@ export function SearchClient() {
   return (
     <>
       <PageHeader
+        icon={CalendarSearch}
         title="Find a room"
         description="Search availability derived from the live timetable, approved bookings and maintenance. All times are West Africa Time (Africa/Accra)."
       />

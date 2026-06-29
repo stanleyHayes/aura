@@ -12,14 +12,14 @@ import { Button } from "@cbs/ui/components/button";
 import { Card, CardContent } from "@cbs/ui/components/card";
 
 export const metadata: Metadata = {
-  title: "University Classroom Booking",
+  title: "Smart Space Management for Ashesi",
   description:
-    "Search real-time classroom availability derived from the live semester timetable, request rooms, and let booking officers approve with full conflict visibility.",
+    "AURA is Ashesi University's resource-allocation platform — reserve classrooms and campus facilities with real-time availability from the live timetable, transparent approvals and conflict detection.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "Roomwise — University Classroom Booking",
+    title: "AURA — Smart Space Management for Ashesi",
     description:
-      "Search availability, request rooms, and manage the timetable in one place.",
+      "Reserve Ashesi classrooms and campus facilities with real-time availability, approvals and conflict detection.",
     url: "/",
   },
 };
@@ -69,22 +69,23 @@ export default function LandingPage() {
         <div className="mx-auto w-full max-w-6xl px-4 py-20 sm:py-28">
           <div className="max-w-2xl">
             <p className="mb-4 inline-flex items-center rounded-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-1 text-xs font-medium text-[var(--color-muted-foreground)]">
-              For lecturers, coordinators &amp; student organisations
+              For Ashesi students, faculty &amp; staff
             </p>
-            <h1 className="text-balance font-serif text-4xl leading-[1.05] tracking-tight sm:text-5xl">
-              Find a free room in seconds. Book it without the back-and-forth.
+            <h1 className="text-balance text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl">
+              Smart Space Management for Ashesi.
             </h1>
             <p className="mt-5 text-pretty text-lg text-[var(--color-muted-foreground)]">
-              Roomwise computes real-time classroom availability from the live
-              semester timetable, ad-hoc bookings and maintenance windows — then
-              runs a transparent approval workflow on top.
+              AURA lets you reserve Ashesi classrooms and campus facilities with
+              real-time availability drawn from the live semester timetable,
+              existing bookings and maintenance — with transparent approvals and
+              conflict detection built in.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button size="lg" asChild>
-                <Link href="/login">Sign in to book</Link>
+                <Link href="/login">Sign in to reserve</Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
-                <Link href="/rooms">Browse the room directory</Link>
+                <Link href="/rooms">Browse the facility directory</Link>
               </Button>
             </div>
           </div>
@@ -93,12 +94,12 @@ export default function LandingPage() {
 
       {/* Features */}
       <section className="mx-auto w-full max-w-6xl px-4 py-16">
-        <h2 className="font-serif text-2xl tracking-tight">
-          Built around how rooms are really used
+        <h2 className="text-2xl font-semibold tracking-tight">
+          Built around how Ashesi spaces are really used
         </h2>
         <p className="mt-2 max-w-2xl text-[var(--color-muted-foreground)]">
           Lecture occupancy and booking occupancy are kept separate, so
-          replacing a semester timetable never disturbs existing bookings.
+          replacing a semester timetable never disturbs existing reservations.
         </p>
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {features.map(({ icon: Icon, title, body }) => (
@@ -107,7 +108,7 @@ export default function LandingPage() {
                 <span className="grid size-10 place-items-center rounded-lg bg-[var(--color-ink-100)] text-[var(--color-ink-700)]">
                   <Icon className="size-5" aria-hidden="true" />
                 </span>
-                <h3 className="font-serif text-lg tracking-tight">{title}</h3>
+                <h3 className="text-lg font-semibold tracking-tight">{title}</h3>
                 <p className="text-sm text-[var(--color-muted-foreground)]">
                   {body}
                 </p>
@@ -121,12 +122,12 @@ export default function LandingPage() {
       <section className="border-t border-[var(--color-border)] bg-[var(--color-ink-900)]">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-start gap-6 px-4 py-16 sm:flex-row sm:items-center sm:justify-between">
           <div className="max-w-xl">
-            <h2 className="font-serif text-2xl tracking-tight text-[var(--color-paper-50)]">
-              Ready to reserve a room?
+            <h2 className="text-2xl font-semibold tracking-tight text-[var(--color-paper-50)]">
+              Ready to reserve a space?
             </h2>
             <p className="mt-2 text-[color-mix(in_oklch,var(--color-paper-50)_80%,transparent)]">
-              Sign in with your university account to search availability and
-              submit a request.
+              Sign in with your Ashesi account to search availability and submit
+              a request.
             </p>
           </div>
           <Button size="lg" variant="secondary" asChild>

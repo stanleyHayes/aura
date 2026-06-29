@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CalendarDays } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { CalendarPanel } from "@/components/calendar-panel";
 
@@ -11,6 +12,7 @@ export default function CalendarPage() {
   return (
     <>
       <PageHeader
+        icon={CalendarDays}
         title="Calendar"
         description="Lectures, approved bookings and maintenance, colour-coded by source. All times West Africa Time (Africa/Accra)."
       />

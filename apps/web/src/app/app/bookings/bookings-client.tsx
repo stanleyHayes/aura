@@ -73,6 +73,7 @@ export function MyBookingsClient() {
   return (
     <>
       <PageHeader
+        icon={Ticket}
         title="My bookings"
         description="Track the status of every request you've made."
         actions={

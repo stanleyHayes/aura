@@ -47,7 +47,7 @@ export function ForgotPasswordForm() {
             {...p}
             type="email"
             autoComplete="username"
-            placeholder="you@university.edu"
+            placeholder="you@ashesi.edu.gh"
             {...form.register("email")}
           />
         )}

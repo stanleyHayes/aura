@@ -7,6 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { LoginForm as LoginSchema, type LoginForm as LoginValues } from "@cbs/schemas";
 import { ApiError } from "@cbs/api-client";
 import { ERROR_CODES } from "@cbs/schemas";
+import { ShieldCheck } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@cbs/ui/components/alert";
 import { Button } from "@cbs/ui/components/button";
 import { Input } from "@cbs/ui/components/input";
 import { api, unwrap } from "@/lib/api/client";
@@ -27,6 +29,11 @@ export function LoginForm({ next }: { next?: string }) {
 
   const onSubmit = form.handleSubmit(async (values) => {
     setSubmitError(null);
+    if (mfaRequired && !values.mfa_code?.trim()) {
+      form.setError("mfa_code", { message: "Enter your authentication code." });
+      return;
+    }
+
     try {
       const session = unwrap(
         await api.POST("/api/v1/auth/login", {
@@ -43,6 +50,8 @@ export function LoginForm({ next }: { next?: string }) {
     } catch (err) {
       if (err instanceof ApiError && err.code === ERROR_CODES.MFA_REQUIRED) {
         setMfaRequired(true);
+        setSubmitError(null);
+        return;
       }
       setSubmitError(err);
     }
@@ -59,7 +68,7 @@ export function LoginForm({ next }: { next?: string }) {
             type="email"
             autoComplete="username"
             autoFocus
-            placeholder="you@university.edu"
+            placeholder="you@ashesi.edu.gh"
             {...form.register("email")}
           />
         )}
@@ -82,27 +91,36 @@ export function LoginForm({ next }: { next?: string }) {
       </Field>
 
       {mfaRequired ? (
-        <Field
-          id="mfa_code"
-          label="Authentication code"
-          description="Enter the six-digit code from your authenticator app."
-          error={form.formState.errors.mfa_code?.message}
-        >
-          {(p) => (
-            <Input
-              {...p}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              placeholder="123456"
-              {...form.register("mfa_code")}
-            />
-          )}
-        </Field>
+        <>
+          <Alert variant="info">
+            <ShieldCheck />
+            <AlertTitle>Authenticator required</AlertTitle>
+            <AlertDescription>
+              Enter the current code from your authenticator app to finish
+              signing in.
+            </AlertDescription>
+          </Alert>
+          <Field
+            id="mfa_code"
+            label="Authentication code"
+            error={form.formState.errors.mfa_code?.message}
+          >
+            {(p) => (
+              <Input
+                {...p}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                placeholder="123456"
+                {...form.register("mfa_code")}
+              />
+            )}
+          </Field>
+        </>
       ) : null}
 
       <Button type="submit" disabled={form.formState.isSubmitting} className="mt-2">
-        {form.formState.isSubmitting ? "Signing in…" : "Sign in"}
+        {form.formState.isSubmitting ? "Signing in…" : "Sign in to AURA"}
       </Button>
     </form>
   );
