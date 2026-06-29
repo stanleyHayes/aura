@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -13,6 +14,24 @@ import (
 	"github.com/aura/cbs/internal/platform/logging"
 	"github.com/aura/cbs/internal/platform/rbac"
 )
+
+// Timeout cancels the request context after d for non-streaming requests so a slow
+// handler or query cannot tie up a connection indefinitely (§14 DoS). The SSE
+// notification feed (paths ending in /stream) is exempt — it is intentionally
+// long-lived.
+func Timeout(d time.Duration) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasSuffix(r.URL.Path, "/stream") {
+				next.ServeHTTP(w, r)
+				return
+			}
+			ctx, cancel := context.WithTimeout(r.Context(), d)
+			defer cancel()
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
 
 // accessCookieValue reads the access token from either cookie name (§9.2).
 func accessCookieValue(r *http.Request) string {

@@ -23,6 +23,10 @@ func SecurityHeaders(production bool) func(http.Handler) http.Handler {
 			h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 			h.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 			h.Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+			// Cross-origin isolation for the API surface (§14 A05).
+			h.Set("Cross-Origin-Opener-Policy", "same-origin")
+			h.Set("Cross-Origin-Resource-Policy", "same-site")
+			h.Set("X-Permitted-Cross-Domain-Policies", "none")
 			if production {
 				h.Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
 			}

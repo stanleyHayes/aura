@@ -38,7 +38,14 @@ func New(ctx context.Context, url, institutionTZ string) (*Store, error) {
 	cfg.HealthCheckPeriod = 30 * time.Second
 	cfg.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
 		// Parameterised — never string-interpolated (§0.3).
-		_, err := conn.Exec(ctx, "SELECT set_config('app.institution_tz', $1, false)", institutionTZ)
+		if _, err := conn.Exec(ctx, "SELECT set_config('app.institution_tz', $1, false)", institutionTZ); err != nil {
+			return err
+		}
+		// Bound runaway queries and stuck transactions (§14 A04/DoS). Generous
+		// enough for reports/imports; advisory-lock waits fail cleanly rather than
+		// hanging a connection indefinitely.
+		_, err := conn.Exec(ctx,
+			"SET statement_timeout = '30s'; SET idle_in_transaction_session_timeout = '15s'")
 		return err
 	}
 

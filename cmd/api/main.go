@@ -100,7 +100,8 @@ func run() error {
 // buildRouter wires services and handlers into the HTTP router. Extracted so it
 // can be exercised by an end-to-end httptest in CI.
 func buildRouter(cfg config.Config, store *db.Store, loc *time.Location, log *slog.Logger) (http.Handler, error) {
-	signer, err := auth.NewHMACSigner(cfg.JWTSigningKey, cfg.JWTKeyID)
+	// EdDSA when a PEM private key is supplied (production), else HMAC (dev). §9.1.
+	signer, err := auth.NewSigner(cfg.JWTSigningKey, cfg.JWTKeyID)
 	if err != nil {
 		return nil, err
 	}
@@ -159,6 +160,7 @@ func buildRouter(cfg config.Config, store *db.Store, loc *time.Location, log *sl
 	}))
 	r.Use(httpx.SecurityHeaders(cfg.IsProduction()))
 	r.Use(httpx.RateLimit(cfg.RateLimitDefaultPerMin, time.Minute, log))
+	r.Use(httpx.Timeout(20 * time.Second)) // SSE /stream is exempt (§14 DoS)
 
 	// Operational endpoints (§8.3).
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) { httpx.JSON(w, 200, map[string]string{"status": "ok"}) })

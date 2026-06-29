@@ -1,8 +1,10 @@
 package scheduling
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -217,24 +219,32 @@ func (h *Handler) importTimetable(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name := strings.ToLower(header.Filename)
+	data, err := io.ReadAll(file) // bounded by MaxBytesReader above
+	if err != nil {
+		httpx.Error(w, r, h.log, apperr.ErrValidation.WithDetail("could not read the uploaded file"))
+		return
+	}
+	// Validate the extension AND sniff the content (§14 file uploads): never trust
+	// the client-declared MIME; reject files whose bytes don't match the extension.
+	sniff := http.DetectContentType(data)
 	var rows []RawRow
 	var method dbgen.ImportMethod
 	switch {
 	case strings.HasSuffix(name, ".xlsx"):
-		method = dbgen.ImportMethodEXCEL
-		data := make([]byte, 0, header.Size)
-		buf := make([]byte, 32*1024)
-		for {
-			n, rerr := file.Read(buf)
-			data = append(data, buf[:n]...)
-			if rerr != nil {
-				break
-			}
+		// .xlsx is a ZIP container, so the sniffer reports application/zip.
+		if !strings.HasPrefix(sniff, "application/zip") {
+			httpx.Error(w, r, h.log, apperr.ErrValidation.WithDetail("file content is not a valid .xlsx workbook"))
+			return
 		}
+		method = dbgen.ImportMethodEXCEL
 		rows, err = ReadXLSX(data)
 	case strings.HasSuffix(name, ".csv"):
+		if !strings.HasPrefix(sniff, "text/") && !strings.HasPrefix(sniff, "application/csv") {
+			httpx.Error(w, r, h.log, apperr.ErrValidation.WithDetail("file content is not a valid CSV"))
+			return
+		}
 		method = dbgen.ImportMethodCSV
-		rows, err = ReadCSV(file)
+		rows, err = ReadCSV(bytes.NewReader(data))
 	default:
 		httpx.Error(w, r, h.log, apperr.ErrValidation.WithDetail("unsupported file type; use .xlsx or .csv"))
 		return

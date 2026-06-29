@@ -1,11 +1,15 @@
 package auth
 
 import (
+	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/pem"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -79,6 +83,80 @@ func (s *hmacSigner) Verify(token string) (*Claims, error) {
 		return nil, err
 	}
 	return claims, nil
+}
+
+// edDSASigner signs access tokens with Ed25519 — the production default (§9.1).
+// Asymmetric signing lets verifiers hold only the public key, and key rotation
+// works via the `kid` header.
+type edDSASigner struct {
+	priv  ed25519.PrivateKey
+	pub   ed25519.PublicKey
+	keyID string
+}
+
+// NewEdDSASigner builds an EdDSA signer from a PEM-encoded PKCS#8 Ed25519 key.
+func NewEdDSASigner(privPEM, keyID string) (TokenSigner, error) {
+	block, _ := pem.Decode([]byte(privPEM))
+	if block == nil {
+		return nil, fmt.Errorf("jwt: invalid PEM private key")
+	}
+	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("jwt: parse Ed25519 key: %w", err)
+	}
+	priv, ok := key.(ed25519.PrivateKey)
+	if !ok {
+		return nil, fmt.Errorf("jwt: key is not Ed25519")
+	}
+	pub, ok := priv.Public().(ed25519.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("jwt: cannot derive Ed25519 public key")
+	}
+	return &edDSASigner{priv: priv, pub: pub, keyID: keyID}, nil
+}
+
+func (s *edDSASigner) KeyID() string { return s.keyID }
+
+func (s *edDSASigner) Sign(userID uuid.UUID, role dbgen.UserRole, email string, ttl time.Duration) (string, error) {
+	now := time.Now()
+	claims := Claims{
+		Role:  role,
+		Email: email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   userID.String(),
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
+			ID:        uuid.NewString(),
+		},
+	}
+	tok := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
+	tok.Header["kid"] = s.keyID
+	return tok.SignedString(s.priv)
+}
+
+func (s *edDSASigner) Verify(token string) (*Claims, error) {
+	claims := &Claims{}
+	_, err := jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (any, error) {
+		// Reject algorithm confusion (e.g. an HMAC token presented to this verifier).
+		if _, ok := t.Method.(*jwt.SigningMethodEd25519); !ok {
+			return nil, fmt.Errorf("unexpected signing method %v", t.Header["alg"])
+		}
+		return s.pub, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return claims, nil
+}
+
+// NewSigner selects the token signer from the key material: a PEM private key →
+// EdDSA (production); otherwise HMAC (dev/test). Algorithm stays a config choice
+// (ADR-0003, §9.1) and each signer rejects tokens signed with another algorithm.
+func NewSigner(key, keyID string) (TokenSigner, error) {
+	if strings.Contains(key, "-----BEGIN") {
+		return NewEdDSASigner(key, keyID)
+	}
+	return NewHMACSigner(key, keyID)
 }
 
 // ── Opaque refresh tokens (§9.1) ─────────────────────────────────────────────
