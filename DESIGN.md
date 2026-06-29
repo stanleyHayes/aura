@@ -87,15 +87,20 @@ and curves into the item** — a rounded "branch" connector, like a file-tree el
 
 ---
 
-## 2. Page pattern — header with title, description, help, and action
+## 2. Page pattern — header with icon, title, description, help, and action
 
-**Every page** (requester + admin) opens with a standard `<PageHeader>`:
+**Every page** (requester + admin **and the auth pages**, §12) opens with a standard
+`<PageHeader>`:
 
 ```
-Find a room                                  [ Help (?) ]   [ + New booking ]
-Search live classroom availability and reserve a room.
+[▣]  Find a room                              [ Help (?) ]   [ + New booking ]
+     Search live classroom availability and reserve a room.
 ```
 
+- **Icon** — a leading `lucide` icon in a small maroon-tinted rounded container that
+  represents the page (e.g. Search for find-a-room, ClipboardCheck for approvals,
+  LayoutDashboard for the overview). Required on every page. Decorative
+  (`aria-hidden`); the title carries the meaning.
 - **Title** — the page name (Outfit 600, maroon-tinted ink).
 - **Description** — one sentence on what the page is for.
 - **Help icon** — a `?` button that opens a **popover** explaining *how to achieve
@@ -105,8 +110,8 @@ Search live classroom availability and reserve a room.
 - **Primary action button** — the page's main verb (e.g. *New booking*, *Add room*,
   *Upload timetable*). Right-aligned. Omitted only on read-only pages.
 
-`<PageHeader title description helpHowTo action />` — one component, used everywhere,
-so the layout and behaviour are identical across pages.
+`<PageHeader icon title description helpHowTo action />` — one component, used
+everywhere, so the layout and behaviour are identical across pages.
 
 ---
 
@@ -267,3 +272,66 @@ The Overview is the post-login default landing for each role.
 - Decorative elements (connector lines, animated icons) are `aria-hidden`.
 - Verify with `axe` in CI (spec §12.2) and a manual keyboard + screen-reader pass on
   the sidebar, the user menu/guide, pagination, and the theme toggle.
+
+---
+
+## 12. Auth pages — complete redesign
+
+The auth screens (login, forgot-password, reset-password, and the MFA step) are
+**completely redesigned** around the AURA brand. They do not use the app sidebar;
+they use a dedicated **split-screen** layout, and each screen carries the same
+header anatomy as every other page: **icon + title + description + help + action**.
+
+### 12.1 Layout
+- **Split screen (desktop ≥ 768px):**
+  - **Brand panel** (left, ~45%): maroon (`--color-maroon` → `--color-maroon-dark`)
+    gradient, the AURA logo + wordmark, the tagline *"Smart Space Management for
+    Ashesi."*, a one-line value sentence, and a subtle, tasteful motif (e.g. a faint
+    campus/where-rooms line illustration or geometric "A" pattern). Decorative,
+    `aria-hidden`.
+  - **Form panel** (right, ~55%): a centred card on `--color-paper` with the
+    page header + form.
+- **Mobile (< 768px):** stack — a compact maroon brand bar (logo + tagline) on top,
+  the form card below. Never hide the brand entirely.
+- Card: rounded, soft shadow, generous padding, max-width ~ 420px. Outfit throughout.
+
+### 12.2 Per-screen header (icon + title + description + help + action)
+Each screen's card opens with the §2 pattern adapted for auth:
+
+| Screen | Icon | Title | Description | Help (how-to) | Primary action |
+|---|---|---|---|---|---|
+| **Login** | `KeyRound` | Sign in to AURA | Access your Ashesi classrooms and facilities. | How to sign in; what to do if you've forgotten your password; first-time/MFA note | **Sign in** |
+| **MFA step** | `ShieldCheck` | Two-factor verification | Enter the 6-digit code from your authenticator app. | Where the code comes from; lost-device guidance | **Verify** |
+| **Forgot password** | `MailQuestion` | Reset your password | Enter your email and we'll send a reset link. | What happens next; check spam; link expiry (1h) | **Send reset link** |
+| **Reset password** | `LockKeyhole` | Set a new password | Choose a new password for your account. | Password rules; that all sessions are signed out | **Update password** |
+
+- The **help icon** opens the §2 popover and is wired to the §4 TTS guide (reads the
+  how-to aloud) — so even unauthenticated users get the spoken walk-through.
+- **Action buttons** use the §6 wave-dot loading state while submitting.
+
+### 12.3 Forms, states & behaviour
+- **Login:** email + password; an MFA code field appears (in-place transition to the
+  MFA step) when the API returns `MFA_REQUIRED`. Secondary link: *Forgot password?*.
+  Accounts are provisioned by administrators (no public sign-up) — show a quiet note
+  ("Need an account? Contact your department administrator.") rather than a register
+  link.
+- **Validation & errors:** react-hook-form + the shared zod schemas; inline,
+  field-associated error messages (`aria-describedby`). Map RFC 9457 codes to friendly
+  copy — `INVALID_CREDENTIALS` → "Invalid email or password", `ACCOUNT_LOCKED` →
+  "Too many attempts — try again in a few minutes", `INVALID_MFA_CODE`,
+  `INVALID_TOKEN` (expired reset link → offer to request a new one).
+- **Reset password:** new + confirm password with a **strength meter** and the
+  rules from the API (min length); on success, a confirmation state with a *Sign in*
+  action.
+- **Forgot password:** always show the same success confirmation regardless of
+  whether the email exists (no user enumeration, spec §9.1) — e.g. "If that address
+  has an account, a reset link is on its way."
+- Show/hide password toggle; Caps-Lock hint; autocomplete attributes
+  (`username`, `current-password`, `new-password`, `one-time-code`).
+
+### 12.4 Accessibility & motion
+- Single `<h1>` per screen (the title); labelled inputs; visible maroon focus rings;
+  logical tab order; the form card is the landmark, the brand panel is `aria-hidden`.
+- Submit sets `aria-busy`; errors are announced (`role="alert"`).
+- The split-panel reveal and any motif animation honour `prefers-reduced-motion`
+  (fade/instant). The theme toggle (§5) is available on auth pages too.
