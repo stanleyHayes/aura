@@ -10,8 +10,9 @@ facilities, runs an approval workflow, and produces utilisation reporting.
 
 The name is deliberately broad: beyond classrooms, AURA can grow to cover lecture
 halls, labs, conference and study rooms, auditoriums, sports facilities, and campus
-equipment. See [BRAND.md](BRAND.md) for identity and [ARCHITECTURE.md](ARCHITECTURE.md)
-for how it's built.
+equipment. See [BRAND.md](BRAND.md) for identity, [DESIGN.md](DESIGN.md) for the
+UI/UX spec (navigation, page patterns, motion, accessibility), and
+[ARCHITECTURE.md](ARCHITECTURE.md) for how it's built.
 
 Built to [`Classroom_Booking_System_Technical_Specification.md`](Classroom_Booking_System_Technical_Specification.md). British English throughout.
 
