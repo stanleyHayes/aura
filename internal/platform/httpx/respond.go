@@ -14,7 +14,7 @@ import (
 	"github.com/aura/cbs/internal/platform/logging"
 )
 
-const problemBaseURI = "https://api.cbs.example.edu/errors/"
+const problemBaseURI = "https://api.aura.ashesi.edu/errors/"
 
 // Problem is an RFC 9457 problem document.
 type Problem struct {

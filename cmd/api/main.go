@@ -1,6 +1,6 @@
-// Command api is the Classroom Booking System HTTP API: a modular monolith
-// (§5.1) wiring iam, catalogue, scheduling, availability, bookings, notifications
-// and reporting behind one chi router.
+// Command api is the AURA (Ashesi University Resource Allocation) HTTP API: a
+// modular monolith (§5.1) wiring iam, catalogue, scheduling, availability,
+// bookings, notifications and reporting behind one chi router.
 package main
 
 import (
@@ -125,7 +125,7 @@ func buildRouter(cfg config.Config, store *db.Store, loc *time.Location, log *sl
 	// Domain services.
 	iamSvc := iam.NewService(store, signer, argon, aesgcm, iam.Config{
 		AccessTTL: cfg.AccessTokenTTL, RefreshTTL: cfg.RefreshTokenTTL,
-		LoginMaxAttempts: cfg.LoginMaxAttempts, LoginLockWindow: cfg.LoginLockWindow, MFAIssuer: "CBS",
+		LoginMaxAttempts: cfg.LoginMaxAttempts, LoginLockWindow: cfg.LoginLockWindow, MFAIssuer: "AURA",
 	}, notifSvc)
 	catalogueSvc := catalogue.NewService(store)
 	schedulingSvc := scheduling.NewService(store)

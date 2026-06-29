@@ -62,7 +62,7 @@ services:
       - key: MAIL_PORT
         value: "587"
       - key: MAIL_FROM
-        value: no-reply@cbs.example.edu
+        value: no-reply@ashesi.edu
       - key: MAIL_USERNAME
         sync: false
       - key: MAIL_PASSWORD

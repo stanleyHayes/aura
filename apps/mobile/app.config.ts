@@ -1,7 +1,7 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 /**
- * Dynamic Expo config for the Classroom Booking System mobile app.
+ * Dynamic Expo config for AURA — Ashesi University Resource Allocation (mobile).
  *
  * Channels (Section 13 — "EAS Update for OTA … staging and production
  * channels"): the active EAS Update channel is selected by the build profile
@@ -9,8 +9,8 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
  * it defaults to the local Go API (`http://localhost:8080/api/v1`).
  *
  * Deep links (Section 13 — "Deep links open the relevant booking"): the app
- * owns the `cbs://` scheme and the `https://app.cbs.example.edu` universal /
- * app links. `cbs://booking/<id>` and the matching https path both resolve to
+ * owns the `aura://` scheme and the `https://app.aura.ashesi.edu` universal /
+ * app links. `aura://booking/<id>` and the matching https path both resolve to
  * the `app/booking/[id].tsx` route via expo-router's linking integration.
  */
 
@@ -21,28 +21,31 @@ const IS_STAGING = APP_VARIANT === 'staging';
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:8080/api/v1';
 
+// Ashesi maroon — see BRAND.md.
+const ASHESI_MAROON = '#7B1113';
+
 // EAS project id — replace with the real id from `eas init` (left as an env so
 // CI can inject it without committing the value).
 const EAS_PROJECT_ID =
   process.env.EAS_PROJECT_ID ?? '00000000-0000-0000-0000-000000000000';
 
 function name(): string {
-  if (IS_DEV) return 'CBS (Dev)';
-  if (IS_STAGING) return 'CBS (Staging)';
-  return 'Classroom Booking';
+  if (IS_DEV) return 'AURA (Dev)';
+  if (IS_STAGING) return 'AURA (Staging)';
+  return 'AURA';
 }
 
 function bundleId(): string {
-  if (IS_DEV) return 'edu.example.cbs.dev';
-  if (IS_STAGING) return 'edu.example.cbs.staging';
-  return 'edu.example.cbs';
+  if (IS_DEV) return 'edu.ashesi.aura.dev';
+  if (IS_STAGING) return 'edu.ashesi.aura.staging';
+  return 'edu.ashesi.aura';
 }
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: name(),
-  slug: 'cbs-mobile',
-  scheme: 'cbs',
+  slug: 'aura-mobile',
+  scheme: 'aura',
   version: '0.1.0',
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
@@ -53,8 +56,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     bundleIdentifier: bundleId(),
     supportsTablet: true,
-    // Universal links — open https://app.cbs.example.edu/booking/<id> in-app.
-    associatedDomains: ['applinks:app.cbs.example.edu'],
+    // Universal links — open https://app.aura.ashesi.edu/booking/<id> in-app.
+    associatedDomains: ['applinks:app.aura.ashesi.edu'],
     infoPlist: {
       // Push delivery + background fetch for notification re-sync.
       UIBackgroundModes: ['remote-notification'],
@@ -72,7 +75,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         action: 'VIEW',
         autoVerify: true,
-        data: [{ scheme: 'https', host: 'app.cbs.example.edu', pathPrefix: '/booking' }],
+        data: [{ scheme: 'https', host: 'app.aura.ashesi.edu', pathPrefix: '/booking' }],
         category: ['BROWSABLE', 'DEFAULT'],
       },
     ],
@@ -96,8 +99,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-notifications',
       {
-        // Push icon/colour for Android notification tray.
-        color: '#1d4ed8',
+        // Push icon/colour for Android notification tray (Ashesi maroon).
+        color: ASHESI_MAROON,
       },
     ],
     [
@@ -106,21 +109,21 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         // QR check-in is Phase 2 (Section 4.3 / 13); permission declared now so
         // the OTA-updatable JS can light it up without a new native build.
         cameraPermission:
-          'Allow CBS to use the camera for QR-code room check-in (Phase 2).',
+          'Allow AURA to use the camera for QR-code room check-in (Phase 2).',
       },
     ],
     [
       'expo-calendar',
       {
         calendarPermission:
-          'Allow CBS to add your approved room bookings to your device calendar.',
+          'Allow AURA to add your approved room bookings to your device calendar.',
       },
     ],
     [
       '@sentry/react-native/expo',
       {
-        organization: process.env.SENTRY_ORG ?? 'cbs',
-        project: process.env.SENTRY_PROJECT ?? 'mobile',
+        organization: process.env.SENTRY_ORG ?? 'ashesi',
+        project: process.env.SENTRY_PROJECT ?? 'aura-mobile',
         // Auth token injected by EAS secrets at build time, never committed.
       },
     ],

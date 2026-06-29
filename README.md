@@ -1,10 +1,17 @@
-# Classroom Booking System (CBS)
+# AURA — Ashesi University Resource Allocation
 
-A centralised platform for managing classroom availability and bookings across a
-university. It ingests the per-semester lecture timetable, derives real-time room
-availability from that timetable plus ad-hoc reservations and maintenance windows,
-lets authorised users search and book rooms, runs a booking-approval workflow, and
-produces utilisation reporting.
+**Smart Space Management for Ashesi.**
+
+AURA is a web and mobile resource-allocation and reservation platform built for
+**Ashesi University**. It ingests the per-semester lecture timetable, derives
+real-time room availability from that timetable plus ad-hoc reservations and
+maintenance windows, lets students, faculty and staff search and reserve campus
+facilities, runs an approval workflow, and produces utilisation reporting.
+
+The name is deliberately broad: beyond classrooms, AURA can grow to cover lecture
+halls, labs, conference and study rooms, auditoriums, sports facilities, and campus
+equipment. See [BRAND.md](BRAND.md) for identity and [ARCHITECTURE.md](ARCHITECTURE.md)
+for how it's built.
 
 Built to [`Classroom_Booking_System_Technical_Specification.md`](Classroom_Booking_System_Technical_Specification.md). British English throughout.
 

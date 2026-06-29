@@ -13,10 +13,17 @@ import { NextResponse, type NextRequest } from "next/server";
  * signature without the key); the layout's `getSession()` performs the real
  * authorisation and role gate.
  */
-const ACCESS_COOKIE = "__Host-access";
+// The API sets `__Host-access` over HTTPS (production) and `cbs_access` over plain
+// HTTP (local dev), where the browser rejects __Host- cookies. Accept either so
+// the gate works in both environments (mirrors the API's auth middleware).
+const ACCESS_COOKIES = ["__Host-access", "cbs_access"] as const;
 
 function isProtected(pathname: string): boolean {
   return pathname.startsWith("/app") || pathname.startsWith("/admin");
+}
+
+function hasAccessCookie(request: NextRequest): boolean {
+  return ACCESS_COOKIES.some((name) => request.cookies.has(name));
 }
 
 export default function proxy(request: NextRequest) {
@@ -26,8 +33,7 @@ export default function proxy(request: NextRequest) {
   requestHeaders.set("x-pathname", pathname);
 
   if (isProtected(pathname)) {
-    const hasAccess = request.cookies.has(ACCESS_COOKIE);
-    if (!hasAccess) {
+    if (!hasAccessCookie(request)) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("next", pathname + search);
       return NextResponse.redirect(loginUrl);

@@ -43,7 +43,7 @@ type Config struct {
 
 	MailHost string `env:"MAIL_HOST"`
 	MailPort int    `env:"MAIL_PORT" envDefault:"1025"`
-	MailFrom string `env:"MAIL_FROM" envDefault:"no-reply@cbs.example.edu"`
+	MailFrom string `env:"MAIL_FROM" envDefault:"no-reply@ashesi.edu"`
 	MailUser string `env:"MAIL_USERNAME"`
 	MailPass string `env:"MAIL_PASSWORD"`
 

@@ -1,6 +1,6 @@
 # Operations runbooks
 
-Operational runbooks for the Classroom Booking System (spec §15, §18). Each
+Operational runbooks for AURA (Ashesi University Resource Allocation) (spec §15, §18). Each
 runbook is task-focused: symptoms, how to confirm, how to fix, and how to verify
 recovery. Keep them current — the Definition of Done (§19.2) requires updating a
 runbook whenever operational behaviour changes.

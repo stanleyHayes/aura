@@ -29,3 +29,6 @@ dist/
 .turbo/
 **/.turbo/
 *.tsbuildinfo
+
+# Local dev credentials (never commit)
+credentials.txt

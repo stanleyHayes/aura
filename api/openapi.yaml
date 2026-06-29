@@ -1,16 +1,17 @@
 openapi: 3.1.0
 info:
-  title: Classroom Booking System API
+  title: AURA — Ashesi University Resource Allocation API
   version: "1.0.0"
   description: >
-    Contract-first REST API for the Classroom Booking System (§8). JSON over HTTPS,
+    Contract-first REST API for AURA, Ashesi University's resource allocation and
+    reservation platform (§8). JSON over HTTPS,
     versioned under /api/v1. Errors use application/problem+json (RFC 9457) with a
     stable machine `code`. Cursor pagination via ?limit & ?cursor. This document is
     the source of truth from which the web and mobile typed clients are generated.
 servers:
   - url: http://localhost:8080
     description: Local development
-  - url: https://api.cbs.example.edu
+  - url: https://api.aura.ashesi.edu
     description: Production
 security:
   - bearerAuth: []

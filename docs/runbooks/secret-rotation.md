@@ -1,6 +1,6 @@
 # Runbook: secret rotation
 
-Rotate keys and credentials for the Classroom Booking System (§14 "Secrets",
+Rotate keys and credentials for AURA (Ashesi University Resource Allocation) (§14 "Secrets",
 §19.1). Covers both **scheduled** rotation and **emergency** rotation after a
 suspected leak. Secrets live in the cloud secret manager and are synced into
 Kubernetes via `ExternalSecret` (see `deploy/helm/cbs`). They are never in the
