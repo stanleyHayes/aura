@@ -10,12 +10,12 @@ import {
 import { ScheduleXCalendar, useNextCalendarApp } from "@schedule-x/react";
 import "@schedule-x/theme-default/dist/index.css";
 import type { CalendarBlock } from "@cbs/schemas";
-import { env } from "@/lib/env";
 
 /**
  * Day/week/month calendar of the unified block feed (§7.7) via Schedule-X
  * (ADR-0005). Lectures, bookings, maintenance and computed available gaps are
- * colour-coded by source. Times are pinned to the institution TZ.
+ * colour-coded by source. Blocks carry the institution-local date + HH:MM
+ * window, which Schedule-X consumes directly as "YYYY-MM-DD HH:MM".
  */
 
 const SOURCE_CALENDAR: Record<CalendarBlock["source"], string> = {
@@ -25,37 +25,24 @@ const SOURCE_CALENDAR: Record<CalendarBlock["source"], string> = {
   AVAILABLE: "available",
 };
 
-// Schedule-X expects local datetime strings "YYYY-MM-DD HH:MM".
-function toSxDateTime(iso: string): string {
-  const d = new Date(iso);
-  const fmt = new Intl.DateTimeFormat("en-CA", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: env.appTz,
-  });
-  const parts = Object.fromEntries(
-    fmt.formatToParts(d).map((p) => [p.type, p.value]),
-  );
-  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
+// The engine emits an exclusive end of "24:00" for full-day blocks; Schedule-X
+// only accepts 00:00–23:59, so clamp it to the end of the day.
+function clampEnd(time: string): string {
+  return time === "24:00" ? "23:59" : time;
 }
 
 export function CalendarView({ blocks }: { blocks: CalendarBlock[] }) {
   const events = React.useMemo(
     () =>
       blocks.map((b, i) => ({
-        id: b.reference_id ?? `${b.source}-${i}`,
+        id: `${b.source}-${b.room_id}-${b.date}-${b.start}-${i}`,
         title:
-          b.source === "BOOKING" && b.booking_status
-            ? `${b.title} (${b.booking_status.toLowerCase()})`
-            : b.title,
-        start: toSxDateTime(b.starts_at),
-        end: toSxDateTime(b.ends_at),
+          b.source === "BOOKING" && b.status
+            ? `${b.label} (${b.status.toLowerCase()})`
+            : b.label,
+        start: `${b.date} ${b.start}`,
+        end: `${b.date} ${clampEnd(b.end)}`,
         calendarId: SOURCE_CALENDAR[b.source],
-        description: b.room_code,
       })),
     [blocks],
   );

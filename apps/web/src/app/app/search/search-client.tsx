@@ -37,6 +37,7 @@ import {
   AvailabilityLegend,
 } from "@/components/availability-grid";
 import { BookDialog, type BookDraft } from "@/components/book-dialog";
+import { hhmm } from "@/lib/intervals";
 
 const roomTypes = RoomType.options;
 
@@ -96,8 +97,9 @@ export function SearchClient() {
     setDraft({
       room: result.room,
       date: submitted.date,
-      start: interval.start,
-      end: interval.end,
+      // Engine intervals are minutes-from-midnight; the dialog wants HH:MM.
+      start: hhmm(interval.start),
+      end: hhmm(interval.end),
     });
     setBookOpen(true);
   }

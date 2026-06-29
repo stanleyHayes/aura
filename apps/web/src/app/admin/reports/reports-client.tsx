@@ -128,7 +128,7 @@ export function ReportsClient() {
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <UtilisationChart rows={utilisation.data?.rows ?? []} />
+                  <UtilisationChart rows={utilisation.data?.rooms ?? []} />
                 </CardContent>
               </Card>
               <Card>
@@ -137,17 +137,17 @@ export function ReportsClient() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Room</TableHead>
-                        <TableHead>Building</TableHead>
+                        <TableHead>Capacity</TableHead>
                         <TableHead>Lecture h</TableHead>
                         <TableHead>Booked h</TableHead>
                         <TableHead>Utilisation</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(utilisation.data?.rows ?? []).map((r) => (
+                      {(utilisation.data?.rooms ?? []).map((r) => (
                         <TableRow key={r.room_id}>
                           <TableCell className="font-medium">{r.room_code}</TableCell>
-                          <TableCell>{r.building_name}</TableCell>
+                          <TableCell className="tabular-nums">{r.capacity}</TableCell>
                           <TableCell className="tabular-nums">
                             {r.lecture_hours.toFixed(1)}
                           </TableCell>
@@ -177,9 +177,15 @@ export function ReportsClient() {
             <div className="flex flex-col gap-6">
               <div className="grid gap-4 sm:grid-cols-4">
                 {[
-                  { label: "Total", value: bookings.data?.total ?? 0 },
-                  { label: "Approved", value: bookings.data?.approved ?? 0 },
-                  { label: "Rejected", value: bookings.data?.rejected ?? 0 },
+                  { label: "Total requests", value: bookings.data?.total_requests ?? 0 },
+                  {
+                    label: "Approved",
+                    value: bookings.data?.by_status?.APPROVED ?? 0,
+                  },
+                  {
+                    label: "Rejected",
+                    value: bookings.data?.by_status?.REJECTED ?? 0,
+                  },
                   {
                     label: "Approval rate",
                     value: `${Math.round(bookings.data?.approval_rate_pct ?? 0)}%`,
@@ -200,7 +206,7 @@ export function ReportsClient() {
                   <CardTitle>Bookings by department</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <BookingsChart rows={bookings.data?.by_department ?? []} />
+                  <BookingsChart data={bookings.data?.by_department ?? {}} />
                 </CardContent>
               </Card>
             </div>
@@ -217,11 +223,17 @@ export function ReportsClient() {
             <div className="flex flex-col gap-6">
               <div className="grid gap-4 sm:grid-cols-3">
                 {[
-                  { label: "Rejected requests", value: conflicts.data?.rejected_requests ?? 0 },
-                  { label: "Lecture clashes", value: conflicts.data?.lecture_clashes ?? 0 },
                   {
-                    label: "Maintenance clashes",
-                    value: conflicts.data?.maintenance_clashes ?? 0,
+                    label: "Rejected requests",
+                    value: conflicts.data?.rejected_requests ?? 0,
+                  },
+                  {
+                    label: "Cancelled bookings",
+                    value: conflicts.data?.cancelled_bookings ?? 0,
+                  },
+                  {
+                    label: "Expired requests",
+                    value: conflicts.data?.expired_requests ?? 0,
                   },
                 ].map((s) => (
                   <Card key={s.label}>
@@ -234,30 +246,6 @@ export function ReportsClient() {
                   </Card>
                 ))}
               </div>
-              <Card>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Room</TableHead>
-                        <TableHead>Reason</TableHead>
-                        <TableHead>Count</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(conflicts.data?.rows ?? []).map((r, i) => (
-                        <TableRow key={`${r.date}-${r.room_code}-${i}`}>
-                          <TableCell>{r.date}</TableCell>
-                          <TableCell className="font-medium">{r.room_code}</TableCell>
-                          <TableCell>{r.reason}</TableCell>
-                          <TableCell className="tabular-nums">{r.count}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
             </div>
           )}
         </TabsContent>

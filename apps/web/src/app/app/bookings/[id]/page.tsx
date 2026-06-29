@@ -69,10 +69,10 @@ export default async function BookingDetailPage({
                 <dd className="font-medium">{formatDate(booking.starts_at)}</dd>
                 <dd>{formatTimeRange(booking.starts_at, booking.ends_at)}</dd>
               </div>
-              {booking.room?.building ? (
+              {booking.room?.building_name ? (
                 <div className="flex items-center gap-2">
                   <Building2 className="size-4 text-[var(--color-muted-foreground)]" aria-hidden="true" />
-                  <dd>{booking.room.building.name}</dd>
+                  <dd>{booking.room.building_name}</dd>
                 </div>
               ) : null}
               <div className="flex items-center gap-2">

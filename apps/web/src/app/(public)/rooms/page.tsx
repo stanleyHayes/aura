@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Building2, MapPin, Users } from "lucide-react";
+import { Building2, Users } from "lucide-react";
 import { createApi } from "@cbs/api-client";
 import { ROOM_TYPE_LABELS, type Room } from "@cbs/schemas";
 import { apiOrigin, env } from "@/lib/env";
@@ -48,8 +48,8 @@ export default async function RoomDirectoryPage() {
         identifier: room.room_code,
         url: `${env.siteUrl}/rooms/${room.id}`,
         maximumAttendeeCapacity: room.capacity,
-        containedInPlace: room.building
-          ? { "@type": "Place", name: room.building.name }
+        containedInPlace: room.building_name
+          ? { "@type": "Place", name: room.building_name }
           : undefined,
       },
     })),
@@ -101,11 +101,11 @@ export default async function RoomDirectoryPage() {
                       </Badge>
                     </div>
                     <dl className="mt-auto flex flex-col gap-1.5 text-sm text-[var(--color-muted-foreground)]">
-                      {room.building ? (
+                      {room.building_name ? (
                         <div className="flex items-center gap-2">
                           <Building2 className="size-4" aria-hidden="true" />
                           <dt className="sr-only">Building</dt>
-                          <dd>{room.building.name}</dd>
+                          <dd>{room.building_name}</dd>
                         </div>
                       ) : null}
                       <div className="flex items-center gap-2">
@@ -113,13 +113,6 @@ export default async function RoomDirectoryPage() {
                         <dt className="sr-only">Capacity</dt>
                         <dd>Seats {room.capacity}</dd>
                       </div>
-                      {room.building?.campus ? (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="size-4" aria-hidden="true" />
-                          <dt className="sr-only">Campus</dt>
-                          <dd>{room.building.campus}</dd>
-                        </div>
-                      ) : null}
                     </dl>
                   </CardContent>
                 </Card>

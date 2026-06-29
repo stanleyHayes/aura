@@ -4,7 +4,24 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { Menu } from "lucide-react";
+import {
+  Bell,
+  Building2,
+  CalendarCog,
+  CalendarDays,
+  ClipboardCheck,
+  DoorOpen,
+  FileBarChart,
+  GraduationCap,
+  LayoutDashboard,
+  Menu,
+  ScrollText,
+  Search,
+  Ticket,
+  Upload,
+  Users,
+  Wrench,
+} from "lucide-react";
 import { cn } from "@cbs/ui/lib/cn";
 import { Button } from "@cbs/ui/components/button";
 import {
@@ -19,10 +36,34 @@ import { NotificationsBell } from "@/components/notifications-bell";
 import { UserMenu } from "@/components/user-menu";
 import { route } from "@/lib/route";
 
+/**
+ * Icon registry. Server layouts pass a string key (functions cannot cross the
+ * server→client boundary), and we resolve it to a Lucide component here.
+ */
+const ICONS = {
+  bell: Bell,
+  building: Building2,
+  "calendar-cog": CalendarCog,
+  calendar: CalendarDays,
+  "clipboard-check": ClipboardCheck,
+  door: DoorOpen,
+  "file-bar-chart": FileBarChart,
+  "graduation-cap": GraduationCap,
+  dashboard: LayoutDashboard,
+  "scroll-text": ScrollText,
+  search: Search,
+  ticket: Ticket,
+  upload: Upload,
+  users: Users,
+  wrench: Wrench,
+} satisfies Record<string, LucideIcon>;
+
+export type IconKey = keyof typeof ICONS;
+
 export interface NavItem {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: IconKey;
   /** Optional exact-match flag for index routes. */
   exact?: boolean;
 }
@@ -57,7 +98,7 @@ function NavList({
           ) : null}
           {section.items.map((item) => {
             const active = isActive(pathname, item);
-            const Icon = item.icon;
+            const Icon = ICONS[item.icon];
             return (
               <Link
                 key={item.href}

@@ -64,7 +64,8 @@ export interface components {
       room_code: string;
       name: string;
       building_id: string;
-      building?: components["schemas"]["Building"] | null;
+      building_code?: string | null;
+      building_name?: string | null;
       capacity: number;
       room_type:
         | "LECTURE_HALL"
@@ -196,63 +197,45 @@ export interface components {
     };
     AvailabilityResult: {
       room: components["schemas"]["Room"];
-      free_intervals: { start: string; end: string }[];
+      /** Minutes from midnight: inclusive start, exclusive end. */
+      free_intervals: { start: number; end: number }[];
     };
     CalendarBlock: {
-      source: "LECTURE" | "BOOKING" | "MAINTENANCE" | "AVAILABLE";
-      title: string;
+      date: string;
       room_id: string;
-      room_code?: string;
-      starts_at: string;
-      ends_at: string;
-      booking_status?:
-        | "PENDING"
-        | "APPROVED"
-        | "REJECTED"
-        | "CANCELLED"
-        | "EXPIRED"
-        | null;
-      reference_id?: string | null;
+      source: "LECTURE" | "BOOKING" | "MAINTENANCE" | "AVAILABLE";
+      status?: string;
+      label: string;
+      start: string;
+      end: string;
     };
     UtilisationReport: {
-      rows: {
+      rooms: {
         room_id: string;
         room_code: string;
         room_name: string;
-        building_name: string;
+        capacity: number;
         lecture_hours: number;
         booked_hours: number;
         available_hours: number;
         utilisation_pct: number;
       }[];
-      totals: {
-        lecture_hours: number;
-        booked_hours: number;
-        available_hours: number;
-        utilisation_pct: number;
-      };
+      total_lecture_hours: number;
+      total_booked_hours: number;
+      average_utilisation_pct: number;
     };
     BookingReport: {
-      total: number;
-      approved: number;
-      rejected: number;
-      pending: number;
-      cancelled: number;
+      by_status: Record<string, number>;
+      by_building: Record<string, number>;
+      by_department: Record<string, number>;
       approval_rate_pct: number;
-      by_department: { department: string; count: number }[];
-      by_building: { building: string; count: number }[];
+      rejection_rate_pct: number;
+      total_requests: number;
     };
     ConflictReport: {
       rejected_requests: number;
-      lecture_clashes: number;
-      maintenance_clashes: number;
-      competing_pending: number;
-      rows: {
-        date: string;
-        room_code: string;
-        reason: string;
-        count: number;
-      }[];
+      cancelled_bookings: number;
+      expired_requests: number;
     };
   };
 }
@@ -361,7 +344,10 @@ export interface paths {
     post: JsonPost<S["Room"]>;
   };
   "/api/v1/rooms/{id}": {
-    get: JsonGet<S["Room"]>;
+    get: JsonGet<{
+      room: S["Room"];
+      equipment: S["Room"]["equipment"] | null;
+    }>;
     patch: JsonPost<S["Room"]>;
   };
   "/api/v1/rooms/{id}/deactivate": { post: JsonPost<S["Room"]> };
@@ -450,7 +436,7 @@ export interface paths {
 
   "/api/v1/calendar": {
     get: JsonGet<
-      { blocks: S["CalendarBlock"][] },
+      { view: string; data: S["CalendarBlock"][] },
       {
         view: "day" | "week" | "month";
         date: string;

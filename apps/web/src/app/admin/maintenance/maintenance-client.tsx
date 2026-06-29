@@ -33,6 +33,8 @@ import { useToast } from "@cbs/ui/components/toast";
 import { formatDate, formatTimeRange } from "@cbs/ui/lib/datetime";
 import { api, unwrap } from "@/lib/api/client";
 import { qk } from "@/lib/query-keys";
+import { localToRfc3339 } from "@/lib/intervals";
+import { env } from "@/lib/env";
 import { PageHeader } from "@/components/page-header";
 import { ProblemAlert } from "@/components/problem-alert";
 import { DataTable } from "@/components/data-table";
@@ -74,7 +76,15 @@ export function MaintenanceClient() {
   const create = useMutation({
     mutationFn: async (values: Values) =>
       unwrap(
-        await api.POST("/api/v1/maintenance-windows", { body: values as never }),
+        await api.POST("/api/v1/maintenance-windows", {
+          body: {
+            room_id: values.room_id,
+            // Endpoint expects RFC 3339 instants (institution TZ).
+            starts_at: localToRfc3339(values.date, values.start, env.appTz),
+            ends_at: localToRfc3339(values.date, values.end, env.appTz),
+            reason: values.reason,
+          } as never,
+        }),
       ),
     onSuccess: () => {
       toast({ variant: "success", title: "Maintenance window created" });

@@ -63,7 +63,7 @@ export default async function AdminDashboard() {
     {
       label: "30-day utilisation",
       value: utilisation
-        ? `${Math.round(utilisation.totals.utilisation_pct)}%`
+        ? `${Math.round(utilisation.average_utilisation_pct)}%`
         : "—",
       icon: Percent,
       href: "/admin/reports",
@@ -71,7 +71,7 @@ export default async function AdminDashboard() {
     },
     {
       label: "Rooms tracked",
-      value: utilisation ? utilisation.rows.length : "—",
+      value: utilisation ? (utilisation.rooms?.length ?? 0) : "—",
       icon: DoorOpen,
       href: "/admin/rooms",
       show: canReport,

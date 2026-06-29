@@ -25,10 +25,19 @@ function todayKey(): string {
 /** Building-scoped calendar panel reused in app + admin (§7.7, FR10). */
 export function CalendarPanel() {
   const buildings = useBuildings();
-  const [buildingId, setBuildingId] = React.useState<string>("");
+  const buildingList: Building[] = React.useMemo(
+    () => buildings.data ?? [],
+    [buildings.data],
+  );
+  // The calendar endpoint requires a room_id or building_id (§8.3). Until the
+  // user picks one, default to the first building from the reference list.
+  const [selected, setSelected] = React.useState<string>("");
+  const buildingId =
+    selected || (buildingList.length > 0 ? buildingList[0]!.id : "");
 
   const query = useQuery({
     queryKey: qk.calendar({ buildingId, view: "week" }),
+    enabled: buildingId !== "",
     queryFn: async (): Promise<CalendarBlock[]> => {
       const res = unwrap(
         await api.GET("/api/v1/calendar", {
@@ -36,16 +45,14 @@ export function CalendarPanel() {
             query: {
               view: "week",
               date: todayKey(),
-              building_id: buildingId || undefined,
+              building_id: buildingId,
             },
           },
         }),
       );
-      return (res.blocks ?? []) as CalendarBlock[];
+      return (res.data ?? []) as CalendarBlock[];
     },
   });
-
-  const buildingList: Building[] = buildings.data ?? [];
 
   return (
     <div className="flex flex-col gap-4">
@@ -55,14 +62,13 @@ export function CalendarPanel() {
         </label>
         <div className="w-64">
           <Select
-            value={buildingId || "any"}
-            onValueChange={(v) => setBuildingId(v === "any" ? "" : v)}
+            value={buildingId || undefined}
+            onValueChange={setSelected}
           >
             <SelectTrigger id="cal-building">
-              <SelectValue placeholder="All buildings" />
+              <SelectValue placeholder="Select a building" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="any">All buildings</SelectItem>
               {buildingList.map((b) => (
                 <SelectItem key={b.id} value={b.id}>
                   {b.name}
@@ -73,10 +79,10 @@ export function CalendarPanel() {
         </div>
       </div>
 
-      {query.isLoading ? (
-        <Skeleton className="h-[32rem] w-full rounded-xl" />
-      ) : query.isError ? (
+      {query.isError ? (
         <ProblemAlert error={query.error} />
+      ) : query.isPending || buildingId === "" ? (
+        <Skeleton className="h-[32rem] w-full rounded-xl" />
       ) : (
         <Card>
           <CardContent className="p-3">

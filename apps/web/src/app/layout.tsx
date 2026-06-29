@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { fontSans, fontSerif } from "@/lib/fonts";
+import { fontSans } from "@/lib/fonts";
 import { Providers } from "@/components/providers";
 import { env } from "@/lib/env";
 import "./globals.css";
@@ -7,16 +7,16 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(env.siteUrl),
   title: {
-    default: "Roomwise — University Classroom Booking",
-    template: "%s · Roomwise",
+    default: "AURA — Ashesi University Resource Allocation",
+    template: "%s · AURA",
   },
   description:
-    "Search classroom availability, request rooms, and manage the university timetable in one place.",
-  applicationName: "Roomwise",
-  authors: [{ name: "University ICT Directorate" }],
+    "AURA is Ashesi University's resource-allocation and reservation platform — reserve classrooms and campus facilities with real-time availability, approvals, conflict detection and scheduling.",
+  applicationName: "AURA",
+  authors: [{ name: "Ashesi University" }],
   openGraph: {
     type: "website",
-    siteName: "Roomwise",
+    siteName: "AURA — Ashesi University Resource Allocation",
     locale: "en_GB",
   },
   twitter: { card: "summary_large_image" },
@@ -24,8 +24,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fbfbf9" },
-    { media: "(prefers-color-scheme: dark)", color: "#191a22" },
+    { media: "(prefers-color-scheme: light)", color: "#FBFBF9" },
+    { media: "(prefers-color-scheme: dark)", color: "#23201F" },
   ],
 };
 
@@ -40,7 +40,7 @@ export default function RootLayout({
   // chrome, and the (app)/(admin) server layouts perform the authoritative
   // server-side session gate themselves (§9.2).
   return (
-    <html lang="en-GB" className={`${fontSans.variable} ${fontSerif.variable}`}>
+    <html lang="en-GB" className={fontSans.variable}>
       <body className="min-h-dvh antialiased">
         <a href="#main" className="skip-link rounded-md bg-[var(--color-primary)] px-3 py-2 text-sm text-[var(--color-primary-foreground)]">
           Skip to main content

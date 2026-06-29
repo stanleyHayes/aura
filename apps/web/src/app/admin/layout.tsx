@@ -1,18 +1,4 @@
 import { redirect } from "next/navigation";
-import {
-  Building2,
-  CalendarCog,
-  CalendarDays,
-  ClipboardCheck,
-  DoorOpen,
-  FileBarChart,
-  GraduationCap,
-  LayoutDashboard,
-  ScrollText,
-  Upload,
-  Users,
-  Wrench,
-} from "lucide-react";
 import type { Permission } from "@cbs/schemas";
 import { getSession } from "@/lib/api/server";
 import { canAccessAdmin } from "@/lib/auth";
@@ -25,14 +11,14 @@ interface GatedItem extends NavItem {
 const allSections: { heading?: string; items: GatedItem[] }[] = [
   {
     items: [
-      { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+      { href: "/admin", label: "Dashboard", icon: "dashboard", exact: true },
       {
         href: "/admin/approvals",
         label: "Approvals",
-        icon: ClipboardCheck,
+        icon: "clipboard-check",
         permission: "booking.approve",
       },
-      { href: "/admin/calendar", label: "Calendar", icon: CalendarDays },
+      { href: "/admin/calendar", label: "Calendar", icon: "calendar" },
     ],
   },
   {
@@ -41,19 +27,19 @@ const allSections: { heading?: string; items: GatedItem[] }[] = [
       {
         href: "/admin/rooms",
         label: "Rooms",
-        icon: DoorOpen,
+        icon: "door",
         permission: "room.manage",
       },
       {
         href: "/admin/buildings",
         label: "Buildings",
-        icon: Building2,
+        icon: "building",
         permission: "room.manage",
       },
       {
         href: "/admin/equipment",
         label: "Equipment",
-        icon: Wrench,
+        icon: "wrench",
         permission: "room.manage",
       },
     ],
@@ -64,19 +50,19 @@ const allSections: { heading?: string; items: GatedItem[] }[] = [
       {
         href: "/admin/semesters",
         label: "Semesters",
-        icon: CalendarCog,
+        icon: "calendar-cog",
         permission: "semester.manage",
       },
       {
         href: "/admin/timetable",
         label: "Timetable",
-        icon: Upload,
+        icon: "upload",
         permission: "timetable.manage",
       },
       {
         href: "/admin/maintenance",
         label: "Maintenance",
-        icon: Wrench,
+        icon: "wrench",
         permission: "maintenance.manage",
       },
     ],
@@ -87,25 +73,25 @@ const allSections: { heading?: string; items: GatedItem[] }[] = [
       {
         href: "/admin/users",
         label: "Users",
-        icon: Users,
+        icon: "users",
         permission: "user.manage",
       },
       {
         href: "/admin/departments",
         label: "Departments",
-        icon: GraduationCap,
+        icon: "graduation-cap",
         permission: "user.manage",
       },
       {
         href: "/admin/reports",
         label: "Reports",
-        icon: FileBarChart,
+        icon: "file-bar-chart",
         permission: "report.view",
       },
       {
         href: "/admin/audit",
         label: "Audit log",
-        icon: ScrollText,
+        icon: "scroll-text",
         permission: "user.manage",
       },
     ],

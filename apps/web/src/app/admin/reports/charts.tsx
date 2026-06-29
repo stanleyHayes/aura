@@ -58,11 +58,14 @@ export function UtilisationChart({ rows }: { rows: UtilisationRow[] }) {
 }
 
 export function BookingsChart({
-  rows,
+  data: byKey,
 }: {
-  rows: { department: string; count: number }[];
+  data: Record<string, number>;
 }) {
-  const data = rows.slice(0, 12).map((r) => ({ name: r.department, count: r.count }));
+  const data = Object.entries(byKey)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 12)
+    .map(([name, count]) => ({ name, count }));
 
   if (data.length === 0) {
     return (

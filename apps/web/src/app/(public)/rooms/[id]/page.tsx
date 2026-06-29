@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Building2, MapPin, Users } from "lucide-react";
+import { ArrowLeft, Building2, Users } from "lucide-react";
 import { createApi } from "@cbs/api-client";
-import { ROOM_TYPE_LABELS, type Room } from "@cbs/schemas";
+import { ROOM_TYPE_LABELS, type Room, type RoomEquipment } from "@cbs/schemas";
 import { apiOrigin, env } from "@/lib/env";
 import { Button } from "@cbs/ui/components/button";
 import { Badge } from "@cbs/ui/components/badge";
@@ -11,12 +11,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@cbs/ui/components/car
 
 export const revalidate = 3600;
 
-async function fetchRoom(id: string): Promise<Room | null> {
+type RoomDetail = Room & { equipment: RoomEquipment[] };
+
+/**
+ * Detail endpoint returns `{ room, equipment }`. Note room reads are
+ * authenticated in this deployment, so anonymous visitors get null here.
+ */
+async function fetchRoom(id: string): Promise<RoomDetail | null> {
   const api = createApi({ baseUrl: apiOrigin });
   const { data } = await api.GET("/api/v1/rooms/{id}", {
     params: { path: { id } },
   });
-  return (data as Room | undefined) ?? null;
+  if (!data?.room) return null;
+  return { ...(data.room as Room), equipment: (data.equipment ?? []) as RoomEquipment[] };
 }
 
 export async function generateMetadata({
@@ -34,7 +41,7 @@ export async function generateMetadata({
   if (!room) return { title: "Room not found" };
   const title = `${room.name} (${room.room_code})`;
   const description = `${ROOM_TYPE_LABELS[room.room_type]} seating ${room.capacity}${
-    room.building ? ` in ${room.building.name}` : ""
+    room.building_name ? ` in ${room.building_name}` : ""
   }. Check live availability and book.`;
   return {
     title,
@@ -65,17 +72,13 @@ export default async function RoomDetailPage({
     identifier: room.room_code,
     url: `${env.siteUrl}/rooms/${room.id}`,
     maximumAttendeeCapacity: room.capacity,
-    amenityFeature: room.equipment.map((e) => ({
+    amenityFeature: (room.equipment ?? []).map((e) => ({
       "@type": "LocationFeatureSpecification",
       name: e.name,
       value: true,
     })),
-    containedInPlace: room.building
-      ? {
-          "@type": "Place",
-          name: room.building.name,
-          address: room.building.campus ?? undefined,
-        }
+    containedInPlace: room.building_name
+      ? { "@type": "Place", name: room.building_name }
       : undefined,
   };
 
@@ -115,18 +118,11 @@ export default async function RoomDetailPage({
                 <dt className="w-24 text-[var(--color-muted-foreground)]">Capacity</dt>
                 <dd className="font-medium">{room.capacity} seats</dd>
               </div>
-              {room.building ? (
+              {room.building_name ? (
                 <div className="flex items-center gap-3">
                   <Building2 className="size-4 text-[var(--color-muted-foreground)]" aria-hidden="true" />
                   <dt className="w-24 text-[var(--color-muted-foreground)]">Building</dt>
-                  <dd className="font-medium">{room.building.name}</dd>
-                </div>
-              ) : null}
-              {room.building?.campus ? (
-                <div className="flex items-center gap-3">
-                  <MapPin className="size-4 text-[var(--color-muted-foreground)]" aria-hidden="true" />
-                  <dt className="w-24 text-[var(--color-muted-foreground)]">Campus</dt>
-                  <dd className="font-medium">{room.building.campus}</dd>
+                  <dd className="font-medium">{room.building_name}</dd>
                 </div>
               ) : null}
             </dl>
@@ -138,13 +134,13 @@ export default async function RoomDetailPage({
             <CardTitle>Equipment</CardTitle>
           </CardHeader>
           <CardContent>
-            {room.equipment.length === 0 ? (
+            {(room.equipment ?? []).length === 0 ? (
               <p className="text-sm text-[var(--color-muted-foreground)]">
                 No fixed equipment recorded for this room.
               </p>
             ) : (
               <ul className="flex flex-wrap gap-2">
-                {room.equipment.map((e) => (
+                {(room.equipment ?? []).map((e) => (
                   <li key={e.equipment_id}>
                     <Badge variant="outline">
                       {e.name}

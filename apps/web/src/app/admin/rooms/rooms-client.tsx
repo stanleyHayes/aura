@@ -62,9 +62,9 @@ export function RoomsClient() {
       },
       { accessorKey: "name", header: "Name" },
       {
-        accessorKey: "building",
+        accessorKey: "building_name",
         header: "Building",
-        cell: ({ row }) => row.original.building?.name ?? "—",
+        cell: ({ row }) => row.original.building_name ?? "—",
       },
       {
         accessorKey: "room_type",

@@ -45,6 +45,47 @@ export function bandPosition(
   };
 }
 
+/**
+ * Combine a local `YYYY-MM-DD` date and `HH:MM` time interpreted in `timeZone`
+ * into an RFC 3339 UTC instant (e.g. for the booking create endpoint, which
+ * expects `starts_at`/`ends_at`). Robust to the zone's UTC offset.
+ */
+export function localToRfc3339(
+  date: string,
+  time: string,
+  timeZone: string,
+): string {
+  const [y, mo, d] = date.split("-").map(Number);
+  const [h, mi] = time.split(":").map(Number);
+  // Provisional UTC guess, then correct by the zone offset at that instant.
+  const guess = Date.UTC(y!, (mo ?? 1) - 1, d ?? 1, h ?? 0, mi ?? 0);
+  const asUtc = new Date(guess);
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  const parts = Object.fromEntries(
+    fmt.formatToParts(asUtc).map((p) => [p.type, p.value]),
+  );
+  const tzWall = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    parts.hour === "24" ? 0 : Number(parts.hour),
+    Number(parts.minute),
+    Number(parts.second),
+  );
+  // offset = (what the zone shows for `asUtc`) − (the UTC instant) → subtract it.
+  const offset = tzWall - guess;
+  return new Date(guess - offset).toISOString();
+}
+
 /** Hour tick labels across the window. */
 export function hourTicks(win: DisplayWindow): number[] {
   const ticks: number[] = [];

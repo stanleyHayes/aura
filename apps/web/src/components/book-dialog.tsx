@@ -23,6 +23,8 @@ import {
 import { useToast } from "@cbs/ui/components/toast";
 import { ROOM_TYPE_LABELS } from "@cbs/schemas";
 import { api, unwrap } from "@/lib/api/client";
+import { localToRfc3339 } from "@/lib/intervals";
+import { env } from "@/lib/env";
 import { Field } from "@/components/forms/field";
 import { ProblemAlert } from "@/components/problem-alert";
 
@@ -73,20 +75,16 @@ export function BookDialog({
       return;
     }
     try {
-      // Combine local date + time into RFC 3339 with offset handled by API.
+      // Combine local date + time (institution TZ) into RFC 3339 instants,
+      // which the create endpoint expects as starts_at / ends_at (§8.3).
       const idempotencyKey = crypto.randomUUID();
       unwrap(
         await api.POST("/api/v1/bookings", {
-          params: {
-            // Idempotency-Key (§8.1) forwarded as a header.
-          },
           headers: { "Idempotency-Key": idempotencyKey },
           body: {
             room_id: values.room_id,
-            // Server interprets date+times in the institution TZ.
-            date: values.date,
-            start: values.start,
-            end: values.end,
+            starts_at: localToRfc3339(values.date, values.start, env.appTz),
+            ends_at: localToRfc3339(values.date, values.end, env.appTz),
             purpose: values.purpose,
             attendee_count: values.attendee_count,
           } as never,

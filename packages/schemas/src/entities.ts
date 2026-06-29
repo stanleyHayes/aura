@@ -98,7 +98,9 @@ export const Room = z.object({
   room_code: z.string(),
   name: z.string(),
   building_id: Uuid,
-  building: Building.nullable().optional(),
+  /** Flat building fields are returned on the room list projection. */
+  building_code: z.string().nullable().optional(),
+  building_name: z.string().nullable().optional(),
   capacity: z.number().int().positive(),
   room_type: RoomType,
   status: RoomStatus,
@@ -243,10 +245,13 @@ export const AuditLog = z.object({
 });
 export type AuditLog = z.infer<typeof AuditLog>;
 
-/** Free time interval on a given day, from the availability engine (§7.1). */
+/**
+ * Free time interval on a given day, from the availability engine (§7.1). The
+ * engine reports minutes-from-midnight (inclusive start, exclusive end).
+ */
 export const FreeInterval = z.object({
-  start: TimeOfDay,
-  end: TimeOfDay,
+  start: z.number().int(),
+  end: z.number().int(),
 });
 export type FreeInterval = z.infer<typeof FreeInterval>;
 
@@ -256,25 +261,24 @@ export const AvailabilityResult = z.object({
 });
 export type AvailabilityResult = z.infer<typeof AvailabilityResult>;
 
-/** A unified calendar block (§7.7). */
+/** A unified calendar block (§7.7). Times are HH:MM on the given local date. */
 export const CalendarBlock = z.object({
-  source: CalendarBlockSource,
-  title: z.string(),
+  date: DateKey,
   room_id: Uuid,
-  room_code: z.string().optional(),
-  starts_at: Instant,
-  ends_at: Instant,
-  booking_status: BookingStatus.nullable().optional(),
-  reference_id: Uuid.nullable().optional(),
+  source: CalendarBlockSource,
+  status: z.string().optional(),
+  label: z.string(),
+  start: TimeOfDay,
+  end: TimeOfDay,
 });
 export type CalendarBlock = z.infer<typeof CalendarBlock>;
 
-/** Reporting payloads (§7.9). */
+/** Reporting payloads (§7.9). Shapes mirror the Go reporting DTOs. */
 export const UtilisationRow = z.object({
   room_id: Uuid,
   room_code: z.string(),
   room_name: z.string(),
-  building_name: z.string(),
+  capacity: z.number().int(),
   lecture_hours: z.number(),
   booked_hours: z.number(),
   available_hours: z.number(),
@@ -283,44 +287,26 @@ export const UtilisationRow = z.object({
 export type UtilisationRow = z.infer<typeof UtilisationRow>;
 
 export const UtilisationReport = z.object({
-  rows: z.array(UtilisationRow),
-  totals: z.object({
-    lecture_hours: z.number(),
-    booked_hours: z.number(),
-    available_hours: z.number(),
-    utilisation_pct: z.number(),
-  }),
+  rooms: z.array(UtilisationRow),
+  total_lecture_hours: z.number(),
+  total_booked_hours: z.number(),
+  average_utilisation_pct: z.number(),
 });
 export type UtilisationReport = z.infer<typeof UtilisationReport>;
 
 export const BookingReport = z.object({
-  total: z.number().int(),
-  approved: z.number().int(),
-  rejected: z.number().int(),
-  pending: z.number().int(),
-  cancelled: z.number().int(),
+  by_status: z.record(z.string(), z.number().int()),
+  by_building: z.record(z.string(), z.number().int()),
+  by_department: z.record(z.string(), z.number().int()),
   approval_rate_pct: z.number(),
-  by_department: z.array(
-    z.object({ department: z.string(), count: z.number().int() }),
-  ),
-  by_building: z.array(
-    z.object({ building: z.string(), count: z.number().int() }),
-  ),
+  rejection_rate_pct: z.number(),
+  total_requests: z.number().int(),
 });
 export type BookingReport = z.infer<typeof BookingReport>;
 
 export const ConflictReport = z.object({
   rejected_requests: z.number().int(),
-  lecture_clashes: z.number().int(),
-  maintenance_clashes: z.number().int(),
-  competing_pending: z.number().int(),
-  rows: z.array(
-    z.object({
-      date: DateKey,
-      room_code: z.string(),
-      reason: z.string(),
-      count: z.number().int(),
-    }),
-  ),
+  cancelled_bookings: z.number().int(),
+  expired_requests: z.number().int(),
 });
 export type ConflictReport = z.infer<typeof ConflictReport>;

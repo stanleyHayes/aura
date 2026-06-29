@@ -97,11 +97,7 @@ export function AvailabilityGrid({
               {/* Free bands */}
               <div className="relative flex h-14 items-center">
                 {free_intervals.map((iv) => {
-                  const pos = bandPosition(
-                    minutesOfDay(iv.start),
-                    minutesOfDay(iv.end),
-                    window,
-                  );
+                  const pos = bandPosition(iv.start, iv.end, window);
                   return (
                     <Button
                       key={`${iv.start}-${iv.end}`}
@@ -111,9 +107,9 @@ export function AvailabilityGrid({
                         "absolute h-9 justify-center border border-[var(--color-booking)] bg-[color-mix(in_oklch,var(--color-booking)_18%,transparent)] px-2 text-[11px] font-medium text-[var(--color-booking)] hover:bg-[color-mix(in_oklch,var(--color-booking)_30%,transparent)]",
                       )}
                       style={{ left: `${pos.left}%`, width: `${pos.width}%` }}
-                      aria-label={`Book ${room.name} from ${iv.start} to ${iv.end}`}
+                      aria-label={`Book ${room.name} from ${hhmm(iv.start)} to ${hhmm(iv.end)}`}
                     >
-                      {iv.start}–{iv.end}
+                      {hhmm(iv.start)}–{hhmm(iv.end)}
                     </Button>
                   );
                 })}
