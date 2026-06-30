@@ -27,6 +27,15 @@ function toDate(value: Date | string | number): Date {
   return value instanceof Date ? value : new Date(value);
 }
 
+/** Shown when a value isn't a valid date (null / "" / zero-value / malformed).
+ *  Without this guard, Intl.DateTimeFormat.format() throws "Invalid time value"
+ *  and crashes the whole rendering tree. */
+const INVALID_DATE_LABEL = "—";
+
+function isValidDate(d: Date): boolean {
+  return !Number.isNaN(d.getTime());
+}
+
 type FormatOpts = { tz?: string };
 
 /** e.g. "Mon, 28 Jun 2026" */
@@ -34,13 +43,15 @@ export function formatDate(
   value: Date | string | number,
   opts: FormatOpts = {},
 ): string {
+  const d = toDate(value);
+  if (!isValidDate(d)) return INVALID_DATE_LABEL;
   return new Intl.DateTimeFormat("en-GB", {
     weekday: "short",
     day: "2-digit",
     month: "short",
     year: "numeric",
     timeZone: opts.tz ?? institutionTz(),
-  }).format(toDate(value));
+  }).format(d);
 }
 
 /** e.g. "14:30" (24-hour, institution tz). */
@@ -48,12 +59,14 @@ export function formatTime(
   value: Date | string | number,
   opts: FormatOpts = {},
 ): string {
+  const d = toDate(value);
+  if (!isValidDate(d)) return INVALID_DATE_LABEL;
   return new Intl.DateTimeFormat("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
     timeZone: opts.tz ?? institutionTz(),
-  }).format(toDate(value));
+  }).format(d);
 }
 
 /** e.g. "Mon, 28 Jun 2026, 14:30" */
@@ -61,6 +74,8 @@ export function formatDateTime(
   value: Date | string | number,
   opts: FormatOpts = {},
 ): string {
+  const d = toDate(value);
+  if (!isValidDate(d)) return INVALID_DATE_LABEL;
   return new Intl.DateTimeFormat("en-GB", {
     weekday: "short",
     day: "2-digit",
@@ -70,7 +85,7 @@ export function formatDateTime(
     minute: "2-digit",
     hour12: false,
     timeZone: opts.tz ?? institutionTz(),
-  }).format(toDate(value));
+  }).format(d);
 }
 
 /** e.g. "14:30 – 16:00" given two RFC 3339 instants on the same local day. */
@@ -87,18 +102,21 @@ export function toInstitutionDateKey(
   value: Date | string | number,
   opts: FormatOpts = {},
 ): string {
+  const d = toDate(value);
+  if (!isValidDate(d)) return "";
   const parts = new Intl.DateTimeFormat("en-CA", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
     timeZone: opts.tz ?? institutionTz(),
-  }).format(toDate(value));
+  }).format(d);
   return parts; // en-CA yields YYYY-MM-DD
 }
 
 /** Relative-ish label for notifications/timelines, e.g. "2 hours ago". */
 export function formatRelative(value: Date | string | number): string {
   const date = toDate(value);
+  if (!isValidDate(date)) return INVALID_DATE_LABEL;
   const diffMs = date.getTime() - Date.now();
   const abs = Math.abs(diffMs);
   const rtf = new Intl.RelativeTimeFormat("en-GB", { numeric: "auto" });

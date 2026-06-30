@@ -3,6 +3,7 @@
 import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useQuery } from "@tanstack/react-query";
+import { ScrollText } from "lucide-react";
 import type { AuditLog } from "@cbs/schemas";
 import { Input } from "@cbs/ui/components/input";
 import { Badge } from "@cbs/ui/components/badge";
@@ -67,6 +68,7 @@ export function AuditClient() {
   return (
     <>
       <PageHeader
+        icon={ScrollText}
         title="Audit log"
         description="An append-only record of every state change. Read-only."
       />

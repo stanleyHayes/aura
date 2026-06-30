@@ -107,7 +107,13 @@ func (s *Service) sendPush(ctx context.Context, userID uuid.UUID, title, body st
 }
 
 func renderBooking(event string, b bookings.BookingView) (title, body string) {
-	when := b.StartsAt.Format("2 Jan 2006 15:04")
+	// PART B: guard against a zero StartsAt so we never render "1 Jan 0001 00:00".
+	// All booking flows construct the view from the stored tstzrange (starts_at/
+	// ends_at) before dispatch; this is defence-in-depth for any future caller.
+	when := "the requested time"
+	if !b.StartsAt.IsZero() {
+		when = b.StartsAt.Format("2 Jan 2006 15:04")
+	}
 	switch event {
 	case "BOOKING_SUBMITTED":
 		return "New booking request", fmt.Sprintf("A booking for %s has been requested: %s", when, b.Purpose)

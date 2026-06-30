@@ -1,5 +1,14 @@
 "use client";
 
+// Schedule-X v4 requires a global `Temporal`. Native browser Temporal is an
+// evolving draft (and absent in some engines / SSR), so install the polyfill
+// global: it overwrites globalThis.Temporal with one known implementation that
+// BOTH Schedule-X and our event construction use, so the library's
+// `instanceof Temporal.ZonedDateTime` checks pass. This is the peer dependency
+// Schedule-X expects the app to provide; the app previously did not, which is
+// why the calendar broke. Must be imported before Schedule-X is used.
+import "temporal-polyfill/global";
+
 import * as React from "react";
 import {
   createViewDay,
@@ -10,12 +19,22 @@ import {
 import { ScheduleXCalendar, useNextCalendarApp } from "@schedule-x/react";
 import "@schedule-x/theme-default/dist/index.css";
 import type { CalendarBlock } from "@cbs/schemas";
+import { env } from "@/lib/env";
+import { scheduleXEventId } from "@/lib/calendar-events";
 
 /**
  * Day/week/month calendar of the unified block feed (§7.7) via Schedule-X
  * (ADR-0005). Lectures, bookings, maintenance and computed available gaps are
  * colour-coded by source. Blocks carry the institution-local date + HH:MM
- * window, which Schedule-X consumes directly as "YYYY-MM-DD HH:MM".
+ * window.
+ *
+ * Schedule-X v4 requires event start/end to be `Temporal.ZonedDateTime`
+ * instances (it rejects the old "YYYY-MM-DD HH:MM" strings). We build them from
+ * the global `Temporal` the library itself reads. Using any other Temporal
+ * instance (e.g. a separate polyfill copy) would fail Schedule-X's
+ * `instanceof Temporal.ZonedDateTime` check. `Temporal` is a runtime global
+ * (native in modern browsers); we guard for SSR / engines without it so the page
+ * still renders; the calendar is client-only and re-populates after mount.
  */
 
 const SOURCE_CALENDAR: Record<CalendarBlock["source"], string> = {
@@ -26,54 +45,105 @@ const SOURCE_CALENDAR: Record<CalendarBlock["source"], string> = {
 };
 
 // The engine emits an exclusive end of "24:00" for full-day blocks; Schedule-X
-// only accepts 00:00–23:59, so clamp it to the end of the day.
+// only accepts 00:00-23:59, so clamp it to the end of the day.
 function clampEnd(time: string): string {
   return time === "24:00" ? "23:59" : time;
 }
 
+// Build a Temporal.ZonedDateTime from an institution-local date + HH:MM. The
+// global `Temporal` is guaranteed by the temporal-polyfill/global import above.
+// Returns null on an unparseable date/time so one bad block can't crash the
+// whole calendar.
+function toZonedDateTime(date: string, time: string): Temporal.ZonedDateTime | null {
+  try {
+    // Accept "HH:MM" or "HH:MM:SS"; Temporal needs a full ISO datetime string.
+    const hms = time.length <= 5 ? `${time}:00` : time;
+    return Temporal.PlainDateTime.from(`${date}T${hms}`).toZonedDateTime(
+      env.appTz,
+    );
+  } catch {
+    return null;
+  }
+}
+
+function getDarkSnapshot() {
+  if (typeof document === "undefined") return false;
+  return document.documentElement.classList.contains("dark");
+}
+
+function subscribeToThemeChanges(onStoreChange: () => void) {
+  if (typeof document === "undefined") return () => {};
+
+  const observer = new MutationObserver(onStoreChange);
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
+
+  return () => observer.disconnect();
+}
+
 export function CalendarView({ blocks }: { blocks: CalendarBlock[] }) {
+  const isDark = React.useSyncExternalStore(
+    subscribeToThemeChanges,
+    getDarkSnapshot,
+    () => false,
+  );
   const events = React.useMemo(
     () =>
-      blocks.map((b, i) => ({
-        id: `${b.source}-${b.room_id}-${b.date}-${b.start}-${i}`,
-        title:
-          b.source === "BOOKING" && b.status
-            ? `${b.label} (${b.status.toLowerCase()})`
-            : b.label,
-        start: `${b.date} ${b.start}`,
-        end: `${b.date} ${clampEnd(b.end)}`,
-        calendarId: SOURCE_CALENDAR[b.source],
-      })),
+      blocks
+        .map((b, i) => {
+          const start = toZonedDateTime(b.date, b.start);
+          const end = toZonedDateTime(b.date, clampEnd(b.end));
+          if (!start || !end) return null;
+          return {
+            id: scheduleXEventId(b, i),
+            title:
+              b.source === "BOOKING" && b.status
+                ? `${b.label} (${b.status.toLowerCase()})`
+                : b.label,
+            start,
+            end,
+            calendarId: SOURCE_CALENDAR[b.source],
+          };
+        })
+        .filter((e): e is NonNullable<typeof e> => e !== null),
     [blocks],
   );
 
   const calendar: CalendarApp | null = useNextCalendarApp({
     views: [createViewDay(), createViewWeek(), createViewMonthGrid()],
     defaultView: createViewWeek().name,
+    isDark,
+    locale: "en-GB",
     events,
     calendars: {
       lecture: {
         colorName: "lecture",
-        lightColors: { main: "#4f46e5", container: "#e0e7ff", onContainer: "#312e81" },
-        darkColors: { main: "#a5b4fc", container: "#312e81", onContainer: "#e0e7ff" },
+        lightColors: { main: "#4f46e5", container: "#eef2ff", onContainer: "#312e81" },
+        darkColors: { main: "#a5b4fc", container: "#1e1b4b", onContainer: "#e0e7ff" },
       },
       booking: {
         colorName: "booking",
-        lightColors: { main: "#0f9d77", container: "#d1fae5", onContainer: "#064e3b" },
-        darkColors: { main: "#6ee7b7", container: "#064e3b", onContainer: "#d1fae5" },
+        lightColors: { main: "#0f766e", container: "#ccfbf1", onContainer: "#134e4a" },
+        darkColors: { main: "#5eead4", container: "#134e4a", onContainer: "#ccfbf1" },
       },
       maintenance: {
         colorName: "maintenance",
-        lightColors: { main: "#b45309", container: "#fef3c7", onContainer: "#78350f" },
-        darkColors: { main: "#fbbf24", container: "#78350f", onContainer: "#fef3c7" },
+        lightColors: { main: "#b45309", container: "#fef3c7", onContainer: "#713f12" },
+        darkColors: { main: "#facc15", container: "#713f12", onContainer: "#fef3c7" },
       },
       available: {
         colorName: "available",
         lightColors: { main: "#15803d", container: "#dcfce7", onContainer: "#14532d" },
-        darkColors: { main: "#86efac", container: "#14532d", onContainer: "#dcfce7" },
+        darkColors: { main: "#86efac", container: "#123524", onContainer: "#bbf7d0" },
       },
     },
   });
+
+  React.useEffect(() => {
+    calendar?.setTheme(isDark ? "dark" : "light");
+  }, [calendar, isDark]);
 
   // Keep events in sync when the feed changes.
   React.useEffect(() => {

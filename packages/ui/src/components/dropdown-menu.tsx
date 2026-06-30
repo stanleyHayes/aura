@@ -12,13 +12,14 @@ const DropdownMenuGroup = DropdownMenuPrimitive.Group;
 const DropdownMenuContent = React.forwardRef<
   React.ComponentRef<typeof DropdownMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(({ className, sideOffset = 6, ...props }, ref) => (
+>(({ className, sideOffset = 6, style, ...props }, ref) => (
   <DropdownMenuPrimitive.Portal>
     <DropdownMenuPrimitive.Content
       ref={ref}
       sideOffset={sideOffset}
+      style={{ backgroundColor: "var(--color-popover)", ...style }}
       className={cn(
-        "z-50 min-w-[12rem] overflow-hidden rounded-md border border-[var(--color-border)] bg-[var(--color-popover)] p-1 text-[var(--color-popover-foreground)] shadow-md",
+        "z-50 min-w-[12rem] overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-popover)] p-1 text-[var(--color-popover-foreground)] shadow-lg ring-1 ring-black/5",
         "data-[state=open]:animate-[fade-in_160ms_ease-out]",
         className,
       )}
@@ -56,7 +57,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
     ref={ref}
     checked={checked}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-[var(--color-accent)]",
+      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-[var(--color-accent)] focus:text-[var(--color-accent-foreground)]",
       className,
     )}
     {...props}

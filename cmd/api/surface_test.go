@@ -77,12 +77,14 @@ func TestAPIFullSurface(t *testing.T) {
 	}
 	require.Equal(t, 201, c.do("POST", "/api/v1/buildings", admin, map[string]any{"code": "S-" + uniq(), "name": "Surf Hall"}, &bldg))
 	require.Equal(t, 200, c.status("GET", "/api/v1/buildings", requester, nil))
+	require.Equal(t, 200, c.status("GET", "/api/v1/buildings/"+bldg.ID.String(), requester, nil))
 	require.Equal(t, 403, c.status("POST", "/api/v1/buildings", requester, map[string]any{"code": "X", "name": "Y"})) // RBAC
 
 	var equip struct {
 		ID uuid.UUID `json:"id"`
 	}
 	require.Equal(t, 201, c.do("POST", "/api/v1/equipment", admin, map[string]any{"code": "PROJ-" + uniq(), "name": "Projector"}, &equip))
+	require.Equal(t, 200, c.status("GET", "/api/v1/equipment/"+equip.ID.String(), requester, nil))
 
 	roomCode := "SRM-" + uniq()
 	var room struct {
@@ -210,6 +212,11 @@ func TestAPIFullSurface(t *testing.T) {
 	require.Equal(t, 200, c.status("GET", "/api/v1/reports/bookings", officer, nil))
 	require.Equal(t, 200, c.status("GET", "/api/v1/reports/conflicts", officer, nil))
 	require.Equal(t, 403, c.status("GET", "/api/v1/reports/utilisation", requester, nil)) // RBAC
+
+	// ── Audit log (admin only) ────────────────────────────────────────────────
+	require.Equal(t, 200, c.status("GET", "/api/v1/audit-logs?limit=25&entity_type=booking", admin, nil))
+	require.Equal(t, 200, c.status("GET", "/api/v1/audit-logs?action=LOGIN", admin, nil))
+	require.Equal(t, 403, c.status("GET", "/api/v1/audit-logs", requester, nil)) // RBAC
 }
 
 func (c *apiClient) postMultipart(path, token, field, filename string, content []byte, fields map[string]string, out any) int {

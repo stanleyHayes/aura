@@ -55,10 +55,22 @@ export interface components {
       code: string;
       name: string;
       campus?: string | null;
+      image_url?: string | null;
+      image_public_id?: string | null;
+      gallery_urls: string[];
+      gallery_public_ids: string[];
       created_at: string;
       updated_at: string;
     };
-    Equipment: { id: string; code: string; name: string };
+    Equipment: {
+      id: string;
+      code: string;
+      name: string;
+      image_url?: string | null;
+      image_public_id?: string | null;
+      gallery_urls: string[];
+      gallery_public_ids: string[];
+    };
     Room: {
       id: string;
       room_code: string;
@@ -74,10 +86,15 @@ export interface components {
         | "AUDITORIUM"
         | "CONFERENCE_ROOM";
       status: "ACTIVE" | "INACTIVE" | "UNDER_MAINTENANCE";
+      image_url?: string | null;
+      image_public_id?: string | null;
+      gallery_urls: string[];
+      gallery_public_ids: string[];
       equipment: {
         equipment_id: string;
         code: string;
         name: string;
+        image_url?: string | null;
         quantity: number;
       }[];
       created_at: string;
@@ -161,6 +178,12 @@ export interface components {
         reference?: string | null;
       }[];
       competing_pending_count: number;
+    };
+    BookingMetrics: {
+      pending: number;
+      approved: number;
+      rejected: number;
+      total: number;
     };
     MaintenanceWindow: {
       id: string;
@@ -264,6 +287,15 @@ type JsonPost<R, B = unknown> = {
     default: { content: { "application/problem+json": S["Problem"] } };
   };
 };
+type MultipartPost<R> = {
+  parameters: { path?: Record<string, string>; query?: Record<string, unknown> };
+  requestBody?: { content: { "multipart/form-data": FormData } };
+  responses: {
+    200: { content: { "application/json": R } };
+    201: { content: { "application/json": R } };
+    default: { content: { "application/problem+json": S["Problem"] } };
+  };
+};
 
 // ── Paths (§8.3) ──────────────────────────────────────────────────────────
 export interface paths {
@@ -275,14 +307,28 @@ export interface paths {
   };
   "/api/v1/auth/refresh": { post: JsonPost<{ ok: true }> };
   "/api/v1/auth/logout": { post: JsonPost<{ ok: true }> };
-  "/api/v1/auth/me": { get: JsonGet<S["Session"]> };
+  "/api/v1/auth/me": {
+    get: JsonGet<S["Session"]>;
+    patch: JsonPost<
+      S["Session"],
+      { full_name: string; department_id?: string | null }
+    >;
+  };
+  "/api/v1/auth/password/change": {
+    post: JsonPost<
+      { ok: true },
+      { current_password: string; new_password: string }
+    >;
+  };
   "/api/v1/auth/password/forgot": {
     post: JsonPost<{ ok: true }, { email: string }>;
   };
   "/api/v1/auth/password/reset": {
-    post: JsonPost<{ ok: true }, { token: string; password: string }>;
+    post: JsonPost<{ ok: true }, { token: string; new_password: string }>;
   };
-  "/api/v1/auth/mfa/enrol": { post: JsonPost<{ provisioning_uri: string }> };
+  "/api/v1/auth/mfa/enrol": {
+    post: JsonPost<{ provisioning_uri: string; secret: string }>;
+  };
   "/api/v1/auth/mfa/verify": { post: JsonPost<{ ok: true }, { code: string }> };
 
   "/api/v1/users": {
@@ -314,18 +360,22 @@ export interface paths {
     post: JsonPost<S["Building"]>;
   };
   "/api/v1/buildings/{id}": {
+    get: JsonGet<S["Building"]>;
     patch: JsonPost<S["Building"]>;
     delete: JsonPost<{ ok: true }>;
   };
+  "/api/v1/buildings/{id}/images": { post: MultipartPost<S["Building"]> };
 
   "/api/v1/equipment": {
     get: JsonGet<Page<S["Equipment"]>, { limit?: number; cursor?: string }>;
     post: JsonPost<S["Equipment"]>;
   };
   "/api/v1/equipment/{id}": {
+    get: JsonGet<S["Equipment"]>;
     patch: JsonPost<S["Equipment"]>;
     delete: JsonPost<{ ok: true }>;
   };
+  "/api/v1/equipment/{id}/images": { post: MultipartPost<S["Equipment"]> };
 
   "/api/v1/rooms": {
     get: JsonGet<
@@ -351,6 +401,7 @@ export interface paths {
     patch: JsonPost<S["Room"]>;
   };
   "/api/v1/rooms/{id}/deactivate": { post: JsonPost<S["Room"]> };
+  "/api/v1/rooms/{id}/images": { post: MultipartPost<S["Room"]> };
   "/api/v1/rooms/{id}/equipment": {
     put: JsonPost<
       S["Room"],
@@ -423,6 +474,7 @@ export interface paths {
     post: JsonPost<S["Booking"]>;
   };
   "/api/v1/bookings/{id}": { get: JsonGet<S["Booking"]> };
+  "/api/v1/bookings/metrics": { get: JsonGet<S["BookingMetrics"]> };
   "/api/v1/bookings/{id}/approve": {
     post: JsonPost<S["Booking"], { note?: string }>;
   };

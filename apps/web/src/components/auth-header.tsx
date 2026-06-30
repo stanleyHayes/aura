@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Square, Volume2 } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -25,6 +25,41 @@ export function AuthHeader({
   description: string;
   help?: { title?: string; steps: string[] };
 }) {
+  const [speaking, setSpeaking] = React.useState(false);
+  const guideText = React.useMemo(() => {
+    if (!help) return "";
+    return [title, description, ...(help.steps ?? [])].join(". ");
+  }, [description, help, title]);
+
+  React.useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  function playGuide() {
+    if (!guideText || typeof window === "undefined" || !("speechSynthesis" in window)) {
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(guideText);
+    utterance.lang = "en-GB";
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  }
+
+  function stopGuide() {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    setSpeaking(false);
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <span
@@ -48,7 +83,7 @@ export function AuthHeader({
               <button
                 type="button"
                 aria-label="How this works"
-                className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-md text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-accent)] hover:text-[var(--color-maroon)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-maroon)]"
+                className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-md text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-accent)] hover:text-[var(--color-accent-foreground)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)]"
               >
                 <HelpCircle className="size-5" />
               </button>
@@ -62,6 +97,28 @@ export function AuthHeader({
                   <li key={i}>{step}</li>
                 ))}
               </ol>
+              <div className="mt-4 flex items-center gap-2 border-t border-[var(--color-border)] pt-3">
+                <button
+                  type="button"
+                  onClick={speaking ? stopGuide : playGuide}
+                  className="inline-flex min-h-9 items-center gap-2 rounded-md border border-[var(--color-border)] px-3 text-sm font-medium text-[var(--color-foreground)] transition-colors hover:bg-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-maroon)]"
+                >
+                  {speaking ? (
+                    <>
+                      <Square className="size-4" />
+                      Stop
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="size-4" />
+                      Listen
+                    </>
+                  )}
+                </button>
+                <span className="text-xs text-[var(--color-muted-foreground)]">
+                  Spoken guide
+                </span>
+              </div>
             </PopoverContent>
           </Popover>
         ) : null}

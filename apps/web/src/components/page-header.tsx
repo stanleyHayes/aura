@@ -1,11 +1,13 @@
 import * as React from "react";
-import type { LucideIcon } from "lucide-react";
+import { LayoutDashboard, type LucideIcon } from "lucide-react";
+import { PageHelp } from "@/components/page-help";
+import { IconWatermark } from "@/components/watermark";
+import { getPageGuide } from "@/lib/page-guides";
 
 /**
- * Standard page header (DESIGN.md §2): a leading page icon in a maroon-tinted
- * rounded container, the title, a one-line description, and a right-aligned
- * primary action. The icon is decorative (`aria-hidden`); the title carries the
- * meaning. `help` is an optional slot for the §2 how-to popover trigger.
+ * Standard page header (DESIGN.md §2): a large maroon-tinted page icon, title
+ * with a guide trigger, a one-line description, and right-aligned actions.
+ * The icon is decorative (`aria-hidden`); the title carries the meaning.
  */
 export function PageHeader({
   icon: Icon,
@@ -20,33 +22,65 @@ export function PageHeader({
   actions?: React.ReactNode;
   help?: React.ReactNode;
 }) {
+  const HeaderIcon = Icon ?? LayoutDashboard;
+  const defaultGuide = getPageGuide({ title, description });
+  const guide =
+    help === undefined ? (
+      <PageHelp
+        title={`How to use ${defaultGuide.title}`}
+        pageTitle={defaultGuide.title}
+        description={defaultGuide.description}
+        steps={defaultGuide.steps}
+      />
+    ) : (
+      help
+    );
+
   return (
-    <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-      <div className="flex min-w-0 items-start gap-3">
-        {Icon ? (
-          <span
-            aria-hidden="true"
-            className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-lg bg-[var(--color-maroon-tint)] text-[var(--color-maroon)]"
-          >
-            <Icon className="size-5" />
-          </span>
-        ) : null}
+    <div
+      data-tour="page-header"
+      className="relative mb-7 flex flex-col gap-5 border-b border-[var(--color-border)] pb-6 lg:flex-row lg:items-center lg:justify-between"
+    >
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 right-0 hidden w-1/2 overflow-hidden lg:block"
+      >
+        <IconWatermark
+          icon={HeaderIcon}
+          className="-right-8 top-1/2 size-52 -translate-y-1/2 rotate-[-8deg]"
+        />
+      </span>
+      <div className="relative z-10 flex min-w-0 items-start gap-4">
+        <span
+          aria-hidden="true"
+          className="grid size-14 shrink-0 place-items-center rounded-2xl bg-[var(--color-maroon-tint)] text-[var(--color-maroon)] sm:size-16"
+        >
+          <HeaderIcon className="size-7" />
+        </span>
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-semibold tracking-tight text-[var(--color-foreground)]">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <h1 className="text-3xl font-semibold leading-tight tracking-tight text-[var(--color-foreground)] sm:text-4xl">
               {title}
-            </h2>
-            {help}
+            </h1>
+            {guide}
           </div>
           {description ? (
-            <p className="mt-1 max-w-2xl text-sm text-[var(--color-muted-foreground)]">
+            <p
+              data-page-description
+              className="mt-2 max-w-3xl text-base leading-7 text-[var(--color-muted-foreground)]"
+            >
               {description}
             </p>
           ) : null}
         </div>
       </div>
       {actions ? (
-        <div className="flex shrink-0 items-center gap-2">{actions}</div>
+        <div
+          data-tour="primary-actions"
+          className="relative z-10 flex w-full shrink-0 items-center gap-2 lg:w-auto [&_.aura-button-shape]:h-12 [&_.aura-button-shape]:px-8 [&_.aura-button-shape]:text-base"
+        >
+          {actions}
+        </div>
       ) : null}
     </div>
   );

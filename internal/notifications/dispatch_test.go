@@ -5,6 +5,7 @@ import (
 	"os"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -59,10 +60,12 @@ func TestDispatchApprovedNotifiesRequester(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ch, unsub := broker.Subscribe(reqUser.ID)
+	ch, unsub, err := broker.Subscribe(reqUser.ID)
+	require.NoError(t, err)
 	defer unsub()
 
-	view := bookings.BookingView{ID: uuid.New(), RequestedBy: reqUser.ID, Purpose: "Demo"}
+	starts := time.Date(2026, time.July, 4, 14, 30, 0, 0, time.UTC)
+	view := bookings.BookingView{ID: uuid.New(), RequestedBy: reqUser.ID, Purpose: "Demo", StartsAt: starts}
 	svc.dispatchBookingEvent(ctx, "BOOKING_APPROVED", view) // synchronous core
 
 	// Persisted in-app notification for the requester.
@@ -72,6 +75,8 @@ func TestDispatchApprovedNotifiesRequester(t *testing.T) {
 	list, err := store.ListNotifications(ctx, dbgen.ListNotificationsParams{UserID: reqUser.ID, Lim: 10})
 	require.NoError(t, err)
 	require.Equal(t, "BOOKING_APPROVED", list[0].Type)
+	// PART B: the body carries the real booking date, not the zero time.
+	require.Contains(t, list[0].Body, "4 Jul 2026 14:30")
 
 	// Email sent and live event published.
 	require.True(t, mail.sentTo(reqUser.Email))

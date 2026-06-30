@@ -39,9 +39,18 @@ export default function RootLayout({
   // SEO (§12.1). The client `SessionHydrator` fetches /auth/me for interactive
   // chrome, and the (app)/(admin) server layouts perform the authoritative
   // server-side session gate themselves (§9.2).
+  // suppressHydrationWarning: browser extensions (Grammarly's data-gr-*, screen
+  // recorders' data-scribe-recorder-ready, an injected `brand-refresh` class)
+  // mutate <html>/<body> before React hydrates. Those injected attributes are
+  // not a code defect; this flag stops them from tripping a hydration mismatch
+  // (it only relaxes attribute diffing on these two elements).
   return (
-    <html lang="en-GB" className={fontSans.variable}>
-      <body className="min-h-dvh antialiased">
+    <html
+      lang="en-GB"
+      className={fontSans.variable}
+      suppressHydrationWarning
+    >
+      <body className="min-h-dvh antialiased" suppressHydrationWarning>
         <a href="#main" className="skip-link rounded-md bg-[var(--color-primary)] px-3 py-2 text-sm text-[var(--color-primary-foreground)]">
           Skip to main content
         </a>

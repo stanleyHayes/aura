@@ -49,6 +49,36 @@ func TestMaintenanceWindowsAndConflict(t *testing.T) {
 	require.Empty(t, list)
 }
 
+// TestMaintenanceRejectsApprovedBookingOverlap verifies LOW-12: a maintenance
+// window cannot be created over an already-APPROVED booking for the same room.
+func TestMaintenanceRejectsApprovedBookingOverlap(t *testing.T) {
+	f := newFixture(t, 50)
+	svc := bookings.NewService(f.store, f.loc, nil)
+	ctx := context.Background()
+	start, end := f.tomorrowWindow(9, 11)
+
+	res, err := svc.Create(ctx, bookings.CreateInput{
+		RoomID: f.roomID, RequestedBy: f.requester, Purpose: "Lab session",
+		AttendeeCount: 10, StartsAt: start, EndsAt: end,
+	})
+	require.NoError(t, err)
+	_, err = svc.Approve(ctx, res.Booking.ID, f.officer, nil)
+	require.NoError(t, err)
+
+	// Overlapping maintenance window is now rejected (trigger → 409).
+	ms, me := f.tomorrowWindow(10, 12)
+	_, err = svc.CreateMaintenance(ctx, f.roomID, ms, me, "clash", f.officer)
+	ae, ok := apperr.As(err)
+	require.True(t, ok, "expected an apperr, got %v", err)
+	require.Equal(t, "MAINTENANCE_CONFLICTS_WITH_BOOKING", ae.Code)
+	require.Equal(t, 409, ae.Status)
+
+	// A non-overlapping window is still allowed.
+	ns, ne := f.tomorrowWindow(14, 15)
+	_, err = svc.CreateMaintenance(ctx, f.roomID, ns, ne, "clean", f.officer)
+	require.NoError(t, err)
+}
+
 func TestBookingGetAndList(t *testing.T) {
 	f := newFixture(t, 50)
 	svc := bookings.NewService(f.store, f.loc, nil)

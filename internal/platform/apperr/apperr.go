@@ -76,6 +76,8 @@ var (
 	ErrNotFound      = New(404, "NOT_FOUND", "Resource not found")
 	ErrConflict      = New(409, "CONFLICT", "Conflict")
 	ErrInternal      = New(500, "INTERNAL", "Internal server error")
+	ErrBadGateway    = New(502, "BAD_GATEWAY", "Upstream service failed")
+	ErrUnavailable   = New(503, "SERVICE_UNAVAILABLE", "Service unavailable")
 
 	// Auth / access (§9)
 	ErrUnauthorized       = New(401, "UNAUTHORIZED", "Authentication required")
@@ -87,6 +89,7 @@ var (
 	ErrInvalidMFACode     = New(401, "INVALID_MFA_CODE", "Invalid MFA code")
 	ErrInvalidToken       = New(401, "INVALID_TOKEN", "Invalid or expired token")
 	ErrTokenReuse         = New(401, "TOKEN_REUSE_DETECTED", "Refresh token reuse detected")
+	ErrMFAAlreadyEnabled  = New(409, "MFA_ALREADY_ENABLED", "MFA is already enabled; re-authenticate and disable it before re-enrolling")
 
 	// Bookings / availability (BR1–BR6, §7)
 	ErrBookingInPast        = New(422, "BOOKING_IN_PAST", "Booking cannot start in the past")
@@ -97,10 +100,15 @@ var (
 	ErrSlotUnavailable      = New(409, "SLOT_NO_LONGER_AVAILABLE", "Slot no longer available")
 	ErrInvalidTransition    = New(409, "INVALID_STATE_TRANSITION", "Illegal booking state transition")
 	ErrRoomInactive         = New(422, "ROOM_INACTIVE", "Room is not active")
+	ErrMaintenanceConflict  = New(409, "MAINTENANCE_CONFLICTS_WITH_BOOKING", "An approved booking overlaps this maintenance window")
 
 	// Scheduling
 	ErrActiveSemesterExists = New(409, "ACTIVE_SEMESTER_EXISTS", "Another semester is already active")
 	ErrNoActiveSemester     = New(409, "NO_ACTIVE_SEMESTER", "No active semester")
+
+	// Media uploads
+	ErrMediaNotConfigured = New(503, "MEDIA_STORAGE_NOT_CONFIGURED", "Media storage is not configured")
+	ErrMediaUploadFailed  = New(502, "MEDIA_UPLOAD_FAILED", "Media upload failed")
 
 	// Idempotency
 	ErrIdempotencyMismatch = New(422, "IDEMPOTENCY_KEY_REUSED", "Idempotency-Key reused with a different request body")

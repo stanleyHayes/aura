@@ -23,7 +23,10 @@ export interface CreateApiOptions {
   fetch?: typeof fetch;
 }
 
-const CSRF_COOKIE = "cbs-csrf";
+// Production uses the __Host- prefixed cookie; dev/plain-HTTP falls back to the
+// unprefixed name. Without __Host-csrf here, every write would 403 in production
+// (the double-submit token would never be attached).
+const CSRF_COOKIES = ["__Host-csrf", "cbs_csrf", "cbs-csrf"];
 const CSRF_HEADER = "X-CSRF-Token";
 const STATE_CHANGING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
@@ -37,12 +40,13 @@ function readCookie(name: string): string | undefined {
 
 /**
  * Browser middleware: attach the double-submit CSRF token from the readable
- * `cbs-csrf` cookie to every state-changing request (§9.2).
+ * `cbs_csrf` cookie to every state-changing request (§9.2). The dashed cookie
+ * name is accepted for older local sessions.
  */
 const csrfMiddleware: Middleware = {
   async onRequest({ request }) {
     if (STATE_CHANGING.has(request.method.toUpperCase())) {
-      const token = readCookie(CSRF_COOKIE);
+      const token = CSRF_COOKIES.map(readCookie).find(Boolean);
       if (token) request.headers.set(CSRF_HEADER, token);
     }
     return request;
@@ -124,4 +128,4 @@ export function unwrap<T>(result: {
   return result.data;
 }
 
-export const CSRF = { COOKIE: CSRF_COOKIE, HEADER: CSRF_HEADER };
+export const CSRF = { COOKIE: CSRF_COOKIES[0], HEADER: CSRF_HEADER };

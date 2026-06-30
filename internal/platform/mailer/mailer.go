@@ -26,7 +26,11 @@ type LogMailer struct {
 func NewLogMailer(log *slog.Logger, from string) *LogMailer { return &LogMailer{log: log, from: from} }
 
 func (m *LogMailer) Send(_ context.Context, to, subject, body string) error {
-	m.log.Info("email (log mailer)", "from", m.from, "to", to, "subject", subject, "body", body)
+	// SECURITY: never log the body at Info — password-reset emails carry the raw
+	// reset token (§9.1). The body is only emitted at Debug, which is disabled in
+	// production. Info logs only the non-sensitive envelope.
+	m.log.Info("email (log mailer)", "from", m.from, "to", to, "subject", subject)
+	m.log.Debug("email body (log mailer)", "to", to, "subject", subject, "body", body)
 	return nil
 }
 

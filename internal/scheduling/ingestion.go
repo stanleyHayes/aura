@@ -1,6 +1,7 @@
 package scheduling
 
 import (
+	"bytes"
 	"context"
 	"encoding/csv"
 	"encoding/json"
@@ -18,6 +19,11 @@ import (
 	"github.com/aura/cbs/internal/platform/metrics"
 	"github.com/aura/cbs/internal/platform/pgconv"
 )
+
+// maxImportRows caps the number of data rows (including the header) we will read
+// from an uploaded spreadsheet. Together with UnzipSizeLimit this bounds the work
+// an attacker can force with a decompression bomb (§14 DoS).
+const maxImportRows = 20000
 
 // RawRow is one parsed spreadsheet line (§7.5 columns).
 type RawRow struct {
@@ -71,9 +77,11 @@ func ReadCSV(r io.Reader) ([]RawRow, error) {
 	return recordsToRows(records)
 }
 
-// ReadXLSX parses the first worksheet of an .xlsx body into rows.
+// ReadXLSX parses the first worksheet of an .xlsx body into rows. It bounds both
+// the decompressed archive size (UnzipSizeLimit) and the number of rows it will
+// materialise (maxImportRows) so a malicious upload cannot exhaust memory (§14).
 func ReadXLSX(data []byte) ([]RawRow, error) {
-	f, err := excelize.OpenReader(strings.NewReader(string(data)))
+	f, err := excelize.OpenReader(bytes.NewReader(data), excelize.Options{UnzipSizeLimit: 64 << 20})
 	if err != nil {
 		return nil, fmt.Errorf("open xlsx: %w", err)
 	}
@@ -82,8 +90,24 @@ func ReadXLSX(data []byte) ([]RawRow, error) {
 	if len(sheets) == 0 {
 		return nil, errors.New("xlsx has no sheets")
 	}
-	records, err := f.GetRows(sheets[0])
+	rows, err := f.Rows(sheets[0])
 	if err != nil {
+		return nil, fmt.Errorf("read sheet: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var records [][]string
+	for rows.Next() {
+		if len(records) >= maxImportRows {
+			return nil, fmt.Errorf("spreadsheet exceeds the maximum of %d rows", maxImportRows)
+		}
+		cols, err := rows.Columns()
+		if err != nil {
+			return nil, fmt.Errorf("read row: %w", err)
+		}
+		records = append(records, cols)
+	}
+	if err := rows.Error(); err != nil {
 		return nil, fmt.Errorf("read sheet: %w", err)
 	}
 	return recordsToRows(records)

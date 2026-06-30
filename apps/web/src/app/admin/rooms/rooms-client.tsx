@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { DoorOpen, Eye, ImageIcon, Plus, Upload } from "lucide-react";
 import { ROOM_TYPE_LABELS, type Room } from "@cbs/schemas";
 import { Button } from "@cbs/ui/components/button";
 import { Badge } from "@cbs/ui/components/badge";
@@ -14,6 +15,9 @@ import { qk } from "@/lib/query-keys";
 import { PageHeader } from "@/components/page-header";
 import { ProblemAlert } from "@/components/problem-alert";
 import { DataTable } from "@/components/data-table";
+import { CatalogueImportDialog } from "@/components/catalogue-import-dialog";
+import { useBuildings } from "@/lib/hooks/reference";
+import { route } from "@/lib/route";
 import { RoomFormDialog } from "./room-form-dialog";
 
 export function RoomsClient() {
@@ -21,6 +25,8 @@ export function RoomsClient() {
   const { toast } = useToast();
   const [editing, setEditing] = React.useState<Room | null>(null);
   const [creating, setCreating] = React.useState(false);
+  const [importOpen, setImportOpen] = React.useState(false);
+  const buildings = useBuildings();
 
   const query = useQuery({
     queryKey: qk.rooms({ admin: true }),
@@ -53,6 +59,23 @@ export function RoomsClient() {
 
   const columns: ColumnDef<Room>[] = React.useMemo(
     () => [
+      {
+        id: "image",
+        header: "Image",
+        enableSorting: false,
+        cell: ({ row }) =>
+          row.original.image_url ? (
+            <img
+              src={row.original.image_url}
+              alt={`${row.original.name} room`}
+              className="size-12 rounded-lg border border-[var(--color-border)] object-cover"
+            />
+          ) : (
+            <span className="grid size-12 place-items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)] text-[var(--color-muted-foreground)]">
+              <ImageIcon className="size-5" aria-hidden="true" />
+            </span>
+          ),
+      },
       {
         accessorKey: "room_code",
         header: "Code",
@@ -89,6 +112,12 @@ export function RoomsClient() {
         enableSorting: false,
         cell: ({ row }) => (
           <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href={route(`/admin/rooms/${row.original.id}`)}>
+                <Eye className="size-4" aria-hidden="true" />
+                View
+              </Link>
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -115,12 +144,18 @@ export function RoomsClient() {
   return (
     <>
       <PageHeader
+        icon={DoorOpen}
         title="Rooms"
         description="Manage the bookable room catalogue, capacity, type and equipment."
         actions={
-          <Button onClick={() => setCreating(true)}>
-            <Plus className="size-4" /> New room
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload className="size-4" /> Import
+            </Button>
+            <Button onClick={() => setCreating(true)}>
+              <Plus className="size-4" /> New room
+            </Button>
+          </>
         }
       />
 
@@ -145,6 +180,14 @@ export function RoomsClient() {
         open={editing !== null}
         room={editing}
         onOpenChange={(open) => !open && setEditing(null)}
+      />
+      <CatalogueImportDialog
+        kind="rooms"
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        buildings={buildings.data ?? []}
+        rooms={query.data ?? []}
+        onImported={() => void queryClient.invalidateQueries({ queryKey: ["rooms"] })}
       />
     </>
   );

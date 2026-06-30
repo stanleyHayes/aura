@@ -4,7 +4,9 @@ export const qk = {
   rooms: (params?: Record<string, unknown>) => ["rooms", params ?? {}] as const,
   room: (id: string) => ["room", id] as const,
   buildings: ["buildings"] as const,
+  building: (id: string) => ["building", id] as const,
   equipment: ["equipment"] as const,
+  equipmentItem: (id: string) => ["equipment", id] as const,
   departments: ["departments"] as const,
   users: (params?: Record<string, unknown>) => ["users", params ?? {}] as const,
   semesters: ["semesters"] as const,
@@ -15,6 +17,7 @@ export const qk = {
     ["availability", params] as const,
   bookings: (params?: Record<string, unknown>) =>
     ["bookings", params ?? {}] as const,
+  bookingMetrics: ["bookings", "metrics"] as const,
   booking: (id: string) => ["booking", id] as const,
   approvals: (params?: Record<string, unknown>) =>
     ["approvals", params ?? {}] as const,

@@ -1,0 +1,231 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import {
+  BadgeCheck,
+  Building2,
+  DoorOpen,
+  Hash,
+  Images,
+  MapPin,
+  Users,
+} from "lucide-react";
+import {
+  ROOM_TYPE_LABELS,
+  type Building,
+  type Room,
+} from "@cbs/schemas";
+import { Badge, type BadgeProps } from "@cbs/ui/components/badge";
+import { Button } from "@cbs/ui/components/button";
+import { formatDateTime } from "@cbs/ui/lib/datetime";
+import { PageHeader } from "@/components/page-header";
+import { serverApi } from "@/lib/api/server";
+import { route } from "@/lib/route";
+import {
+  CatalogueDetailHero,
+  DetailBackButton,
+  DetailFields,
+  DetailPanel,
+  EmptyInline,
+} from "../../_components/catalogue-detail";
+
+export const metadata: Metadata = {
+  title: "Building detail",
+  robots: { index: false, follow: false },
+};
+
+const ROOM_STATUS_VARIANT = {
+  ACTIVE: "approved",
+  INACTIVE: "cancelled",
+  UNDER_MAINTENANCE: "maintenance",
+} satisfies Record<Room["status"], BadgeProps["variant"]>;
+
+function label(value: string) {
+  return value.replace(/_/g, " ").toLowerCase();
+}
+
+function RoomStatusBadge({ status }: { status: Room["status"] }) {
+  return <Badge variant={ROOM_STATUS_VARIANT[status]}>{label(status)}</Badge>;
+}
+
+async function getBuilding(id: string) {
+  const api = await serverApi();
+  const buildingResult = await api.GET("/api/v1/buildings/{id}", {
+    params: { path: { id } },
+  });
+  if (buildingResult.error || !buildingResult.data) return null;
+
+  const building = buildingResult.data as Building;
+  const roomsResult = await api.GET("/api/v1/rooms", {
+    params: { query: { building_id: building.id, limit: 200 } },
+  });
+
+  return {
+    building,
+    rooms: roomsResult.error ? [] : ((roomsResult.data?.data ?? []) as Room[]),
+  };
+}
+
+export default async function AdminBuildingDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const detail = await getBuilding(id);
+  if (!detail) notFound();
+
+  const { building, rooms } = detail;
+  const activeRooms = rooms.filter((room) => room.status === "ACTIVE");
+  const totalCapacity = rooms.reduce((sum, room) => sum + room.capacity, 0);
+
+  return (
+    <div className="space-y-7">
+      <PageHeader
+        icon={Building2}
+        title={building.name}
+        description={`${building.code} building catalogue profile with images, campus metadata and linked rooms.`}
+        actions={<DetailBackButton href="/admin/buildings" label="Back to buildings" />}
+      />
+
+      <CatalogueDetailHero
+        icon={Building2}
+        imageUrl={building.image_url}
+        galleryUrls={building.gallery_urls ?? []}
+        imageAlt={`${building.name} building`}
+        fallbackLabel={`${building.code} building image`}
+        stats={[
+          {
+            label: "Rooms",
+            value: rooms.length,
+            subtext: "Total rooms in catalogue",
+            icon: DoorOpen,
+            tone: "brand",
+          },
+          {
+            label: "Active rooms",
+            value: activeRooms.length,
+            subtext: "Currently bookable",
+            icon: BadgeCheck,
+            tone: "success",
+          },
+          {
+            label: "Seat capacity",
+            value: totalCapacity,
+            subtext: "Combined catalogue seats",
+            icon: Users,
+            tone: "info",
+          },
+          {
+            label: "Gallery",
+            value: (building.gallery_urls ?? []).length,
+            subtext: "Supporting images",
+            icon: Images,
+            tone: "warning",
+          },
+        ]}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary">{building.code}</Badge>
+          {building.campus ? <Badge variant="outline">{building.campus}</Badge> : null}
+        </div>
+        <h2 className="mt-5 text-2xl font-semibold tracking-tight text-[var(--color-foreground)]">
+          Building profile
+        </h2>
+        <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--color-muted-foreground)]">
+          This page links the physical building record to every room, image and
+          campus label used by administrators and requester-facing filters.
+        </p>
+        <dl className="mt-5 grid gap-3">
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-muted)_24%,var(--color-card))] p-4">
+            <dt className="flex items-center gap-2 text-sm text-[var(--color-muted-foreground)]">
+              <Hash className="size-4" aria-hidden="true" />
+              Code
+            </dt>
+            <dd className="text-sm font-semibold text-[var(--color-foreground)]">
+              {building.code}
+            </dd>
+          </div>
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-muted)_24%,var(--color-card))] p-4">
+            <dt className="flex items-center gap-2 text-sm text-[var(--color-muted-foreground)]">
+              <MapPin className="size-4" aria-hidden="true" />
+              Campus
+            </dt>
+            <dd className="text-right text-sm font-semibold text-[var(--color-foreground)]">
+              {building.campus ?? "-"}
+            </dd>
+          </div>
+        </dl>
+      </CatalogueDetailHero>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <DetailPanel
+          title="Building metadata"
+          description="Identifiers and audit timestamps for this catalogue record."
+        >
+          <DetailFields
+            fields={[
+              { label: "Building ID", value: building.id },
+              { label: "Code", value: building.code },
+              { label: "Name", value: building.name },
+              { label: "Campus", value: building.campus ?? "-" },
+              { label: "Created", value: formatDateTime(building.created_at) },
+              { label: "Updated", value: formatDateTime(building.updated_at) },
+            ]}
+          />
+        </DetailPanel>
+
+        <DetailPanel
+          title="Rooms in this building"
+          description="Directly open any room profile attached to this building."
+        >
+          {rooms.length === 0 ? (
+            <EmptyInline
+              icon={DoorOpen}
+              title="No rooms attached yet"
+              description="Create or import rooms with this building selected to connect the catalogue."
+            />
+          ) : (
+            <ul className="grid gap-3">
+              {rooms.map((room) => (
+                <li
+                  key={room.id}
+                  className="flex flex-col gap-3 rounded-xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-muted)_24%,var(--color-card))] p-3 sm:flex-row sm:items-center"
+                >
+                  {room.image_url ? (
+                    <img
+                      src={room.image_url}
+                      alt={`${room.name} room`}
+                      className="size-16 rounded-xl border border-[var(--color-border)] object-cover"
+                    />
+                  ) : (
+                    <span className="grid size-16 shrink-0 place-items-center rounded-xl bg-[var(--color-card)] text-[var(--color-muted-foreground)]">
+                      <DoorOpen className="size-6" aria-hidden="true" />
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate font-semibold text-[var(--color-foreground)]">
+                        {room.name}
+                      </p>
+                      <RoomStatusBadge status={room.status} />
+                    </div>
+                    <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
+                      {room.room_code} - {ROOM_TYPE_LABELS[room.room_type]} -{" "}
+                      {room.capacity} seats
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={route(`/admin/rooms/${room.id}`)}>
+                      View room
+                    </Link>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DetailPanel>
+      </div>
+    </div>
+  );
+}

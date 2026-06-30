@@ -38,6 +38,7 @@ func (h *Handler) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.With(httpx.RequirePermission(rbac.BookingCreate, h.log)).Post("/", h.create)
 	r.Get("/", h.list)
+	r.With(httpx.RequirePermission(rbac.BookingReadAny, h.log)).Get("/metrics", h.metrics)
 	r.Get("/{id}", h.get)
 	r.With(httpx.RequirePermission(rbac.BookingApprove, h.log)).Post("/{id}/approve", h.approve)
 	r.With(httpx.RequirePermission(rbac.BookingApprove, h.log)).Post("/{id}/reject", h.reject)
@@ -163,6 +164,22 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 		p.Status = &st
 	}
 
+	// The pending scope (the approvals queue) returns approvability-enriched rows
+	// — each with nested room/requester and the §11/FR8 blockers explaining why a
+	// request can or cannot be approved. The {data, next_cursor} envelope is
+	// identical to the plain list, so the web reads page.data unchanged.
+	if scope == "pending" {
+		items, err := h.svc.PendingApprovability(r.Context(), dbgen.ListPendingForApprovalParams{
+			RoomID: p.RoomID, Cursor: p.Cursor, Lim: p.Lim,
+		})
+		if err != nil {
+			httpx.Error(w, r, h.log, err)
+			return
+		}
+		httpx.JSON(w, http.StatusOK, httpx.NewPage(items, int(p.Lim), func(a Approvability) uuid.UUID { return a.Booking.ID }))
+		return
+	}
+
 	views, err := h.svc.List(r.Context(), p)
 	if err != nil {
 		httpx.Error(w, r, h.log, err)
@@ -188,6 +205,42 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusOK, viewFromGet(b))
+}
+
+func (h *Handler) metrics(w http.ResponseWriter, r *http.Request) {
+	rows, err := h.store.ReplicaPool.Query(r.Context(),
+		`SELECT status::text, count(*) FROM bookings
+		 WHERE status IN ('PENDING', 'APPROVED', 'REJECTED')
+		 GROUP BY status`)
+	if err != nil {
+		httpx.Error(w, r, h.log, err)
+		return
+	}
+	defer rows.Close()
+
+	out := map[string]int64{"pending": 0, "approved": 0, "rejected": 0, "total": 0}
+	for rows.Next() {
+		var status string
+		var count int64
+		if err := rows.Scan(&status, &count); err != nil {
+			httpx.Error(w, r, h.log, err)
+			return
+		}
+		switch status {
+		case "PENDING":
+			out["pending"] = count
+		case "APPROVED":
+			out["approved"] = count
+		case "REJECTED":
+			out["rejected"] = count
+		}
+		out["total"] += count
+	}
+	if err := rows.Err(); err != nil {
+		httpx.Error(w, r, h.log, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, out)
 }
 
 func (h *Handler) approve(w http.ResponseWriter, r *http.Request) {

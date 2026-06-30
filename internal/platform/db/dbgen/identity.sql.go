@@ -42,7 +42,7 @@ func (q *Queries) CreateDepartment(ctx context.Context, arg CreateDepartmentPara
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (email, password_hash, full_name, role, department_id, status)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, email, password_hash, full_name, role, department_id, status, mfa_enabled, mfa_secret_encrypted, failed_login_attempts, locked_until, last_login_at, created_at, updated_at
+RETURNING id, email, password_hash, full_name, role, department_id, status, mfa_enabled, mfa_secret_encrypted, failed_login_attempts, locked_until, last_login_at, created_at, updated_at, last_mfa_timestep
 `
 
 type CreateUserParams struct {
@@ -80,6 +80,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.LastLoginAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LastMfaTimestep,
 	)
 	return i, err
 }
@@ -120,8 +121,20 @@ func (q *Queries) GetDepartment(ctx context.Context, id uuid.UUID) (Department, 
 	return i, err
 }
 
+const getLastMFATimestep = `-- name: GetLastMFATimestep :one
+SELECT last_mfa_timestep FROM users WHERE id = $1
+`
+
+// LOW-8: read the last accepted TOTP timestep for replay detection.
+func (q *Queries) GetLastMFATimestep(ctx context.Context, id uuid.UUID) (*int64, error) {
+	row := q.db.QueryRow(ctx, getLastMFATimestep, id)
+	var last_mfa_timestep *int64
+	err := row.Scan(&last_mfa_timestep)
+	return last_mfa_timestep, err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, full_name, role, department_id, status, mfa_enabled, mfa_secret_encrypted, failed_login_attempts, locked_until, last_login_at, created_at, updated_at FROM users WHERE email = $1
+SELECT id, email, password_hash, full_name, role, department_id, status, mfa_enabled, mfa_secret_encrypted, failed_login_attempts, locked_until, last_login_at, created_at, updated_at, last_mfa_timestep FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -142,12 +155,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.LastLoginAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LastMfaTimestep,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, full_name, role, department_id, status, mfa_enabled, mfa_secret_encrypted, failed_login_attempts, locked_until, last_login_at, created_at, updated_at FROM users WHERE id = $1
+SELECT id, email, password_hash, full_name, role, department_id, status, mfa_enabled, mfa_secret_encrypted, failed_login_attempts, locked_until, last_login_at, created_at, updated_at, last_mfa_timestep FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
@@ -168,6 +182,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.LastLoginAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LastMfaTimestep,
 	)
 	return i, err
 }
@@ -204,7 +219,7 @@ func (q *Queries) ListDepartments(ctx context.Context) ([]Department, error) {
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, password_hash, full_name, role, department_id, status, mfa_enabled, mfa_secret_encrypted, failed_login_attempts, locked_until, last_login_at, created_at, updated_at FROM users
+SELECT id, email, password_hash, full_name, role, department_id, status, mfa_enabled, mfa_secret_encrypted, failed_login_attempts, locked_until, last_login_at, created_at, updated_at, last_mfa_timestep FROM users
 WHERE ($1::user_role IS NULL OR role = $1)
   AND ($2::uuid IS NULL OR department_id = $2)
   AND ($3::user_status IS NULL OR status = $3)
@@ -251,6 +266,7 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 			&i.LastLoginAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.LastMfaTimestep,
 		); err != nil {
 			return nil, err
 		}
@@ -301,6 +317,21 @@ func (q *Queries) RecordSuccessfulLogin(ctx context.Context, id uuid.UUID) error
 	return err
 }
 
+const setLastMFATimestep = `-- name: SetLastMFATimestep :exec
+UPDATE users SET last_mfa_timestep = $2, updated_at = now() WHERE id = $1
+`
+
+type SetLastMFATimestepParams struct {
+	ID              uuid.UUID `json:"id"`
+	LastMfaTimestep *int64    `json:"last_mfa_timestep"`
+}
+
+// LOW-8: persist the accepted TOTP timestep so an earlier/equal one is rejected.
+func (q *Queries) SetLastMFATimestep(ctx context.Context, arg SetLastMFATimestepParams) error {
+	_, err := q.db.Exec(ctx, setLastMFATimestep, arg.ID, arg.LastMfaTimestep)
+	return err
+}
+
 const setMFASecret = `-- name: SetMFASecret :exec
 UPDATE users SET mfa_secret_encrypted = $2, updated_at = now() WHERE id = $1
 `
@@ -316,7 +347,7 @@ func (q *Queries) SetMFASecret(ctx context.Context, arg SetMFASecretParams) erro
 }
 
 const setUserStatus = `-- name: SetUserStatus :one
-UPDATE users SET status = $2, updated_at = now() WHERE id = $1 RETURNING id, email, password_hash, full_name, role, department_id, status, mfa_enabled, mfa_secret_encrypted, failed_login_attempts, locked_until, last_login_at, created_at, updated_at
+UPDATE users SET status = $2, updated_at = now() WHERE id = $1 RETURNING id, email, password_hash, full_name, role, department_id, status, mfa_enabled, mfa_secret_encrypted, failed_login_attempts, locked_until, last_login_at, created_at, updated_at, last_mfa_timestep
 `
 
 type SetUserStatusParams struct {
@@ -342,6 +373,7 @@ func (q *Queries) SetUserStatus(ctx context.Context, arg SetUserStatusParams) (U
 		&i.LastLoginAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LastMfaTimestep,
 	)
 	return i, err
 }
@@ -393,7 +425,7 @@ func (q *Queries) UpdatePasswordHash(ctx context.Context, arg UpdatePasswordHash
 
 const updateUserProfile = `-- name: UpdateUserProfile :one
 UPDATE users SET full_name = $2, department_id = $3, updated_at = now()
-WHERE id = $1 RETURNING id, email, password_hash, full_name, role, department_id, status, mfa_enabled, mfa_secret_encrypted, failed_login_attempts, locked_until, last_login_at, created_at, updated_at
+WHERE id = $1 RETURNING id, email, password_hash, full_name, role, department_id, status, mfa_enabled, mfa_secret_encrypted, failed_login_attempts, locked_until, last_login_at, created_at, updated_at, last_mfa_timestep
 `
 
 type UpdateUserProfileParams struct {
@@ -420,12 +452,13 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 		&i.LastLoginAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LastMfaTimestep,
 	)
 	return i, err
 }
 
 const updateUserRole = `-- name: UpdateUserRole :one
-UPDATE users SET role = $2, updated_at = now() WHERE id = $1 RETURNING id, email, password_hash, full_name, role, department_id, status, mfa_enabled, mfa_secret_encrypted, failed_login_attempts, locked_until, last_login_at, created_at, updated_at
+UPDATE users SET role = $2, updated_at = now() WHERE id = $1 RETURNING id, email, password_hash, full_name, role, department_id, status, mfa_enabled, mfa_secret_encrypted, failed_login_attempts, locked_until, last_login_at, created_at, updated_at, last_mfa_timestep
 `
 
 type UpdateUserRoleParams struct {
@@ -451,6 +484,7 @@ func (q *Queries) UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) 
 		&i.LastLoginAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LastMfaTimestep,
 	)
 	return i, err
 }

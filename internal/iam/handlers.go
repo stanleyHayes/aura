@@ -36,8 +36,11 @@ func (h *Handler) AuthRoutes(authn func(http.Handler) http.Handler) chi.Router {
 	r.Post("/password/reset", h.resetPassword)
 	r.Group(func(r chi.Router) {
 		r.Use(authn)
+		r.Use(httpx.CSRF(h.log))
 		r.Post("/logout", h.logout)
 		r.Get("/me", h.me)
+		r.Patch("/me", h.updateMe)
+		r.Post("/password/change", h.changePassword)
 		r.Post("/mfa/enrol", h.mfaEnrol)
 		r.Post("/mfa/verify", h.mfaVerify)
 	})
@@ -93,7 +96,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	}
 	uid := toks.User.ID
 	h.audit.Record(r.Context(), audit.Entry{ActorID: &uid, Action: "LOGIN", EntityType: "user", EntityID: &uid, IP: httpx.ClientIP(r), UserAgent: httpx.UserAgentPtr(r)})
-	h.writeTokens(w, toks)
+	h.writeTokens(w, toks, bearerMode(r))
 }
 
 func (h *Handler) refresh(w http.ResponseWriter, r *http.Request) {
@@ -107,7 +110,7 @@ func (h *Handler) refresh(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, r, h.log, err)
 		return
 	}
-	h.writeTokens(w, toks)
+	h.writeTokens(w, toks, bearerMode(r))
 }
 
 func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
@@ -126,6 +129,48 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusOK, toMe(u))
+}
+
+type updateMeReq struct {
+	FullName     string     `json:"full_name"`
+	DepartmentID *uuid.UUID `json:"department_id"`
+}
+
+func (h *Handler) updateMe(w http.ResponseWriter, r *http.Request) {
+	id := auth.MustIdentity(r.Context())
+	var req updateMeReq
+	if err := httpx.DecodeJSON(r, &req); err != nil {
+		httpx.Error(w, r, h.log, err)
+		return
+	}
+	before, _ := h.svc.GetUser(r.Context(), id.UserID)
+	u, err := h.svc.UpdateUser(r.Context(), id.UserID, req.FullName, req.DepartmentID)
+	if err != nil {
+		httpx.Error(w, r, h.log, err)
+		return
+	}
+	h.recordChange(r, "UPDATE", "user.profile", u.ID, toUserView(before), toUserView(u))
+	httpx.JSON(w, http.StatusOK, toMe(u))
+}
+
+type changePasswordReq struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
+func (h *Handler) changePassword(w http.ResponseWriter, r *http.Request) {
+	id := auth.MustIdentity(r.Context())
+	var req changePasswordReq
+	if err := httpx.DecodeJSON(r, &req); err != nil {
+		httpx.Error(w, r, h.log, err)
+		return
+	}
+	if err := h.svc.ChangePassword(r.Context(), id.UserID, req.CurrentPassword, req.NewPassword); err != nil {
+		httpx.Error(w, r, h.log, err)
+		return
+	}
+	h.recordChange(r, "UPDATE", "user.password", id.UserID, nil, map[string]bool{"changed": true})
+	httpx.NoContent(w)
 }
 
 type forgotReq struct {
@@ -167,6 +212,8 @@ func (h *Handler) mfaEnrol(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, r, h.log, err)
 		return
 	}
+	// Audit only the act of enrolment — never the secret/provisioning URI.
+	h.recordChange(r, "MFA_ENROL", "user.mfa", id.UserID, nil, map[string]bool{"enrolled": true})
 	httpx.JSON(w, http.StatusOK, enrol)
 }
 
@@ -185,18 +232,35 @@ func (h *Handler) mfaVerify(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, r, h.log, err)
 		return
 	}
+	h.recordChange(r, "MFA_ENABLE", "user.mfa", id.UserID, nil, map[string]bool{"enabled": true})
 	httpx.NoContent(w)
 }
 
-func (h *Handler) writeTokens(w http.ResponseWriter, toks Tokens) {
-	csrf := uuid.NewString()
-	httpx.SetAuthCookies(w, toks.Access, toks.Refresh, csrf, h.svc.cfg.AccessTTL, h.svc.cfg.RefreshTTL, h.secure)
-	httpx.JSON(w, http.StatusOK, tokenResponse{
+// bearerMode reports whether the client requested token-in-body auth via the
+// X-Auth-Mode: bearer header (PART C). Native clients (mobile) cannot store
+// HttpOnly cookies, so they opt into receiving the refresh token in the body.
+func bearerMode(r *http.Request) bool {
+	return r.Header.Get("X-Auth-Mode") == "bearer"
+}
+
+// writeTokens emits the token response. In the default (web) flow it sets the
+// HttpOnly auth cookies and omits the refresh token from the body. In bearer mode
+// it instead returns the refresh token in the body and sets NO cookies, so the
+// web cookie-security posture is never weakened by the mobile path (PART C).
+func (h *Handler) writeTokens(w http.ResponseWriter, toks Tokens, bearer bool) {
+	resp := tokenResponse{
 		AccessToken: toks.Access,
 		TokenType:   "Bearer",
 		ExpiresIn:   int(h.svc.cfg.AccessTTL.Seconds()),
 		User:        toUserView(toks.User),
-	})
+	}
+	if bearer {
+		resp.RefreshToken = toks.Refresh
+	} else {
+		csrf := uuid.NewString()
+		httpx.SetAuthCookies(w, toks.Access, toks.Refresh, csrf, h.svc.cfg.AccessTTL, h.svc.cfg.RefreshTTL, h.secure)
+	}
+	httpx.JSON(w, http.StatusOK, resp)
 }
 
 func (h *Handler) refreshFromRequest(r *http.Request) string {

@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (await getBiometricPref()) {
-        const ok = await authenticateBiometric('Unlock Classroom Booking');
+        const ok = await authenticateBiometric('Unlock AURA');
         if (!ok) {
           // Keep the session but stay locked out of the UI until they unlock.
           if (mounted.current) setStatus('unauthenticated');
@@ -122,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(
     async ({ email, password, mfaCode }: LoginInput) => {
       const res = await api.POST('/auth/login', {
-        body: { email, password, mfaCode },
+        body: { email, password, mfa_code: mfaCode },
       });
       // unwrap throws a typed ApiError (incl. ACCOUNT_LOCKED) on failure.
       const data = LoginResponseSchema.parse(unwrap(res));
@@ -143,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const refreshToken = await getRefreshToken();
     if (refreshToken) {
       try {
-        await api.POST('/auth/logout', { body: { refreshToken } });
+        await api.POST('/auth/logout', { body: { refresh_token: refreshToken } });
       } catch {
         // Best-effort revocation; clear locally regardless.
       }

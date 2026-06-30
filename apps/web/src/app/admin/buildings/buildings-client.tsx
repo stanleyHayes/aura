@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Plus } from "lucide-react";
+import { Building2, Eye, ImageIcon, Plus, Upload } from "lucide-react";
 import {
   BuildingForm as Schema,
   type BuildingForm as Values,
@@ -28,12 +29,19 @@ import { PageHeader } from "@/components/page-header";
 import { ProblemAlert } from "@/components/problem-alert";
 import { DataTable } from "@/components/data-table";
 import { Field } from "@/components/forms/field";
+import { ImagePicker } from "@/components/forms/image-picker";
+import { CatalogueImportDialog } from "@/components/catalogue-import-dialog";
+import { uploadCatalogueImages } from "@/lib/api/multipart";
+import { route } from "@/lib/route";
 
 export function BuildingsClient() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [editing, setEditing] = React.useState<Building | null>(null);
   const [open, setOpen] = React.useState(false);
+  const [importOpen, setImportOpen] = React.useState(false);
+  const [mainImage, setMainImage] = React.useState<File | null>(null);
+  const [galleryImages, setGalleryImages] = React.useState<File[]>([]);
   const [error, setError] = React.useState<unknown>(null);
 
   const query = useQuery({
@@ -60,15 +68,27 @@ export function BuildingsClient() {
   });
 
   const save = useMutation({
-    mutationFn: async (values: Values) =>
-      editing
+    mutationFn: async (values: Values) => {
+      const building = (editing
         ? unwrap(
             await api.PATCH("/api/v1/buildings/{id}", {
               params: { path: { id: editing.id } },
               body: values as never,
             }),
           )
-        : unwrap(await api.POST("/api/v1/buildings", { body: values as never })),
+        : unwrap(
+            await api.POST("/api/v1/buildings", { body: values as never }),
+          )) as Building;
+
+      if (mainImage || galleryImages.length > 0) {
+        return uploadCatalogueImages<Building>({
+          path: `/api/v1/buildings/${building.id}/images`,
+          main: mainImage,
+          gallery: galleryImages,
+        });
+      }
+      return building;
+    },
     onSuccess: () => {
       toast({ variant: "success", title: editing ? "Building updated" : "Building created" });
       void queryClient.invalidateQueries({ queryKey: ["buildings"] });
@@ -79,19 +99,42 @@ export function BuildingsClient() {
 
   function openCreate() {
     setEditing(null);
+    setMainImage(null);
+    setGalleryImages([]);
     setOpen(true);
   }
   function openEdit(b: Building) {
     setEditing(b);
+    setMainImage(null);
+    setGalleryImages([]);
     setOpen(true);
   }
   function closeDialog() {
     setOpen(false);
     setEditing(null);
+    setMainImage(null);
+    setGalleryImages([]);
     setError(null);
   }
 
   const columns: ColumnDef<Building>[] = [
+    {
+      id: "image",
+      header: "Image",
+      enableSorting: false,
+      cell: ({ row }) =>
+        row.original.image_url ? (
+          <img
+            src={row.original.image_url}
+            alt={`${row.original.name} building`}
+            className="size-12 rounded-lg border border-[var(--color-border)] object-cover"
+          />
+        ) : (
+          <span className="grid size-12 place-items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)] text-[var(--color-muted-foreground)]">
+            <ImageIcon className="size-5" aria-hidden="true" />
+          </span>
+        ),
+    },
     {
       accessorKey: "code",
       header: "Code",
@@ -108,7 +151,13 @@ export function BuildingsClient() {
       header: "",
       enableSorting: false,
       cell: ({ row }) => (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href={route(`/admin/buildings/${row.original.id}`)}>
+              <Eye className="size-4" aria-hidden="true" />
+              View
+            </Link>
+          </Button>
           <Button variant="ghost" size="sm" onClick={() => openEdit(row.original)}>
             Edit
           </Button>
@@ -124,9 +173,14 @@ export function BuildingsClient() {
         title="Buildings"
         description="Campus buildings that contain bookable rooms."
         actions={
-          <Button onClick={openCreate}>
-            <Plus className="size-4" /> New building
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload className="size-4" /> Import
+            </Button>
+            <Button onClick={openCreate}>
+              <Plus className="size-4" /> New building
+            </Button>
+          </>
         }
       />
 
@@ -139,7 +193,7 @@ export function BuildingsClient() {
       )}
 
       <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : closeDialog())}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit building" : "New building"}</DialogTitle>
           </DialogHeader>
@@ -163,6 +217,15 @@ export function BuildingsClient() {
             <Field id="b-name" label="Name" error={form.formState.errors.name?.message} required>
               {(p) => <Input {...p} {...form.register("name")} />}
             </Field>
+            <ImagePicker
+              title="Building images"
+              existingMainUrl={editing?.image_url}
+              existingGalleryUrls={editing?.gallery_urls ?? []}
+              mainFile={mainImage}
+              galleryFiles={galleryImages}
+              onMainFileChange={setMainImage}
+              onGalleryFilesChange={setGalleryImages}
+            />
             <DialogFooter>
               <Button type="button" variant="outline" onClick={closeDialog}>
                 Cancel
@@ -174,6 +237,14 @@ export function BuildingsClient() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <CatalogueImportDialog
+        kind="buildings"
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        buildings={query.data ?? []}
+        onImported={() => void queryClient.invalidateQueries({ queryKey: qk.buildings })}
+      />
     </>
   );
 }

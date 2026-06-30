@@ -70,3 +70,11 @@ UPDATE users SET mfa_secret_encrypted = $2, updated_at = now() WHERE id = $1;
 
 -- name: EnableMFA :exec
 UPDATE users SET mfa_enabled = true, updated_at = now() WHERE id = $1;
+
+-- name: GetLastMFATimestep :one
+-- LOW-8: read the last accepted TOTP timestep for replay detection.
+SELECT last_mfa_timestep FROM users WHERE id = $1;
+
+-- name: SetLastMFATimestep :exec
+-- LOW-8: persist the accepted TOTP timestep so an earlier/equal one is rejected.
+UPDATE users SET last_mfa_timestep = $2, updated_at = now() WHERE id = $1;

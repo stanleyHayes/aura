@@ -38,7 +38,7 @@ func (q *Queries) ClearRoomEquipment(ctx context.Context, roomID uuid.UUID) erro
 }
 
 const createBuilding = `-- name: CreateBuilding :one
-INSERT INTO buildings (code, name, campus) VALUES ($1, $2, $3) RETURNING id, code, name, campus, created_at, updated_at
+INSERT INTO buildings (code, name, campus) VALUES ($1, $2, $3) RETURNING id, code, name, campus, created_at, updated_at, image_url, image_public_id, gallery_urls, gallery_public_ids
 `
 
 type CreateBuildingParams struct {
@@ -58,12 +58,16 @@ func (q *Queries) CreateBuilding(ctx context.Context, arg CreateBuildingParams) 
 		&i.Campus,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ImageUrl,
+		&i.ImagePublicID,
+		&i.GalleryUrls,
+		&i.GalleryPublicIds,
 	)
 	return i, err
 }
 
 const createEquipment = `-- name: CreateEquipment :one
-INSERT INTO equipment (code, name) VALUES ($1, $2) RETURNING id, code, name
+INSERT INTO equipment (code, name) VALUES ($1, $2) RETURNING id, code, name, image_url, image_public_id, gallery_urls, gallery_public_ids
 `
 
 type CreateEquipmentParams struct {
@@ -75,13 +79,21 @@ type CreateEquipmentParams struct {
 func (q *Queries) CreateEquipment(ctx context.Context, arg CreateEquipmentParams) (Equipment, error) {
 	row := q.db.QueryRow(ctx, createEquipment, arg.Code, arg.Name)
 	var i Equipment
-	err := row.Scan(&i.ID, &i.Code, &i.Name)
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.Name,
+		&i.ImageUrl,
+		&i.ImagePublicID,
+		&i.GalleryUrls,
+		&i.GalleryPublicIds,
+	)
 	return i, err
 }
 
 const createRoom = `-- name: CreateRoom :one
 INSERT INTO rooms (room_code, name, building_id, capacity, room_type, status)
-VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, room_code, name, building_id, capacity, room_type, status, created_at, updated_at
+VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, room_code, name, building_id, capacity, room_type, status, created_at, updated_at, image_url, image_public_id, gallery_urls, gallery_public_ids
 `
 
 type CreateRoomParams struct {
@@ -114,6 +126,10 @@ func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (Room, e
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ImageUrl,
+		&i.ImagePublicID,
+		&i.GalleryUrls,
+		&i.GalleryPublicIds,
 	)
 	return i, err
 }
@@ -137,7 +153,7 @@ func (q *Queries) DeleteEquipment(ctx context.Context, id uuid.UUID) error {
 }
 
 const getBuilding = `-- name: GetBuilding :one
-SELECT id, code, name, campus, created_at, updated_at FROM buildings WHERE id = $1
+SELECT id, code, name, campus, created_at, updated_at, image_url, image_public_id, gallery_urls, gallery_public_ids FROM buildings WHERE id = $1
 `
 
 func (q *Queries) GetBuilding(ctx context.Context, id uuid.UUID) (Building, error) {
@@ -150,23 +166,35 @@ func (q *Queries) GetBuilding(ctx context.Context, id uuid.UUID) (Building, erro
 		&i.Campus,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ImageUrl,
+		&i.ImagePublicID,
+		&i.GalleryUrls,
+		&i.GalleryPublicIds,
 	)
 	return i, err
 }
 
 const getEquipment = `-- name: GetEquipment :one
-SELECT id, code, name FROM equipment WHERE id = $1
+SELECT id, code, name, image_url, image_public_id, gallery_urls, gallery_public_ids FROM equipment WHERE id = $1
 `
 
 func (q *Queries) GetEquipment(ctx context.Context, id uuid.UUID) (Equipment, error) {
 	row := q.db.QueryRow(ctx, getEquipment, id)
 	var i Equipment
-	err := row.Scan(&i.ID, &i.Code, &i.Name)
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.Name,
+		&i.ImageUrl,
+		&i.ImagePublicID,
+		&i.GalleryUrls,
+		&i.GalleryPublicIds,
+	)
 	return i, err
 }
 
 const getRoom = `-- name: GetRoom :one
-SELECT id, room_code, name, building_id, capacity, room_type, status, created_at, updated_at FROM rooms WHERE id = $1
+SELECT id, room_code, name, building_id, capacity, room_type, status, created_at, updated_at, image_url, image_public_id, gallery_urls, gallery_public_ids FROM rooms WHERE id = $1
 `
 
 func (q *Queries) GetRoom(ctx context.Context, id uuid.UUID) (Room, error) {
@@ -182,12 +210,16 @@ func (q *Queries) GetRoom(ctx context.Context, id uuid.UUID) (Room, error) {
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ImageUrl,
+		&i.ImagePublicID,
+		&i.GalleryUrls,
+		&i.GalleryPublicIds,
 	)
 	return i, err
 }
 
 const getRoomByCode = `-- name: GetRoomByCode :one
-SELECT id, room_code, name, building_id, capacity, room_type, status, created_at, updated_at FROM rooms WHERE room_code = $1
+SELECT id, room_code, name, building_id, capacity, room_type, status, created_at, updated_at, image_url, image_public_id, gallery_urls, gallery_public_ids FROM rooms WHERE room_code = $1
 `
 
 func (q *Queries) GetRoomByCode(ctx context.Context, roomCode string) (Room, error) {
@@ -203,12 +235,16 @@ func (q *Queries) GetRoomByCode(ctx context.Context, roomCode string) (Room, err
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ImageUrl,
+		&i.ImagePublicID,
+		&i.GalleryUrls,
+		&i.GalleryPublicIds,
 	)
 	return i, err
 }
 
 const listBuildings = `-- name: ListBuildings :many
-SELECT id, code, name, campus, created_at, updated_at FROM buildings ORDER BY code
+SELECT id, code, name, campus, created_at, updated_at, image_url, image_public_id, gallery_urls, gallery_public_ids FROM buildings ORDER BY code
 `
 
 func (q *Queries) ListBuildings(ctx context.Context) ([]Building, error) {
@@ -227,6 +263,10 @@ func (q *Queries) ListBuildings(ctx context.Context) ([]Building, error) {
 			&i.Campus,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ImageUrl,
+			&i.ImagePublicID,
+			&i.GalleryUrls,
+			&i.GalleryPublicIds,
 		); err != nil {
 			return nil, err
 		}
@@ -239,7 +279,7 @@ func (q *Queries) ListBuildings(ctx context.Context) ([]Building, error) {
 }
 
 const listEquipment = `-- name: ListEquipment :many
-SELECT id, code, name FROM equipment ORDER BY code
+SELECT id, code, name, image_url, image_public_id, gallery_urls, gallery_public_ids FROM equipment ORDER BY code
 `
 
 func (q *Queries) ListEquipment(ctx context.Context) ([]Equipment, error) {
@@ -251,7 +291,15 @@ func (q *Queries) ListEquipment(ctx context.Context) ([]Equipment, error) {
 	var items []Equipment
 	for rows.Next() {
 		var i Equipment
-		if err := rows.Scan(&i.ID, &i.Code, &i.Name); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Code,
+			&i.Name,
+			&i.ImageUrl,
+			&i.ImagePublicID,
+			&i.GalleryUrls,
+			&i.GalleryPublicIds,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -263,7 +311,7 @@ func (q *Queries) ListEquipment(ctx context.Context) ([]Equipment, error) {
 }
 
 const listRoomEquipment = `-- name: ListRoomEquipment :many
-SELECT re.equipment_id, e.code, e.name, re.quantity
+SELECT re.equipment_id, e.code, e.name, e.image_url, re.quantity
 FROM room_equipment re JOIN equipment e ON e.id = re.equipment_id
 WHERE re.room_id = $1
 ORDER BY e.code
@@ -273,6 +321,7 @@ type ListRoomEquipmentRow struct {
 	EquipmentID uuid.UUID `json:"equipment_id"`
 	Code        string    `json:"code"`
 	Name        string    `json:"name"`
+	ImageUrl    *string   `json:"image_url"`
 	Quantity    int32     `json:"quantity"`
 }
 
@@ -289,6 +338,7 @@ func (q *Queries) ListRoomEquipment(ctx context.Context, roomID uuid.UUID) ([]Li
 			&i.EquipmentID,
 			&i.Code,
 			&i.Name,
+			&i.ImageUrl,
 			&i.Quantity,
 		); err != nil {
 			return nil, err
@@ -302,7 +352,7 @@ func (q *Queries) ListRoomEquipment(ctx context.Context, roomID uuid.UUID) ([]Li
 }
 
 const setRoomStatus = `-- name: SetRoomStatus :one
-UPDATE rooms SET status = $2, updated_at = now() WHERE id = $1 RETURNING id, room_code, name, building_id, capacity, room_type, status, created_at, updated_at
+UPDATE rooms SET status = $2, updated_at = now() WHERE id = $1 RETURNING id, room_code, name, building_id, capacity, room_type, status, created_at, updated_at, image_url, image_public_id, gallery_urls, gallery_public_ids
 `
 
 type SetRoomStatusParams struct {
@@ -323,13 +373,17 @@ func (q *Queries) SetRoomStatus(ctx context.Context, arg SetRoomStatusParams) (R
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ImageUrl,
+		&i.ImagePublicID,
+		&i.GalleryUrls,
+		&i.GalleryPublicIds,
 	)
 	return i, err
 }
 
 const updateBuilding = `-- name: UpdateBuilding :one
 UPDATE buildings SET code = $2, name = $3, campus = $4, updated_at = now()
-WHERE id = $1 RETURNING id, code, name, campus, created_at, updated_at
+WHERE id = $1 RETURNING id, code, name, campus, created_at, updated_at, image_url, image_public_id, gallery_urls, gallery_public_ids
 `
 
 type UpdateBuildingParams struct {
@@ -354,12 +408,58 @@ func (q *Queries) UpdateBuilding(ctx context.Context, arg UpdateBuildingParams) 
 		&i.Campus,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ImageUrl,
+		&i.ImagePublicID,
+		&i.GalleryUrls,
+		&i.GalleryPublicIds,
+	)
+	return i, err
+}
+
+const updateBuildingImages = `-- name: UpdateBuildingImages :one
+UPDATE buildings
+SET image_url = $2,
+    image_public_id = $3,
+    gallery_urls = $4,
+    gallery_public_ids = $5,
+    updated_at = now()
+WHERE id = $1 RETURNING id, code, name, campus, created_at, updated_at, image_url, image_public_id, gallery_urls, gallery_public_ids
+`
+
+type UpdateBuildingImagesParams struct {
+	ID               uuid.UUID `json:"id"`
+	ImageUrl         *string   `json:"image_url"`
+	ImagePublicID    *string   `json:"image_public_id"`
+	GalleryUrls      []string  `json:"gallery_urls"`
+	GalleryPublicIds []string  `json:"gallery_public_ids"`
+}
+
+func (q *Queries) UpdateBuildingImages(ctx context.Context, arg UpdateBuildingImagesParams) (Building, error) {
+	row := q.db.QueryRow(ctx, updateBuildingImages,
+		arg.ID,
+		arg.ImageUrl,
+		arg.ImagePublicID,
+		arg.GalleryUrls,
+		arg.GalleryPublicIds,
+	)
+	var i Building
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.Name,
+		&i.Campus,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ImageUrl,
+		&i.ImagePublicID,
+		&i.GalleryUrls,
+		&i.GalleryPublicIds,
 	)
 	return i, err
 }
 
 const updateEquipment = `-- name: UpdateEquipment :one
-UPDATE equipment SET code = $2, name = $3 WHERE id = $1 RETURNING id, code, name
+UPDATE equipment SET code = $2, name = $3 WHERE id = $1 RETURNING id, code, name, image_url, image_public_id, gallery_urls, gallery_public_ids
 `
 
 type UpdateEquipmentParams struct {
@@ -371,14 +471,60 @@ type UpdateEquipmentParams struct {
 func (q *Queries) UpdateEquipment(ctx context.Context, arg UpdateEquipmentParams) (Equipment, error) {
 	row := q.db.QueryRow(ctx, updateEquipment, arg.ID, arg.Code, arg.Name)
 	var i Equipment
-	err := row.Scan(&i.ID, &i.Code, &i.Name)
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.Name,
+		&i.ImageUrl,
+		&i.ImagePublicID,
+		&i.GalleryUrls,
+		&i.GalleryPublicIds,
+	)
+	return i, err
+}
+
+const updateEquipmentImages = `-- name: UpdateEquipmentImages :one
+UPDATE equipment
+SET image_url = $2,
+    image_public_id = $3,
+    gallery_urls = $4,
+    gallery_public_ids = $5
+WHERE id = $1 RETURNING id, code, name, image_url, image_public_id, gallery_urls, gallery_public_ids
+`
+
+type UpdateEquipmentImagesParams struct {
+	ID               uuid.UUID `json:"id"`
+	ImageUrl         *string   `json:"image_url"`
+	ImagePublicID    *string   `json:"image_public_id"`
+	GalleryUrls      []string  `json:"gallery_urls"`
+	GalleryPublicIds []string  `json:"gallery_public_ids"`
+}
+
+func (q *Queries) UpdateEquipmentImages(ctx context.Context, arg UpdateEquipmentImagesParams) (Equipment, error) {
+	row := q.db.QueryRow(ctx, updateEquipmentImages,
+		arg.ID,
+		arg.ImageUrl,
+		arg.ImagePublicID,
+		arg.GalleryUrls,
+		arg.GalleryPublicIds,
+	)
+	var i Equipment
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.Name,
+		&i.ImageUrl,
+		&i.ImagePublicID,
+		&i.GalleryUrls,
+		&i.GalleryPublicIds,
+	)
 	return i, err
 }
 
 const updateRoom = `-- name: UpdateRoom :one
 UPDATE rooms SET room_code = $2, name = $3, building_id = $4, capacity = $5,
                  room_type = $6, status = $7, updated_at = now()
-WHERE id = $1 RETURNING id, room_code, name, building_id, capacity, room_type, status, created_at, updated_at
+WHERE id = $1 RETURNING id, room_code, name, building_id, capacity, room_type, status, created_at, updated_at, image_url, image_public_id, gallery_urls, gallery_public_ids
 `
 
 type UpdateRoomParams struct {
@@ -412,6 +558,55 @@ func (q *Queries) UpdateRoom(ctx context.Context, arg UpdateRoomParams) (Room, e
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ImageUrl,
+		&i.ImagePublicID,
+		&i.GalleryUrls,
+		&i.GalleryPublicIds,
+	)
+	return i, err
+}
+
+const updateRoomImages = `-- name: UpdateRoomImages :one
+UPDATE rooms
+SET image_url = $2,
+    image_public_id = $3,
+    gallery_urls = $4,
+    gallery_public_ids = $5,
+    updated_at = now()
+WHERE id = $1 RETURNING id, room_code, name, building_id, capacity, room_type, status, created_at, updated_at, image_url, image_public_id, gallery_urls, gallery_public_ids
+`
+
+type UpdateRoomImagesParams struct {
+	ID               uuid.UUID `json:"id"`
+	ImageUrl         *string   `json:"image_url"`
+	ImagePublicID    *string   `json:"image_public_id"`
+	GalleryUrls      []string  `json:"gallery_urls"`
+	GalleryPublicIds []string  `json:"gallery_public_ids"`
+}
+
+func (q *Queries) UpdateRoomImages(ctx context.Context, arg UpdateRoomImagesParams) (Room, error) {
+	row := q.db.QueryRow(ctx, updateRoomImages,
+		arg.ID,
+		arg.ImageUrl,
+		arg.ImagePublicID,
+		arg.GalleryUrls,
+		arg.GalleryPublicIds,
+	)
+	var i Room
+	err := row.Scan(
+		&i.ID,
+		&i.RoomCode,
+		&i.Name,
+		&i.BuildingID,
+		&i.Capacity,
+		&i.RoomType,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ImageUrl,
+		&i.ImagePublicID,
+		&i.GalleryUrls,
+		&i.GalleryPublicIds,
 	)
 	return i, err
 }

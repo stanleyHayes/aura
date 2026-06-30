@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -31,6 +30,7 @@ import (
 	"github.com/aura/cbs/internal/platform/httpx"
 	"github.com/aura/cbs/internal/platform/logging"
 	"github.com/aura/cbs/internal/platform/mailer"
+	"github.com/aura/cbs/internal/platform/media"
 	"github.com/aura/cbs/internal/reporting"
 	"github.com/aura/cbs/internal/scheduling"
 )
@@ -105,6 +105,14 @@ func buildRouter(cfg config.Config, store *db.Store, loc *time.Location, log *sl
 	if err != nil {
 		return nil, err
 	}
+	// LOW-10: surface the selected signing algorithm, and in production require an
+	// HMAC key of at least 32 bytes (256-bit) — never silently accept a weak key.
+	log.Info("jwt signer selected", "alg", signer.Alg(), "kid", signer.KeyID())
+	if cfg.IsProduction() {
+		if hs, ok := signer.(interface{ KeyLen() int }); ok && hs.KeyLen() < 32 {
+			return nil, fmt.Errorf("JWT_SIGNING_KEY for HMAC must be at least 32 bytes in production (got %d)", hs.KeyLen())
+		}
+	}
 	aesgcm, err := auth.NewAESGCM(cfg.MFAEncryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("mfa encryption key: %w", err)
@@ -112,9 +120,15 @@ func buildRouter(cfg config.Config, store *db.Store, loc *time.Location, log *sl
 	argon := auth.DefaultArgon2Params(cfg.Argon2MemoryKiB, cfg.Argon2Iterations, cfg.Argon2Parallelism)
 
 	var mail mailer.Mailer
-	if cfg.MailHost != "" {
+	switch {
+	case cfg.MailHost != "":
 		mail = mailer.NewSMTPMailer(cfg.MailHost, cfg.MailPort, cfg.MailFrom, cfg.MailUser, cfg.MailPass)
-	} else {
+	case cfg.IsProduction():
+		// SECURITY (HIGH-1): the log mailer writes message bodies to the logs;
+		// password-reset tokens must never reach production logs. Refuse to start
+		// without a real SMTP transport in production.
+		return nil, fmt.Errorf("MAIL_HOST is required in production: refusing to use the log mailer (it would log reset tokens)")
+	default:
 		mail = mailer.NewLogMailer(log, cfg.MailFrom)
 	}
 
@@ -122,6 +136,12 @@ func buildRouter(cfg config.Config, store *db.Store, loc *time.Location, log *sl
 	auditRec := audit.New(store, log)
 	broker := notifications.NewBroker()
 	notifSvc := notifications.NewService(store, mail, broker, log)
+	mediaSvc := media.NewCloudinary(media.CloudinaryConfig{
+		CloudName: cfg.CloudinaryCloudName,
+		APIKey:    cfg.CloudinaryAPIKey,
+		APISecret: cfg.CloudinaryAPISecret,
+		Folder:    cfg.CloudinaryUploadFolder,
+	}, log)
 
 	// Domain services.
 	iamSvc := iam.NewService(store, signer, argon, aesgcm, iam.Config{
@@ -136,17 +156,22 @@ func buildRouter(cfg config.Config, store *db.Store, loc *time.Location, log *sl
 
 	// Handlers.
 	iamH := iam.NewHandler(iamSvc, auditRec, log, cfg.IsProduction())
-	catalogueH := catalogue.NewHandler(catalogueSvc, auditRec, log)
+	catalogueH := catalogue.NewHandler(catalogueSvc, auditRec, log, mediaSvc)
 	schedulingH := scheduling.NewHandler(schedulingSvc, auditRec, log)
 	availH := availability.NewHandler(availEngine, log)
 	bookingH := bookings.NewHandler(bookingSvc, store, auditRec, log)
 	notifH := notifications.NewHandler(notifSvc, broker, log)
 	reportingH := reporting.NewHandler(reportingSvc, log)
+	auditH := audit.NewHandler(store, log)
 
 	authn := httpx.Authenticator(signer, log)
 
+	// MED-4: interpret X-Forwarded-For only as far as the configured number of
+	// trusted proxy hops. middleware.RealIP is deliberately NOT used because it
+	// rewrites RemoteAddr from an unauthenticated, spoofable header.
+	httpx.SetTrustedProxyCount(cfg.TrustedProxyCount)
+
 	r := chi.NewRouter()
-	r.Use(middleware.RealIP)
 	r.Use(httpx.Correlation)
 	r.Use(httpx.Recoverer(log))
 	r.Use(httpx.AccessLog(log))
@@ -180,6 +205,12 @@ func buildRouter(cfg config.Config, store *db.Store, loc *time.Location, log *sl
 		r.With(httpx.RateLimit(cfg.RateLimitAuthPerMin, time.Minute, log)).
 			Mount("/auth", iamH.AuthRoutes(authn))
 
+		// Public, anonymous read-only catalogue for the marketing room directory
+		// (§12.1). Only ACTIVE rooms are exposed; no write paths, no auth.
+		r.Route("/public", func(r chi.Router) {
+			catalogueH.PublicRoutes(r)
+		})
+
 		r.Group(func(r chi.Router) {
 			r.Use(authn)
 			r.Use(httpx.CSRF(log))
@@ -195,6 +226,7 @@ func buildRouter(cfg config.Config, store *db.Store, loc *time.Location, log *sl
 			r.Mount("/notifications", notifH.Routes())
 			r.Mount("/devices", notifH.DeviceRoutes())
 			r.Mount("/reports", reportingH.Routes())
+			r.Mount("/audit-logs", auditH.Routes())
 		})
 	})
 

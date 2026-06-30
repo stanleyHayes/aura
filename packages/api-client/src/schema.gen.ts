@@ -337,12 +337,17 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Provisioning URI */
+                /** @description Provisioning URI and manual TOTP secret */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            provisioning_uri: string;
+                            secret: string;
+                        };
+                    };
                 };
             };
         };
@@ -369,7 +374,13 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    "application/json": {
+                        code: string;
+                    };
+                };
+            };
             responses: {
                 /** @description Enabled */
                 204: {
@@ -456,6 +467,313 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/buildings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List buildings */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: components["parameters"]["Limit"];
+                    cursor?: components["parameters"]["Cursor"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["Building"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a building (ROOM_MANAGE) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        code: string;
+                        name: string;
+                        campus?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                403: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/buildings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get building detail */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Building"];
+                    };
+                };
+                404: components["responses"]["Problem"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/buildings/{id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a building main image and gallery images (ROOM_MANAGE) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: binary */
+                        main?: string;
+                        gallery?: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Updated building */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Building"];
+                    };
+                };
+                503: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List equipment */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: components["parameters"]["Limit"];
+                    cursor?: components["parameters"]["Cursor"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["Equipment"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create equipment (ROOM_MANAGE) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        code: string;
+                        name: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                403: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipment/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get equipment detail */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Equipment"];
+                    };
+                };
+                404: components["responses"]["Problem"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipment/{id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload an equipment main image and gallery images (ROOM_MANAGE) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: binary */
+                        main?: string;
+                        gallery?: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Updated equipment */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Equipment"];
+                    };
+                };
+                503: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rooms": {
         parameters: {
             query?: never;
@@ -498,6 +816,95 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rooms/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get room detail */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            room?: components["schemas"]["Room"];
+                            equipment?: components["schemas"]["RoomEquipment"][] | null;
+                        };
+                    };
+                };
+                404: components["responses"]["Problem"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rooms/{id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a room main image and gallery images (ROOM_MANAGE) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["Id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: binary */
+                        main?: string;
+                        gallery?: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Updated room */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Room"];
+                    };
+                };
+                503: components["responses"]["Problem"];
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -602,7 +1009,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List bookings (scope mine|pending|all) */
+        /**
+         * List bookings (scope mine|pending|all)
+         * @description Returns a cursor-paginated {data, next_cursor} envelope. For scope=pending (the approvals queue), each data item is a BookingApprovability object — the booking enriched with nested room/requester plus the §11/FR8 blockers explaining whether it can be approved. For scope=mine|all, each data item is a plain Booking.
+         */
         get: {
             parameters: {
                 query?: {
@@ -618,12 +1028,17 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description OK. data is an array of Booking (scope mine|all) or BookingApprovability (scope pending). */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            data?: (components["schemas"]["Booking"] | components["schemas"]["BookingApprovability"])[];
+                            next_cursor?: string | null;
+                        };
+                    };
                 };
             };
         };
@@ -669,6 +1084,43 @@ export interface paths {
                 422: components["responses"]["Problem"];
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bookings/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current booking request counts by approval status */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BookingMetrics"];
+                    };
+                };
+                403: components["responses"]["Problem"];
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1118,6 +1570,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admin overview dashboard aggregate (FR12). Defaults to the last 30 days.
+         * @description Single aggregate report powering the admin overview dashboard. When from/to are omitted it defaults to the last 30 days (to = today, from = today − 30d). In-range counts are scoped by starts_at within [from, to); current-state KPIs (pending, active rooms/users, buildings) ignore the range.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OverviewReport"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1146,6 +1640,8 @@ export interface components {
             /** @example Bearer */
             token_type?: string;
             expires_in?: number;
+            /** @description Only returned when the request sends the header `X-Auth-Mode: bearer` (native/mobile clients that cannot use HttpOnly cookies). In the default web flow the refresh token is set as an HttpOnly cookie and this field is omitted. */
+            refresh_token?: string;
             user?: components["schemas"]["User"];
         };
         User: {
@@ -1159,6 +1655,35 @@ export interface components {
             status?: string;
             mfa_enabled?: boolean;
         };
+        Building: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            campus?: string | null;
+            image_url?: string | null;
+            image_public_id?: string | null;
+            gallery_urls?: string[];
+            gallery_public_ids?: string[];
+        };
+        Equipment: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            image_url?: string | null;
+            image_public_id?: string | null;
+            gallery_urls?: string[];
+            gallery_public_ids?: string[];
+        };
+        RoomEquipment: {
+            /** Format: uuid */
+            equipment_id?: string;
+            code?: string;
+            name?: string;
+            image_url?: string | null;
+            quantity?: number;
+        };
         Room: {
             /** Format: uuid */
             id?: string;
@@ -1171,6 +1696,10 @@ export interface components {
             status?: string;
             building_code?: string;
             building_name?: string;
+            image_url?: string | null;
+            image_public_id?: string | null;
+            gallery_urls?: string[];
+            gallery_public_ids?: string[];
         };
         Booking: {
             /** Format: uuid */
@@ -1187,6 +1716,96 @@ export interface components {
             ends_at?: string;
             status?: components["schemas"]["BookingStatus"];
             review_note?: string | null;
+            room?: components["schemas"]["Room"] | null;
+            requester?: components["schemas"]["User"] | null;
+        };
+        /** @description A reason a pending booking can or cannot be approved (§11/FR8). */
+        ApprovalBlocker: {
+            /** @enum {string} */
+            kind: "LECTURE" | "MAINTENANCE" | "APPROVED_BOOKING" | "COMPETING_PENDING" | "CAPACITY" | "IN_PAST";
+            message: string;
+            /** Format: date-time */
+            starts_at?: string | null;
+            /** Format: date-time */
+            ends_at?: string | null;
+        };
+        /** @description A pending booking enriched with approvability info, used on the approvals queue. can_approve is true only when there are no hard blockers (IN_PAST, CAPACITY, LECTURE, MAINTENANCE, APPROVED_BOOKING); competing pendings are informational and never block. */
+        BookingApprovability: {
+            booking: components["schemas"]["Booking"];
+            can_approve: boolean;
+            blockers: components["schemas"]["ApprovalBlocker"][];
+            competing_pending_count: number;
+        };
+        BookingMetrics: {
+            pending: number;
+            approved: number;
+            rejected: number;
+            total: number;
+        };
+        LabelCount: {
+            label: string;
+            count: number;
+        };
+        /** @description Aggregate report powering the admin overview dashboard (FR12). */
+        OverviewReport: {
+            range: {
+                /** Format: date */
+                from: string;
+                /** Format: date */
+                to: string;
+            };
+            kpis: {
+                /** @description Bookings with starts_at in range */
+                total_bookings: number;
+                /** @description Current count of PENDING bookings (ignores range) */
+                pending: number;
+                approved: number;
+                rejected: number;
+                cancelled: number;
+                expired: number;
+                /** @description Current rooms WHERE status='ACTIVE' */
+                active_rooms: number;
+                /** @description Current users WHERE status='ACTIVE' */
+                active_users: number;
+                /** @description Current building count */
+                buildings: number;
+                /** Format: float */
+                avg_utilisation_pct: number;
+                /**
+                 * Format: float
+                 * @description approved/(approved+rejected)
+                 */
+                approval_rate_pct: number;
+            };
+            /** @description Bookings by status in range; all 5 statuses, zeros included. */
+            status_breakdown: components["schemas"]["LabelCount"][];
+            /** @description Bookings by room.room_type in range. */
+            by_room_type: components["schemas"]["LabelCount"][];
+            /** @description Bookings by building.code in range. */
+            by_building: components["schemas"]["LabelCount"][];
+            /** @description Top 8 rooms by utilisation_pct desc over the range. */
+            top_rooms: {
+                room_code: string;
+                room_name: string;
+                /** Format: float */
+                utilisation_pct: number;
+                /** Format: float */
+                booked_hours: number;
+            }[];
+            /** @description One point per calendar day in range (institution tz); empty days are zero. */
+            series: {
+                /** Format: date */
+                date: string;
+                /** @description Bookings created that day */
+                submitted: number;
+                /** @description Bookings created that day whose status is APPROVED */
+                approved: number;
+            }[];
+            /** @description Bookings by local start hour-of-day 0..23 in range; all 24 hours included. */
+            peak_hours: {
+                hour: number;
+                count: number;
+            }[];
         };
     };
     responses: {

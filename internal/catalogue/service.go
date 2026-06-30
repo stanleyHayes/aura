@@ -22,6 +22,11 @@ type Service struct {
 
 func NewService(store *db.Store) *Service { return &Service{store: store} }
 
+type ImageAssetInput struct {
+	URL      string
+	PublicID string
+}
+
 // ── Buildings ────────────────────────────────────────────────────────────────
 
 func (s *Service) CreateBuilding(ctx context.Context, code, name string, campus *string) (dbgen.Building, error) {
@@ -31,9 +36,36 @@ func (s *Service) CreateBuilding(ctx context.Context, code, name string, campus 
 func (s *Service) ListBuildings(ctx context.Context) ([]dbgen.Building, error) {
 	return s.store.ListBuildings(ctx)
 }
+func (s *Service) GetBuilding(ctx context.Context, id uuid.UUID) (dbgen.Building, error) {
+	b, err := s.store.GetBuilding(ctx, id)
+	return b, db.MapError(err)
+}
 func (s *Service) UpdateBuilding(ctx context.Context, id uuid.UUID, code, name string, campus *string) (dbgen.Building, error) {
 	b, err := s.store.UpdateBuilding(ctx, dbgen.UpdateBuildingParams{ID: id, Code: code, Name: name, Campus: campus})
 	return b, db.MapError(err)
+}
+func (s *Service) UpdateBuildingImages(ctx context.Context, id uuid.UUID, main *ImageAssetInput, gallery []ImageAssetInput) (dbgen.Building, error) {
+	b, err := s.store.GetBuilding(ctx, id)
+	if err != nil {
+		return dbgen.Building{}, db.MapError(err)
+	}
+	imageURL := b.ImageUrl
+	imagePublicID := b.ImagePublicID
+	if main != nil {
+		imageURL = &main.URL
+		imagePublicID = &main.PublicID
+	}
+	galleryURLs := append([]string{}, b.GalleryUrls...)
+	galleryPublicIDs := append([]string{}, b.GalleryPublicIds...)
+	for _, item := range gallery {
+		galleryURLs = append(galleryURLs, item.URL)
+		galleryPublicIDs = append(galleryPublicIDs, item.PublicID)
+	}
+	out, err := s.store.UpdateBuildingImages(ctx, dbgen.UpdateBuildingImagesParams{
+		ID: id, ImageUrl: imageURL, ImagePublicID: imagePublicID,
+		GalleryUrls: galleryURLs, GalleryPublicIds: galleryPublicIDs,
+	})
+	return out, db.MapError(err)
 }
 func (s *Service) DeleteBuilding(ctx context.Context, id uuid.UUID) error {
 	return db.MapError(s.store.DeleteBuilding(ctx, id))
@@ -48,9 +80,36 @@ func (s *Service) CreateEquipment(ctx context.Context, code, name string) (dbgen
 func (s *Service) ListEquipment(ctx context.Context) ([]dbgen.Equipment, error) {
 	return s.store.ListEquipment(ctx)
 }
+func (s *Service) GetEquipment(ctx context.Context, id uuid.UUID) (dbgen.Equipment, error) {
+	e, err := s.store.GetEquipment(ctx, id)
+	return e, db.MapError(err)
+}
 func (s *Service) UpdateEquipment(ctx context.Context, id uuid.UUID, code, name string) (dbgen.Equipment, error) {
 	e, err := s.store.UpdateEquipment(ctx, dbgen.UpdateEquipmentParams{ID: id, Code: code, Name: name})
 	return e, db.MapError(err)
+}
+func (s *Service) UpdateEquipmentImages(ctx context.Context, id uuid.UUID, main *ImageAssetInput, gallery []ImageAssetInput) (dbgen.Equipment, error) {
+	e, err := s.store.GetEquipment(ctx, id)
+	if err != nil {
+		return dbgen.Equipment{}, db.MapError(err)
+	}
+	imageURL := e.ImageUrl
+	imagePublicID := e.ImagePublicID
+	if main != nil {
+		imageURL = &main.URL
+		imagePublicID = &main.PublicID
+	}
+	galleryURLs := append([]string{}, e.GalleryUrls...)
+	galleryPublicIDs := append([]string{}, e.GalleryPublicIds...)
+	for _, item := range gallery {
+		galleryURLs = append(galleryURLs, item.URL)
+		galleryPublicIDs = append(galleryPublicIDs, item.PublicID)
+	}
+	out, err := s.store.UpdateEquipmentImages(ctx, dbgen.UpdateEquipmentImagesParams{
+		ID: id, ImageUrl: imageURL, ImagePublicID: imagePublicID,
+		GalleryUrls: galleryURLs, GalleryPublicIds: galleryPublicIDs,
+	})
+	return out, db.MapError(err)
 }
 func (s *Service) DeleteEquipment(ctx context.Context, id uuid.UUID) error {
 	return db.MapError(s.store.DeleteEquipment(ctx, id))
@@ -91,6 +150,30 @@ func (s *Service) UpdateRoom(ctx context.Context, id uuid.UUID, in RoomInput) (d
 		Capacity: int32(in.Capacity), RoomType: in.RoomType, Status: in.Status,
 	})
 	return r, db.MapError(err)
+}
+
+func (s *Service) UpdateRoomImages(ctx context.Context, id uuid.UUID, main *ImageAssetInput, gallery []ImageAssetInput) (dbgen.Room, error) {
+	r, err := s.store.GetRoom(ctx, id)
+	if err != nil {
+		return dbgen.Room{}, db.MapError(err)
+	}
+	imageURL := r.ImageUrl
+	imagePublicID := r.ImagePublicID
+	if main != nil {
+		imageURL = &main.URL
+		imagePublicID = &main.PublicID
+	}
+	galleryURLs := append([]string{}, r.GalleryUrls...)
+	galleryPublicIDs := append([]string{}, r.GalleryPublicIds...)
+	for _, item := range gallery {
+		galleryURLs = append(galleryURLs, item.URL)
+		galleryPublicIDs = append(galleryPublicIDs, item.PublicID)
+	}
+	out, err := s.store.UpdateRoomImages(ctx, dbgen.UpdateRoomImagesParams{
+		ID: id, ImageUrl: imageURL, ImagePublicID: imagePublicID,
+		GalleryUrls: galleryURLs, GalleryPublicIds: galleryPublicIDs,
+	})
+	return out, db.MapError(err)
 }
 
 func (s *Service) SetRoomStatus(ctx context.Context, id uuid.UUID, status dbgen.RoomStatus) (dbgen.Room, error) {
@@ -155,7 +238,8 @@ func (s *Service) SearchRooms(ctx context.Context, f RoomFilter) ([]RoomDetail, 
 	add := func(v any) string { args = append(args, v); return "$" + strconv.Itoa(len(args)) }
 
 	sb.WriteString(`SELECT r.id, r.room_code, r.name, r.building_id, r.capacity, r.room_type,
-		r.status, r.created_at, r.updated_at, b.code, b.name
+		r.status, r.created_at, r.updated_at, r.image_url, r.image_public_id,
+		r.gallery_urls, r.gallery_public_ids, b.code, b.name
 		FROM rooms r JOIN buildings b ON b.id = r.building_id WHERE 1=1`)
 
 	if f.Status != nil {
@@ -200,7 +284,8 @@ func (s *Service) SearchRooms(ctx context.Context, f RoomFilter) ([]RoomDetail, 
 	for rows.Next() {
 		var d RoomDetail
 		if err := rows.Scan(&d.ID, &d.RoomCode, &d.Name, &d.BuildingID, &d.Capacity,
-			&d.RoomType, &d.Status, &d.CreatedAt, &d.UpdatedAt, &d.BuildingCode, &d.BuildingName); err != nil {
+			&d.RoomType, &d.Status, &d.CreatedAt, &d.UpdatedAt, &d.ImageUrl, &d.ImagePublicID,
+			&d.GalleryUrls, &d.GalleryPublicIds, &d.BuildingCode, &d.BuildingName); err != nil {
 			return nil, err
 		}
 		out = append(out, d)

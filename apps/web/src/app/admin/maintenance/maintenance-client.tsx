@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { DoorOpen, Plus, Wrench } from "lucide-react";
 import {
   MaintenanceWindowForm as Schema,
   type MaintenanceWindowForm as Values,
@@ -22,23 +23,58 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@cbs/ui/components/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@cbs/ui/components/select";
 import { useToast } from "@cbs/ui/components/toast";
 import { formatDate, formatTimeRange } from "@cbs/ui/lib/datetime";
 import { api, unwrap } from "@/lib/api/client";
 import { qk } from "@/lib/query-keys";
 import { localToRfc3339 } from "@/lib/intervals";
 import { env } from "@/lib/env";
+import { Combobox } from "@/components/combobox";
 import { PageHeader } from "@/components/page-header";
 import { ProblemAlert } from "@/components/problem-alert";
 import { DataTable } from "@/components/data-table";
 import { Field } from "@/components/forms/field";
+import { route } from "@/lib/route";
+
+function RoomProfileLink({
+  roomId,
+  room,
+}: {
+  roomId: string;
+  room?: Room | null;
+}) {
+  const title = room?.name ?? "Room profile";
+  const detail = room
+    ? [room.room_code, room.building_name].filter(Boolean).join(" - ")
+    : "Open room detail";
+
+  return (
+    <Link
+      href={route(`/admin/rooms/${roomId}`)}
+      className="group/room inline-flex min-w-64 items-center gap-3 rounded-xl p-1 pr-3 transition-colors hover:bg-[var(--color-muted)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)]"
+    >
+      {room?.image_url ? (
+        <img
+          src={room.image_url}
+          alt={`${room.name} room`}
+          className="size-12 shrink-0 rounded-xl border border-[var(--color-border)] object-cover"
+        />
+      ) : (
+        <span className="grid size-12 shrink-0 place-items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] transition-colors group-hover/room:text-[var(--color-maroon)]">
+          <DoorOpen className="size-5" aria-hidden="true" />
+        </span>
+      )}
+      <span className="min-w-0">
+        <span className="block truncate font-semibold text-[var(--color-foreground)] group-hover/room:text-[var(--color-maroon)]">
+          {title}
+        </span>
+        <span className="block truncate text-xs text-[var(--color-muted-foreground)]">
+          {detail || "Open room detail"}
+        </span>
+      </span>
+    </Link>
+  );
+}
 
 export function MaintenanceClient() {
   const queryClient = useQueryClient();
@@ -67,6 +103,9 @@ export function MaintenanceClient() {
       return page.data as Room[];
     },
   });
+  const roomById = React.useMemo(() => {
+    return new Map((rooms.data ?? []).map((room) => [room.id, room]));
+  }, [rooms.data]);
 
   const form = useForm<Values>({
     resolver: zodResolver(Schema),
@@ -109,9 +148,19 @@ export function MaintenanceClient() {
 
   const columns: ColumnDef<MaintenanceWindow>[] = [
     {
-      accessorKey: "room",
+      id: "room",
       header: "Room",
-      cell: ({ row }) => row.original.room?.name ?? row.original.room_id,
+      accessorFn: (row) =>
+        row.room?.name ??
+        roomById.get(row.room_id)?.name ??
+        roomById.get(row.room_id)?.room_code ??
+        "",
+      cell: ({ row }) => (
+        <RoomProfileLink
+          roomId={row.original.room_id}
+          room={row.original.room ?? roomById.get(row.original.room_id)}
+        />
+      ),
     },
     {
       accessorKey: "starts_at",
@@ -147,6 +196,7 @@ export function MaintenanceClient() {
   return (
     <>
       <PageHeader
+        icon={Wrench}
         title="Maintenance windows"
         description="Block rooms for maintenance. Blocked periods never appear as available and cannot be booked."
         actions={
@@ -189,21 +239,21 @@ export function MaintenanceClient() {
               required
             >
               {(p) => (
-                <Select
+                <Combobox
+                  id={p.id}
                   value={form.watch("room_id")}
                   onValueChange={(v) => form.setValue("room_id", v)}
-                >
-                  <SelectTrigger id={p.id} aria-invalid={p["aria-invalid"]}>
-                    <SelectValue placeholder="Choose a room" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(rooms.data ?? []).map((r) => (
-                      <SelectItem key={r.id} value={r.id}>
-                        {r.name} ({r.room_code})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Choose a room"
+                  searchPlaceholder="Search rooms…"
+                  emptyText="No rooms found."
+                  options={(rooms.data ?? []).map((r) => ({
+                    value: r.id,
+                    label: r.name,
+                    description: [r.room_code, r.building_name]
+                      .filter(Boolean)
+                      .join(" · "),
+                  }))}
+                />
               )}
             </Field>
             <div className="grid grid-cols-3 gap-3">

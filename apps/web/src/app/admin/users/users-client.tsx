@@ -5,7 +5,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import {
   ROLE_LABELS,
   UserForm as Schema,
@@ -43,6 +43,7 @@ import { useToast } from "@cbs/ui/components/toast";
 import { api, unwrap } from "@/lib/api/client";
 import { qk } from "@/lib/query-keys";
 import { useDepartments } from "@/lib/hooks/reference";
+import { Combobox } from "@/components/combobox";
 import { PageHeader } from "@/components/page-header";
 import { ProblemAlert } from "@/components/problem-alert";
 import { DataTable } from "@/components/data-table";
@@ -195,6 +196,7 @@ export function UsersClient() {
   return (
     <>
       <PageHeader
+        icon={Users}
         title="Users"
         description="Manage accounts, roles and access across the system."
         actions={
@@ -264,24 +266,22 @@ export function UsersClient() {
               </Field>
               <Field id="u-dept" label="Department">
                 {(p) => (
-                  <Select
-                    value={form.watch("department_id") || "none"}
-                    onValueChange={(v) =>
-                      form.setValue("department_id", v === "none" ? "" : v)
-                    }
-                  >
-                    <SelectTrigger id={p.id}>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      {(departments.data ?? []).map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {d.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Combobox
+                    id={p.id}
+                    value={form.watch("department_id") || ""}
+                    onValueChange={(v) => form.setValue("department_id", v)}
+                    placeholder="None"
+                    searchPlaceholder="Search departments…"
+                    emptyText="No departments found."
+                    options={[
+                      { value: "", label: "None" },
+                      ...(departments.data ?? []).map((d) => ({
+                        value: d.id,
+                        label: d.name,
+                        description: d.code,
+                      })),
+                    ]}
+                  />
                 )}
               </Field>
             </div>

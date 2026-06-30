@@ -57,6 +57,7 @@ export const Permission = z.enum([
   "booking.override",
   "maintenance.manage",
   "report.view",
+  "audit.view",
   "availability.search",
 ]);
 export type Permission = z.infer<typeof Permission>;
@@ -73,6 +74,10 @@ export const Building = z.object({
   code: z.string(),
   name: z.string(),
   campus: z.string().nullable().optional(),
+  image_url: z.string().nullable().optional(),
+  image_public_id: z.string().nullable().optional(),
+  gallery_urls: z.array(z.string()).default([]),
+  gallery_public_ids: z.array(z.string()).default([]),
   created_at: Instant,
   updated_at: Instant,
 });
@@ -82,6 +87,10 @@ export const Equipment = z.object({
   id: Uuid,
   code: z.string(),
   name: z.string(),
+  image_url: z.string().nullable().optional(),
+  image_public_id: z.string().nullable().optional(),
+  gallery_urls: z.array(z.string()).default([]),
+  gallery_public_ids: z.array(z.string()).default([]),
 });
 export type Equipment = z.infer<typeof Equipment>;
 
@@ -89,6 +98,7 @@ export const RoomEquipment = z.object({
   equipment_id: Uuid,
   code: z.string(),
   name: z.string(),
+  image_url: z.string().nullable().optional(),
   quantity: z.number().int().positive(),
 });
 export type RoomEquipment = z.infer<typeof RoomEquipment>;
@@ -104,6 +114,10 @@ export const Room = z.object({
   capacity: z.number().int().positive(),
   room_type: RoomType,
   status: RoomStatus,
+  image_url: z.string().nullable().optional(),
+  image_public_id: z.string().nullable().optional(),
+  gallery_urls: z.array(z.string()).default([]),
+  gallery_public_ids: z.array(z.string()).default([]),
   equipment: z.array(RoomEquipment).default([]),
   created_at: Instant,
   updated_at: Instant,

@@ -20,6 +20,7 @@ import {
 } from "@cbs/ui/components/dialog";
 import { useToast } from "@cbs/ui/components/toast";
 import { api, unwrap } from "@/lib/api/client";
+import { qk } from "@/lib/query-keys";
 import { Field } from "@/components/forms/field";
 import { ProblemAlert } from "@/components/problem-alert";
 
@@ -51,6 +52,7 @@ export function RejectDialog({
       toast({ variant: "success", title: "Request rejected" });
       void queryClient.invalidateQueries({ queryKey: ["approvals"] });
       void queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      void queryClient.invalidateQueries({ queryKey: qk.bookingMetrics });
       form.reset();
       onOpenChange(false);
     },

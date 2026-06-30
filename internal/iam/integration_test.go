@@ -123,3 +123,25 @@ func TestPasswordResetRevokesSessions(t *testing.T) {
 	_, err = svc.Authenticate(ctx, email, "NewPassword456!", "", "ua", nil)
 	require.NoError(t, err)
 }
+
+func TestChangePasswordRequiresCurrentPasswordAndRevokesSessions(t *testing.T) {
+	svc, _ := newService(t)
+	ctx := context.Background()
+	email, pw := createUser(t, svc)
+	toks, err := svc.Authenticate(ctx, email, pw, "", "ua", nil)
+	require.NoError(t, err)
+
+	user := toks.User
+	err = svc.ChangePassword(ctx, user.ID, "wrong", "NewPassword456!")
+	ae, ok := apperr.As(err)
+	require.True(t, ok)
+	require.Equal(t, "INVALID_CREDENTIALS", ae.Code)
+
+	require.NoError(t, svc.ChangePassword(ctx, user.ID, pw, "NewPassword456!"))
+	_, err = svc.Refresh(ctx, toks.Refresh, "ua", nil)
+	require.Error(t, err)
+	_, err = svc.Authenticate(ctx, email, pw, "", "ua", nil)
+	require.Error(t, err)
+	_, err = svc.Authenticate(ctx, email, "NewPassword456!", "", "ua", nil)
+	require.NoError(t, err)
+}

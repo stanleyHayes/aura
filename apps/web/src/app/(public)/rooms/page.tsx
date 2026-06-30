@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Building2, Users } from "lucide-react";
-import { createApi } from "@cbs/api-client";
-import { ROOM_TYPE_LABELS, type Room } from "@cbs/schemas";
+import { Building2, DoorOpen, LogIn, RefreshCcw, Users } from "lucide-react";
+import type { Room } from "@cbs/schemas";
 import { apiOrigin, env } from "@/lib/env";
-import { Card, CardContent } from "@cbs/ui/components/card";
-import { Badge } from "@cbs/ui/components/badge";
+import { Button } from "@cbs/ui/components/button";
+import { EmptyState } from "@/components/empty-state";
+import { RoomsDirectory } from "./rooms-directory";
+import {
+  AuraWatermark,
+  IconWatermark,
+  WatermarkConstellation,
+} from "@/components/watermark";
 
 export const metadata: Metadata = {
   title: "Facility directory",
@@ -18,12 +23,16 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 async function fetchPublicRooms(): Promise<Room[]> {
-  // Public, anonymous read of the active room catalogue.
-  const api = createApi({ baseUrl: apiOrigin });
-  const { data } = await api.GET("/api/v1/rooms", {
-    params: { query: { status: "ACTIVE", limit: 200 } },
-  });
-  return (data?.data ?? []) as Room[];
+  // Public, anonymous read of the active room catalogue via the unauthenticated
+  // /public endpoint — the authed /rooms route 401s for anonymous visitors,
+  // which is why the directory previously showed "unavailable".
+  const res = await fetch(
+    `${apiOrigin}/api/v1/public/rooms?status=ACTIVE&limit=200`,
+    { headers: { Accept: "application/json" }, next: { revalidate: 3600 } },
+  );
+  if (!res.ok) return [];
+  const json = (await res.json()) as { data?: Room[] };
+  return json.data ?? [];
 }
 
 export default async function RoomDirectoryPage() {
@@ -56,72 +65,73 @@ export default async function RoomDirectoryPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-12">
+    <div className="relative mx-auto w-full max-w-6xl overflow-hidden px-4 py-12">
       <script
         type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{
+          // Escape "<" so a DB-sourced room name can't break out of the script
+          // tag (JSON.stringify alone does not neutralise "</script>").
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
       />
-      <header className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Facility directory
-        </h1>
-        <p className="mt-2 max-w-2xl text-[var(--color-muted-foreground)]">
-          Every bookable space across the Ashesi campus. Sign in to check live
-          availability and submit a reservation request.
-        </p>
+      <header className="relative mb-8 overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[var(--color-card)] px-5 py-8 shadow-sm sm:px-8 sm:py-10">
+        <WatermarkConstellation
+          icons={[DoorOpen, Building2, Users]}
+          className="hidden sm:block"
+        />
+        <span className="relative mb-4 inline-flex items-center rounded-full border border-[color-mix(in_oklch,var(--color-maroon)_22%,var(--color-border))] bg-[var(--color-maroon-tint)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-maroon)]">
+          Public catalogue
+        </span>
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+              Facility directory
+            </h1>
+            <p className="mt-3 text-[var(--color-muted-foreground)]">
+              Every bookable space across the Ashesi campus. Sign in to check
+              live availability and submit a reservation request.
+            </p>
+          </div>
+          <Button className="min-h-12 w-full px-9 sm:w-auto" asChild>
+            <Link href="/login">
+              <LogIn className="size-4" />
+              Sign in to reserve
+            </Link>
+          </Button>
+        </div>
       </header>
 
       {rooms.length === 0 ? (
-        <Card>
-          <CardContent className="p-10 text-center text-[var(--color-muted-foreground)]">
-            The room directory is currently unavailable. Please check back
-            shortly.
-          </CardContent>
-        </Card>
+        <section className="relative overflow-hidden rounded-3xl">
+          <AuraWatermark className="left-8 top-8 size-28 rotate-[-10deg]" />
+          <IconWatermark
+            icon={Building2}
+            className="bottom-6 right-10 size-24 rotate-12"
+          />
+          <EmptyState
+            icon={DoorOpen}
+            title="Room directory unavailable"
+            description="We could not load the latest public room catalogue. Try again shortly, or sign in to search live availability and submit a reservation request."
+            actions={
+              <>
+                <Button asChild>
+                  <Link href="/rooms">
+                    <RefreshCcw className="size-4" />
+                    Check again
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/login">
+                    <LogIn className="size-4" />
+                    Sign in
+                  </Link>
+                </Button>
+              </>
+            }
+          />
+        </section>
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {rooms.map((room) => (
-            <li key={room.id}>
-              <Link
-                href={`/rooms/${room.id}`}
-                className="group block h-full rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)]"
-              >
-                <Card className="h-full transition-shadow group-hover:shadow-md">
-                  <CardContent className="flex h-full flex-col gap-3 p-5">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h2 className="font-serif text-lg tracking-tight">
-                          {room.name}
-                        </h2>
-                        <p className="text-sm text-[var(--color-muted-foreground)]">
-                          {room.room_code}
-                        </p>
-                      </div>
-                      <Badge variant="secondary">
-                        {ROOM_TYPE_LABELS[room.room_type]}
-                      </Badge>
-                    </div>
-                    <dl className="mt-auto flex flex-col gap-1.5 text-sm text-[var(--color-muted-foreground)]">
-                      {room.building_name ? (
-                        <div className="flex items-center gap-2">
-                          <Building2 className="size-4" aria-hidden="true" />
-                          <dt className="sr-only">Building</dt>
-                          <dd>{room.building_name}</dd>
-                        </div>
-                      ) : null}
-                      <div className="flex items-center gap-2">
-                        <Users className="size-4" aria-hidden="true" />
-                        <dt className="sr-only">Capacity</dt>
-                        <dd>Seats {room.capacity}</dd>
-                      </div>
-                    </dl>
-                  </CardContent>
-                </Card>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <RoomsDirectory rooms={rooms} />
       )}
     </div>
   );

@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../lib/cn";
 
 const buttonVariants = cva(
-  "relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "relative inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-ring)] disabled:pointer-events-none disabled:opacity-60 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -13,7 +13,7 @@ const buttonVariants = cva(
         destructive:
           "bg-[var(--color-destructive)] text-[var(--color-destructive-foreground)] hover:opacity-90 shadow-sm",
         outline:
-          "border border-[var(--color-border)] bg-[var(--color-background)] hover:bg-[var(--color-accent)] hover:text-[var(--color-accent-foreground)]",
+          "border border-[var(--color-border)] bg-transparent text-[var(--color-foreground)] hover:bg-[var(--color-accent)] hover:text-[var(--color-accent-foreground)]",
         secondary:
           "bg-[var(--color-secondary)] text-[var(--color-secondary-foreground)] hover:opacity-90",
         ghost:
@@ -21,10 +21,10 @@ const buttonVariants = cva(
         link: "text-[var(--color-primary)] underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3 text-sm",
-        lg: "h-12 rounded-lg px-6 text-base",
-        icon: "size-10",
+        default: "aura-button-shape h-10 px-7 py-2",
+        sm: "aura-button-shape h-9 px-6 text-sm",
+        lg: "aura-button-shape h-12 px-10 text-base",
+        icon: "size-10 rounded-md",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

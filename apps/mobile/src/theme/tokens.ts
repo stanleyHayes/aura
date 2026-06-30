@@ -10,39 +10,39 @@
 
 export const tokens = {
   colors: {
-    // Brand / primary — used for primary actions and active nav.
+    // Brand / primary — Ashesi maroon, used for primary actions and active nav.
     primary: {
-      DEFAULT: '#1d4ed8',
+      DEFAULT: '#7B1113',
       foreground: '#ffffff',
-      muted: '#dbeafe',
+      muted: '#F3E1E1',
     },
     // Neutral surfaces & text.
-    background: '#ffffff',
-    surface: '#f8fafc',
-    border: '#e2e8f0',
-    foreground: '#0f172a',
-    muted: '#64748b',
+    background: '#FFFFFF',
+    surface: '#FBFBF9',
+    border: '#E6E3DF',
+    foreground: '#23201F',
+    muted: '#6B6B6B',
     // Booking status colour-coding (Section 7.7 / 10.3).
     status: {
-      pending: '#b45309', // amber-700
-      approved: '#15803d', // green-700
-      rejected: '#b91c1c', // red-700
-      cancelled: '#64748b', // slate-500
-      expired: '#475569', // slate-600
+      pending: '#B5740B',
+      approved: '#1E7D52',
+      rejected: '#B42318',
+      cancelled: '#6B6B6B',
+      expired: '#4F4A47',
     },
     // Calendar block sources (Section 7.7).
     source: {
       lecture: '#7c3aed', // violet-600
-      booking: '#1d4ed8', // blue-700
+      booking: '#7B1113',
       maintenance: '#ea580c', // orange-600
-      available: '#15803d', // green-700
+      available: '#1E7D52',
     },
     danger: {
-      DEFAULT: '#b91c1c',
+      DEFAULT: '#B42318',
       foreground: '#ffffff',
     },
     success: {
-      DEFAULT: '#15803d',
+      DEFAULT: '#1E7D52',
       foreground: '#ffffff',
     },
   },

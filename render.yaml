@@ -38,6 +38,10 @@ services:
         value: production
       - key: APP_INSTITUTION_TZ
         value: Africa/Accra
+      # Render terminates exactly one proxy hop in front of the service; read the
+      # real client IP from that position in X-Forwarded-For (MED-4).
+      - key: TRUSTED_PROXY_COUNT
+        value: "1"
       - key: DATABASE_URL
         fromDatabase: { name: cbs-postgres, property: connectionString }
       - key: REDIS_URL
@@ -67,6 +71,15 @@ services:
         sync: false
       - key: MAIL_PASSWORD
         sync: false
+      # Cloudinary image uploads for catalogue buildings and rooms.
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: CLOUDINARY_UPLOAD_FOLDER
+        value: aura/catalogue
 
   # ── Background worker (expiry sweep, cleanup, async dispatch) ─────────────────
   - type: worker

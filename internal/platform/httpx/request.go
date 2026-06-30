@@ -3,6 +3,8 @@ package httpx
 import (
 	"net"
 	"net/http"
+	"strings"
+	"sync/atomic"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -10,23 +12,49 @@ import (
 	"github.com/aura/cbs/internal/platform/apperr"
 )
 
-// ClientIP returns the best-effort client IP (honouring X-Forwarded-For from the
-// trusted ingress/CDN), or nil.
-func ClientIP(r *http.Request) *string {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		host := xff
-		if i := indexByte(xff, ','); i >= 0 {
-			host = xff[:i]
-		}
-		host = trimSpace(host)
-		if host != "" {
-			return &host
-		}
-	}
+// trustedProxyCount is the configured number of trusted reverse-proxy hops in
+// front of the API, set once at startup via SetTrustedProxyCount. Stored as an
+// atomic so tests can adjust it without a data race with concurrent handlers.
+var trustedProxyCount atomic.Int32
+
+// SetTrustedProxyCount configures how X-Forwarded-For is interpreted (MED-4).
+// Call once at startup. A count <= 0 means XFF is untrusted (ignored entirely).
+func SetTrustedProxyCount(n int) { trustedProxyCount.Store(int32(n)) }
+
+// remoteHost returns the host portion of r.RemoteAddr, or "" if unavailable.
+func remoteHost(r *http.Request) string {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		host = r.RemoteAddr
 	}
+	return host
+}
+
+// ClientIP returns the best-effort client IP, hardened against X-Forwarded-For
+// spoofing (MED-4). With TRUSTED_PROXY_COUNT <= 0 the XFF header is ignored and
+// the direct connection (RemoteAddr) is used. With a positive count N, the client
+// as seen by the outermost trusted proxy is the entry N positions from the RIGHT
+// of the XFF list; anything an untrusted client prepends is to the left and so is
+// ignored. Falls back to RemoteAddr when XFF is missing or too short.
+func ClientIP(r *http.Request) *string {
+	count := int(trustedProxyCount.Load())
+	if count > 0 {
+		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+			parts := strings.Split(xff, ",")
+			for i := range parts {
+				parts[i] = strings.TrimSpace(parts[i])
+			}
+			// The rightmost entry was added by our nearest proxy; stepping `count`
+			// from the right lands on the client as seen by the outermost trusted
+			// proxy. If the client sent fewer entries, fall back to RemoteAddr.
+			idx := len(parts) - count
+			if idx >= 0 && idx < len(parts) && parts[idx] != "" {
+				host := parts[idx]
+				return &host
+			}
+		}
+	}
+	host := remoteHost(r)
 	if host == "" {
 		return nil
 	}
@@ -49,24 +77,4 @@ func PathUUID(r *http.Request, name string) (uuid.UUID, error) {
 		return uuid.Nil, apperr.ErrValidation.WithDetail("invalid %s: must be a UUID", name)
 	}
 	return id, nil
-}
-
-func indexByte(s string, b byte) int {
-	for i := 0; i < len(s); i++ {
-		if s[i] == b {
-			return i
-		}
-	}
-	return -1
-}
-
-func trimSpace(s string) string {
-	start, end := 0, len(s)
-	for start < end && (s[start] == ' ' || s[start] == '\t') {
-		start++
-	}
-	for end > start && (s[end-1] == ' ' || s[end-1] == '\t') {
-		end--
-	}
-	return s[start:end]
 }

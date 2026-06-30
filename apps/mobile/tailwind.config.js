@@ -1,10 +1,10 @@
 /**
- * Tailwind v4 config for NativeWind v4.
+ * Tailwind v3 config for NativeWind v4.
  *
- * NativeWind still reads `content` + `theme.extend` from this file even though
- * Tailwind v4 is CSS-first. The token VALUES below mirror the shared design
- * tokens that live in `/packages/ui` for the web app (Section 10.2). They are
- * duplicated here intentionally to keep `apps/mobile` self-contained.
+ * NativeWind reads `content` + `theme.extend` from this file. The token VALUES
+ * below mirror the shared design tokens that live in `/packages/ui` for the web
+ * app (Section 10.2). They are duplicated here intentionally to keep
+ * `apps/mobile` self-contained.
  *
  * TODO(packages): replace this inline token block with an import of the shared
  * `@cbs/config/tailwind` preset once the monorepo workspace is wired up.

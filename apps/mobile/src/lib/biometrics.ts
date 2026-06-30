@@ -27,7 +27,7 @@ export async function setBiometricPref(enabled: boolean): Promise<void> {
 }
 
 export async function authenticateBiometric(
-  reason = 'Unlock Classroom Booking',
+  reason = 'Unlock AURA',
 ): Promise<boolean> {
   const available = await isBiometricHardwareAvailable();
   if (!available) return true; // No biometrics enrolled — do not lock the user out.

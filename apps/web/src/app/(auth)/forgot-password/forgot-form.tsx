@@ -52,8 +52,12 @@ export function ForgotPasswordForm() {
           />
         )}
       </Field>
-      <Button type="submit" disabled={form.formState.isSubmitting}>
-        {form.formState.isSubmitting ? "Sending…" : "Send reset link"}
+      <Button
+        type="submit"
+        loading={form.formState.isSubmitting}
+        loadingLabel="Sending reset link…"
+      >
+        Send reset link
       </Button>
     </form>
   );

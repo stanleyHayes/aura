@@ -38,10 +38,14 @@ func toUserView(u dbgen.User) UserView {
 }
 
 type tokenResponse struct {
-	AccessToken string   `json:"access_token"`
-	TokenType   string   `json:"token_type"`
-	ExpiresIn   int      `json:"expires_in"`
-	User        UserView `json:"user"`
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+	ExpiresIn   int    `json:"expires_in"`
+	// RefreshToken is only populated in bearer mode (X-Auth-Mode: bearer), for
+	// native clients that cannot use HttpOnly cookies (PART C). It is omitted
+	// entirely for the default cookie-based web flow.
+	RefreshToken string   `json:"refresh_token,omitempty"`
+	User         UserView `json:"user"`
 }
 
 type meResponse struct {

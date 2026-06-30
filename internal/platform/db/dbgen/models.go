@@ -484,12 +484,16 @@ type Booking struct {
 }
 
 type Building struct {
-	ID        uuid.UUID          `json:"id"`
-	Code      string             `json:"code"`
-	Name      string             `json:"name"`
-	Campus    *string            `json:"campus"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID               uuid.UUID          `json:"id"`
+	Code             string             `json:"code"`
+	Name             string             `json:"name"`
+	Campus           *string            `json:"campus"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	ImageUrl         *string            `json:"image_url"`
+	ImagePublicID    *string            `json:"image_public_id"`
+	GalleryUrls      []string           `json:"gallery_urls"`
+	GalleryPublicIds []string           `json:"gallery_public_ids"`
 }
 
 type Course struct {
@@ -510,9 +514,13 @@ type Department struct {
 }
 
 type Equipment struct {
-	ID   uuid.UUID `json:"id"`
-	Code string    `json:"code"`
-	Name string    `json:"name"`
+	ID               uuid.UUID `json:"id"`
+	Code             string    `json:"code"`
+	Name             string    `json:"name"`
+	ImageUrl         *string   `json:"image_url"`
+	ImagePublicID    *string   `json:"image_public_id"`
+	GalleryUrls      []string  `json:"gallery_urls"`
+	GalleryPublicIds []string  `json:"gallery_public_ids"`
 }
 
 type IdempotencyKey struct {
@@ -582,15 +590,19 @@ type RefreshToken struct {
 }
 
 type Room struct {
-	ID         uuid.UUID          `json:"id"`
-	RoomCode   string             `json:"room_code"`
-	Name       string             `json:"name"`
-	BuildingID uuid.UUID          `json:"building_id"`
-	Capacity   int32              `json:"capacity"`
-	RoomType   RoomType           `json:"room_type"`
-	Status     RoomStatus         `json:"status"`
-	CreatedAt  pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+	ID               uuid.UUID          `json:"id"`
+	RoomCode         string             `json:"room_code"`
+	Name             string             `json:"name"`
+	BuildingID       uuid.UUID          `json:"building_id"`
+	Capacity         int32              `json:"capacity"`
+	RoomType         RoomType           `json:"room_type"`
+	Status           RoomStatus         `json:"status"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	ImageUrl         *string            `json:"image_url"`
+	ImagePublicID    *string            `json:"image_public_id"`
+	GalleryUrls      []string           `json:"gallery_urls"`
+	GalleryPublicIds []string           `json:"gallery_public_ids"`
 }
 
 type RoomEquipment struct {
@@ -653,4 +665,5 @@ type User struct {
 	LastLoginAt         pgtype.Timestamptz `json:"last_login_at"`
 	CreatedAt           pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+	LastMfaTimestep     *int64             `json:"last_mfa_timestep"`
 }

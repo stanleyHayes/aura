@@ -25,7 +25,7 @@ export default async function ResetPasswordPage({
         help={{
           title: "Choosing a password",
           steps: [
-            "Use at least 10 characters.",
+            "Use at least 12 characters.",
             "Mix letters, numbers and symbols for strength.",
             "Saving signs you out of all other sessions.",
           ],

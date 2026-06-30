@@ -60,8 +60,11 @@ async function refreshAccessToken(): Promise<string | null> {
     try {
       const res = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Mode': 'bearer',
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
       });
 
       if (!res.ok) {
@@ -80,7 +83,7 @@ async function refreshAccessToken(): Promise<string | null> {
       }
       // Persist the rotated pair (new access + new refresh).
       await saveTokens(parsed.data);
-      return parsed.data.accessToken;
+      return parsed.data.access_token;
     } catch {
       // Network failure — keep tokens, surface as a normal failure.
       return null;
@@ -96,6 +99,9 @@ async function refreshAccessToken(): Promise<string | null> {
 
 const authMiddleware: Middleware = {
   async onRequest({ request }) {
+    // Bearer-token mode: instruct the API to return refresh tokens in the JSON
+    // body (no HttpOnly cookies, which a React Native client cannot use).
+    request.headers.set('X-Auth-Mode', 'bearer');
     const token = await getAccessToken();
     if (token && !request.headers.has('Authorization')) {
       request.headers.set('Authorization', `Bearer ${token}`);

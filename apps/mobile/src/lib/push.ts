@@ -10,20 +10,24 @@ import { Platform } from 'react-native';
 import { api, unwrap } from '@/api/client';
 
 // Foreground presentation: show banners + play sound while the app is open.
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 /**
  * Request permission, obtain the Expo push token, and register it with the API.
  * No-ops gracefully when permission is denied or on web/simulator without push.
  */
 export async function registerForPushNotifications(): Promise<string | null> {
+  if (Platform.OS === 'web') return null;
+
   const settings = await Notifications.getPermissionsAsync();
   let status = settings.status;
   if (status !== 'granted') {
@@ -36,7 +40,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'Booking updates',
       importance: Notifications.AndroidImportance.DEFAULT,
-      lightColor: '#1d4ed8',
+      lightColor: '#7B1113',
     });
   }
 

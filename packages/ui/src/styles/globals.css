@@ -32,10 +32,6 @@
   --color-ring: var(--ring);
   --radius: var(--radius-lg);
 
-  /* Expose the AURA brand maroon anchors as utilities/vars. */
-  --color-maroon: var(--color-maroon);
-  --color-maroon-dark: var(--color-maroon-dark);
-  --color-maroon-tint: var(--color-maroon-tint);
 }
 
 :root {
@@ -67,24 +63,30 @@
   --card-foreground: var(--color-paper-100);
   --popover: var(--color-ink-950);
   --popover-foreground: var(--color-paper-100);
-  --primary: var(--color-ink-400);
+  --primary: var(--color-maroon);
   --primary-foreground: var(--color-paper-50);
   --secondary: var(--color-ink-900);
   --secondary-foreground: var(--color-paper-100);
   --muted: var(--color-ink-900);
   --muted-foreground: var(--color-paper-400);
-  --accent: var(--color-ink-800);
+  --accent: color-mix(in oklch, var(--color-maroon) 24%, var(--color-ink-900));
   --accent-foreground: var(--color-paper-100);
   --destructive: oklch(0.62 0.19 30);
   --destructive-foreground: var(--color-paper-50);
-  --border: oklch(0.32 0.03 30);
-  --input: oklch(0.34 0.03 30);
-  --ring: var(--color-ink-400);
+  --border: oklch(0.36 0.006 48);
+  --input: oklch(0.38 0.006 48);
+  --ring: var(--color-maroon-tint);
 }
 
 @layer base {
   * {
+    box-sizing: border-box;
     border-color: var(--color-border);
+  }
+
+  *::before,
+  *::after {
+    box-sizing: border-box;
   }
 
   html {
@@ -148,5 +150,36 @@
   }
   .skip-link:focus {
     top: 0.5rem;
+  }
+}
+
+@layer components {
+  .aura-empty-icon {
+    animation: empty-state-float 2.8s var(--ease-out-quart) infinite;
+  }
+
+  .aura-splash-mark {
+    animation: empty-state-float 3s var(--ease-out-quart) infinite;
+  }
+
+  .aura-splash-progress {
+    animation: splash-progress 1.35s var(--ease-out-quart) infinite;
+  }
+
+  /* AURA buttons keep a subtle dynamic silhouette via an asymmetric radius
+     (sharp top-left / bottom-right, soft top-right / bottom-left) — a nod to the
+     brand slant WITHOUT a clip-path, which previously sheared off the first and
+     last glyphs of the label (e.g. "Sign in", "Get started", "Try again"). A
+     border-radius never clips content. */
+  .aura-button-shape {
+    border-radius: 0.1875rem 0.625rem 0.1875rem 0.625rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .aura-empty-icon,
+    .aura-splash-mark,
+    .aura-splash-progress {
+      animation: none;
+    }
   }
 }

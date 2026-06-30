@@ -46,6 +46,31 @@ export const ResetPasswordForm = z
   });
 export type ResetPasswordForm = z.infer<typeof ResetPasswordForm>;
 
+export const ProfileForm = z.object({
+  full_name: z
+    .string()
+    .trim()
+    .min(2, "Enter your full name.")
+    .max(120, "Keep your name under 120 characters."),
+  department_id: Uuid.optional().or(z.literal("")),
+});
+export type ProfileForm = z.infer<typeof ProfileForm>;
+
+export const ChangePasswordForm = z
+  .object({
+    current_password: z.string().min(1, "Enter your current password."),
+    new_password: z
+      .string()
+      .min(12, "Use at least 12 characters.")
+      .max(128, "That password is too long."),
+    confirm: z.string(),
+  })
+  .refine((v) => v.new_password === v.confirm, {
+    message: "The passwords do not match.",
+    path: ["confirm"],
+  });
+export type ChangePasswordForm = z.infer<typeof ChangePasswordForm>;
+
 /** Availability search (§7.1, FR6). */
 export const AvailabilitySearchForm = z
   .object({

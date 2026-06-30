@@ -12,6 +12,15 @@ SELECT * FROM buildings ORDER BY code;
 UPDATE buildings SET code = $2, name = $3, campus = $4, updated_at = now()
 WHERE id = $1 RETURNING *;
 
+-- name: UpdateBuildingImages :one
+UPDATE buildings
+SET image_url = $2,
+    image_public_id = $3,
+    gallery_urls = $4,
+    gallery_public_ids = $5,
+    updated_at = now()
+WHERE id = $1 RETURNING *;
+
 -- name: DeleteBuilding :exec
 DELETE FROM buildings WHERE id = $1;
 
@@ -27,6 +36,14 @@ SELECT * FROM equipment ORDER BY code;
 
 -- name: UpdateEquipment :one
 UPDATE equipment SET code = $2, name = $3 WHERE id = $1 RETURNING *;
+
+-- name: UpdateEquipmentImages :one
+UPDATE equipment
+SET image_url = $2,
+    image_public_id = $3,
+    gallery_urls = $4,
+    gallery_public_ids = $5
+WHERE id = $1 RETURNING *;
 
 -- name: DeleteEquipment :exec
 DELETE FROM equipment WHERE id = $1;
@@ -47,11 +64,20 @@ UPDATE rooms SET room_code = $2, name = $3, building_id = $4, capacity = $5,
                  room_type = $6, status = $7, updated_at = now()
 WHERE id = $1 RETURNING *;
 
+-- name: UpdateRoomImages :one
+UPDATE rooms
+SET image_url = $2,
+    image_public_id = $3,
+    gallery_urls = $4,
+    gallery_public_ids = $5,
+    updated_at = now()
+WHERE id = $1 RETURNING *;
+
 -- name: SetRoomStatus :one
 UPDATE rooms SET status = $2, updated_at = now() WHERE id = $1 RETURNING *;
 
 -- name: ListRoomEquipment :many
-SELECT re.equipment_id, e.code, e.name, re.quantity
+SELECT re.equipment_id, e.code, e.name, e.image_url, re.quantity
 FROM room_equipment re JOIN equipment e ON e.id = re.equipment_id
 WHERE re.room_id = $1
 ORDER BY e.code;

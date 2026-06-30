@@ -11,12 +11,14 @@ import type { Booking } from "@cbs/schemas";
 import { getSession, serverApi } from "@/lib/api/server";
 import { Button } from "@cbs/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@cbs/ui/components/card";
+import { EmptyState } from "@/components/empty-state";
+import { MetricCard } from "@/components/metric-card";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { formatDate, formatTimeRange } from "@cbs/ui/lib/datetime";
 
 export const metadata: Metadata = {
-  title: "Dashboard",
+  title: "Overview",
   robots: { index: false, follow: false },
 };
 
@@ -44,17 +46,35 @@ export default async function AppDashboard() {
   const firstName = session?.user.full_name.split(" ")[0] ?? "there";
 
   const stats = [
-    { label: "Pending requests", value: pending.length, icon: Clock },
-    { label: "Approved bookings", value: approved.length, icon: CheckCircle2 },
-    { label: "Total requests", value: bookings.length, icon: Ticket },
+    {
+      label: "Pending requests",
+      value: pending.length,
+      icon: Clock,
+      tone: "warning" as const,
+      subtext: "Waiting for an approval decision",
+    },
+    {
+      label: "Approved bookings",
+      value: approved.length,
+      icon: CheckCircle2,
+      tone: "success" as const,
+      subtext: "Confirmed rooms in your account",
+    },
+    {
+      label: "Total requests",
+      value: bookings.length,
+      icon: Ticket,
+      tone: "brand" as const,
+      subtext: "Every request submitted by you",
+    },
   ];
 
   return (
     <>
       <PageHeader
         icon={LayoutDashboard}
-        title={`Welcome, ${firstName}`}
-        description="Your bookings at a glance."
+        title="Overview"
+        description={`Welcome, ${firstName}. Your bookings at a glance.`}
         actions={
           <Button asChild>
             <Link href="/app/search">
@@ -65,20 +85,8 @@ export default async function AppDashboard() {
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        {stats.map(({ label, value, icon: Icon }) => (
-          <Card key={label}>
-            <CardContent className="flex items-center gap-4 p-5">
-              <span className="grid size-11 place-items-center rounded-lg bg-[var(--color-ink-100)] text-[var(--color-ink-700)]">
-                <Icon className="size-5" aria-hidden="true" />
-              </span>
-              <div>
-                <p className="text-2xl font-semibold tabular-nums">{value}</p>
-                <p className="text-sm text-[var(--color-muted-foreground)]">
-                  {label}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+        {stats.map((stat) => (
+          <MetricCard key={stat.label} {...stat} />
         ))}
       </div>
 
@@ -88,13 +96,20 @@ export default async function AppDashboard() {
         </CardHeader>
         <CardContent>
           {upcoming.length === 0 ? (
-            <p className="py-6 text-center text-sm text-[var(--color-muted-foreground)]">
-              No upcoming bookings yet.{" "}
-              <Link href="/app/search" className="text-[var(--color-primary)] hover:underline">
-                Find a room
-              </Link>
-              .
-            </p>
+            <EmptyState
+              icon={CalendarSearch}
+              title="No upcoming bookings yet"
+              description="Approved future bookings will collect here. Start with live room availability when you need a space."
+              action={
+                <Button asChild>
+                  <Link href="/app/search">
+                    <CalendarSearch className="size-4" aria-hidden="true" />
+                    Find a room
+                  </Link>
+                </Button>
+              }
+              className="border-0 bg-transparent px-4 py-10 shadow-none"
+            />
           ) : (
             <ul className="divide-y divide-[var(--color-border)]">
               {upcoming.map((b) => (

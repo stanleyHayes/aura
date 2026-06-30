@@ -7,6 +7,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import '../global.css';
@@ -38,6 +39,8 @@ function RootNavigator() {
 
   // Deep link: tapping a push notification opens the relevant booking.
   useEffect(() => {
+    if (Platform.OS === 'web') return;
+
     const sub = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         const bookingId = bookingIdFromNotification(response);

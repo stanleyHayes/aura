@@ -184,28 +184,56 @@ func (q *Queries) InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) 
 }
 
 const listAuditLogs = `-- name: ListAuditLogs :many
-SELECT id, actor_id, action, entity_type, entity_id, changes, ip_address, user_agent, created_at FROM audit_logs
-WHERE ($1::uuid IS NULL OR actor_id = $1)
-  AND ($2::text IS NULL OR entity_type = $2)
-  AND ($3::uuid IS NULL OR entity_id = $3)
-  AND ($4::uuid IS NULL OR id < $4)
-ORDER BY id DESC
-LIMIT $5
+SELECT
+  audit_logs.id,
+  audit_logs.actor_id,
+  users.full_name AS actor_name,
+  audit_logs.action,
+  audit_logs.entity_type,
+  audit_logs.entity_id,
+  audit_logs.changes,
+  audit_logs.ip_address,
+  audit_logs.user_agent,
+  audit_logs.created_at
+FROM audit_logs
+LEFT JOIN users ON users.id = audit_logs.actor_id
+WHERE ($1::uuid IS NULL OR audit_logs.actor_id = $1)
+  AND ($2::text IS NULL OR audit_logs.entity_type = $2)
+  AND ($3::uuid IS NULL OR audit_logs.entity_id = $3)
+  AND ($4::text IS NULL OR audit_logs.action = $4)
+  AND ($5::uuid IS NULL OR audit_logs.id < $5)
+ORDER BY audit_logs.id DESC
+LIMIT $6
 `
 
 type ListAuditLogsParams struct {
 	ActorID    *uuid.UUID `json:"actor_id"`
 	EntityType *string    `json:"entity_type"`
 	EntityID   *uuid.UUID `json:"entity_id"`
+	Action     *string    `json:"action"`
 	Cursor     *uuid.UUID `json:"cursor"`
 	Lim        int32      `json:"lim"`
 }
 
-func (q *Queries) ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]AuditLog, error) {
+type ListAuditLogsRow struct {
+	ID         uuid.UUID          `json:"id"`
+	ActorID    *uuid.UUID         `json:"actor_id"`
+	ActorName  *string            `json:"actor_name"`
+	Action     string             `json:"action"`
+	EntityType string             `json:"entity_type"`
+	EntityID   *uuid.UUID         `json:"entity_id"`
+	Changes    []byte             `json:"changes"`
+	IpAddress  *string            `json:"ip_address"`
+	UserAgent  *string            `json:"user_agent"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+}
+
+func (q *Queries) ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error) {
 	rows, err := q.db.Query(ctx, listAuditLogs,
 		arg.ActorID,
 		arg.EntityType,
 		arg.EntityID,
+		arg.Action,
 		arg.Cursor,
 		arg.Lim,
 	)
@@ -213,12 +241,13 @@ func (q *Queries) ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([
 		return nil, err
 	}
 	defer rows.Close()
-	var items []AuditLog
+	var items []ListAuditLogsRow
 	for rows.Next() {
-		var i AuditLog
+		var i ListAuditLogsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ActorID,
+			&i.ActorName,
 			&i.Action,
 			&i.EntityType,
 			&i.EntityID,

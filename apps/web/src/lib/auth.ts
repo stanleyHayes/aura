@@ -33,6 +33,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "booking.override",
     "maintenance.manage",
     "report.view",
+    "audit.view",
     "availability.search",
   ],
 };

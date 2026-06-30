@@ -58,6 +58,9 @@ func mapTriggerMessage(msg string) error {
 		return apperr.ErrConflictsLecture
 	case "CONFLICTS_WITH_MAINTENANCE":
 		return apperr.ErrConflictsMaintenance
+	case "CONFLICTS_WITH_APPROVED_BOOKING":
+		// LOW-12: creating/moving a maintenance window over an approved booking.
+		return apperr.ErrMaintenanceConflict
 	default:
 		return apperr.ErrUnprocessable.WithDetail("%s", msg)
 	}

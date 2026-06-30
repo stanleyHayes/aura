@@ -1,14 +1,31 @@
 "use client";
 
 import * as React from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import type { LucideIcon } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { FileSpreadsheet, Upload } from "lucide-react";
+import {
+  CheckCircle2,
+  ClipboardList,
+  FileCheck2,
+  FileSpreadsheet,
+  ListChecks,
+  TimerReset,
+  TriangleAlert,
+  Upload,
+} from "lucide-react";
 import {
   type Semester,
   type TimetableImport,
 } from "@cbs/schemas";
 import { Button } from "@cbs/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@cbs/ui/components/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@cbs/ui/components/card";
 import { Input } from "@cbs/ui/components/input";
 import { Badge } from "@cbs/ui/components/badge";
 import { Skeleton } from "@cbs/ui/components/skeleton";
@@ -20,24 +37,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@cbs/ui/components/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@cbs/ui/components/table";
 import { useToast } from "@cbs/ui/components/toast";
+import { Combobox } from "@/components/combobox";
 import { CSRF } from "@cbs/api-client";
 import { api, unwrap } from "@/lib/api/client";
 import { qk } from "@/lib/query-keys";
 import { PageHeader } from "@/components/page-header";
 import { ProblemAlert } from "@/components/problem-alert";
+import { DataTable } from "@/components/data-table";
+import { EmptyState } from "@/components/empty-state";
 import { Field } from "@/components/forms/field";
+import { MetricCard, type MetricTone } from "@/components/metric-card";
+
+type ImportErrorRow = NonNullable<TimetableImport["error_report"]>[number];
 
 function readCsrf(): string | undefined {
-  const m = document.cookie.match(/(?:^|; )cbs-csrf=([^;]*)/);
+  const m = document.cookie.match(/(?:^|; )(?:cbs_csrf|cbs-csrf)=([^;]*)/);
   return m ? decodeURIComponent(m[1]!) : undefined;
 }
 
@@ -49,6 +64,81 @@ const STATUS_VARIANT: Record<TimetableImport["status"], "approved" | "pending" |
     PENDING: "secondary",
     FAILED: "rejected",
   };
+
+const STATUS_LABEL: Record<TimetableImport["status"], string> = {
+  COMPLETED: "Completed",
+  PARTIALLY_COMPLETED: "Partially completed",
+  PROCESSING: "Processing",
+  PENDING: "Queued",
+  FAILED: "Failed",
+};
+
+const STATUS_COPY: Record<TimetableImport["status"], string> = {
+  COMPLETED: "The timetable is ready. Imported rows are now available to the booking engine.",
+  PARTIALLY_COMPLETED: "Some rows need attention. Review the row report before uploading another file.",
+  PROCESSING: "AURA is parsing the file and validating rooms, days, and time ranges.",
+  PENDING: "The import has been received and is waiting to be processed.",
+  FAILED: "The import could not complete. Check the report or try a corrected file.",
+};
+
+function ImportMetric({
+  label,
+  value,
+  hint,
+  icon,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string | number;
+  hint: string;
+  icon: LucideIcon;
+  tone?: Extract<MetricTone, "neutral" | "success" | "warning">;
+}) {
+  return (
+    <MetricCard
+      label={label}
+      value={value}
+      subtext={hint}
+      icon={icon}
+      tone={tone}
+      asDefinition
+    />
+  );
+}
+
+function ImportChecklist() {
+  const steps = [
+    { icon: ListChecks, label: "Pick semester", detail: "Target the term this file belongs to." },
+    { icon: FileSpreadsheet, label: "Attach file", detail: "Use .xlsx or .csv with the expected columns." },
+    { icon: TimerReset, label: "Watch progress", detail: "Imported rows and row errors appear here." },
+  ];
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      {steps.map(({ icon: Icon, label, detail }, index) => (
+        <div
+          key={label}
+          className="rounded-xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-muted)_32%,transparent)] p-4"
+        >
+          <div className="flex items-center gap-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--color-card)] text-[var(--color-maroon)] shadow-sm">
+              <Icon className="size-4" aria-hidden="true" />
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+              Step {index + 1}
+            </span>
+          </div>
+          <p className="mt-3 font-semibold text-[var(--color-foreground)]">
+            {label}
+          </p>
+          <p className="mt-1 text-sm leading-6 text-[var(--color-muted-foreground)]">
+            {detail}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function TimetableClient() {
   const { toast } = useToast();
@@ -136,15 +226,37 @@ export function TimetableClient() {
       : status?.status === "COMPLETED"
         ? 100
         : 0;
+  const errorColumns = React.useMemo<ColumnDef<ImportErrorRow>[]>(
+    () => [
+      {
+        accessorKey: "row",
+        header: "Row",
+        cell: ({ row }) => (
+          <span className="tabular-nums">{row.original.row}</span>
+        ),
+      },
+      {
+        accessorKey: "field",
+        header: "Field",
+        cell: ({ row }) => row.original.field ?? "—",
+      },
+      {
+        accessorKey: "message",
+        header: "Message",
+      },
+    ],
+    [],
+  );
 
   return (
     <>
       <PageHeader
+        icon={FileSpreadsheet}
         title="Timetable import"
         description="Upload the semester schedule from Excel or CSV. Replacing a timetable never touches existing bookings."
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid items-start gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Upload</CardTitle>
@@ -158,18 +270,19 @@ export function TimetableClient() {
                   semesters.isLoading ? (
                     <Skeleton className="h-10 w-full" />
                   ) : (
-                    <Select value={semesterId} onValueChange={setSemesterId}>
-                      <SelectTrigger id={p.id}>
-                        <SelectValue placeholder="Choose a semester" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(semesters.data ?? []).map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.name} ({s.status.toLowerCase()})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Combobox
+                      id={p.id}
+                      value={semesterId}
+                      onValueChange={setSemesterId}
+                      placeholder="Choose a semester"
+                      searchPlaceholder="Search semesters…"
+                      emptyText="No semesters found."
+                      options={(semesters.data ?? []).map((s) => ({
+                        value: s.id,
+                        label: s.name,
+                        description: s.status.toLowerCase(),
+                      }))}
+                    />
                   )
                 }
               </Field>
@@ -212,42 +325,119 @@ export function TimetableClient() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Import progress</CardTitle>
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-maroon-tint)_38%,var(--color-card))]">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[var(--color-card)] text-[var(--color-maroon)] shadow-sm">
+                  <ClipboardList className="size-5" aria-hidden="true" />
+                </span>
+                <div>
+                  <CardTitle>Import progress</CardTitle>
+                  <CardDescription>
+                    Track validation, imported rows, and row-level issues.
+                  </CardDescription>
+                </div>
+              </div>
+              <Badge variant={status ? STATUS_VARIANT[status.status] : "secondary"}>
+                {status ? STATUS_LABEL[status.status] : "No import"}
+              </Badge>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-5 sm:p-6">
             {!importId ? (
-              <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-[var(--color-muted-foreground)]">
-                <FileSpreadsheet className="size-8" aria-hidden="true" />
-                Upload a file to see progress and any row errors here.
+              <div className="space-y-5">
+                <EmptyState
+                  icon={FileSpreadsheet}
+                  title="Ready for a timetable file"
+                  description="Choose a semester, attach the timetable, then upload it to see live row progress and validation results here."
+                  actions={
+                    <Button asChild variant="outline">
+                      <label htmlFor="tt-file" className="cursor-pointer">
+                        <Upload className="size-4" aria-hidden="true" />
+                        Select timetable file
+                      </label>
+                    </Button>
+                  }
+                  className="py-12"
+                />
+                <ImportChecklist />
               </div>
             ) : !status ? (
-              <Skeleton className="h-32 w-full" />
+              <div className="space-y-4" aria-busy="true" aria-live="polite">
+                <Skeleton className="h-24 w-full" />
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <Skeleton className="h-28 w-full" />
+                  <Skeleton className="h-28 w-full" />
+                  <Skeleton className="h-28 w-full" />
+                </div>
+                <Skeleton className="h-12 w-full" />
+              </div>
             ) : (
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <Badge variant={STATUS_VARIANT[status.status]}>
-                    {status.status.replace(/_/g, " ").toLowerCase()}
-                  </Badge>
-                  <span className="text-sm tabular-nums text-[var(--color-muted-foreground)]">
-                    {status.imported_rows}/{status.total_rows} rows
-                  </span>
+              <div className="flex flex-col gap-5" aria-live="polite">
+                <div className="rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-muted)_28%,transparent)] p-4 sm:p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex items-start gap-3">
+                      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--color-card)] text-[var(--color-maroon)] shadow-sm">
+                        {status.status === "FAILED" ? (
+                          <TriangleAlert className="size-5" aria-hidden="true" />
+                        ) : status.status === "COMPLETED" ? (
+                          <CheckCircle2 className="size-5" aria-hidden="true" />
+                        ) : (
+                          <FileCheck2 className="size-5" aria-hidden="true" />
+                        )}
+                      </span>
+                      <div>
+                        <p className="text-lg font-semibold text-[var(--color-foreground)]">
+                          {STATUS_LABEL[status.status]}
+                        </p>
+                        <p className="mt-1 max-w-xl text-sm leading-6 text-[var(--color-muted-foreground)]">
+                          {STATUS_COPY[status.status]}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-medium tabular-nums text-[var(--color-muted-foreground)]">
+                      {progressPct}% complete
+                    </span>
+                  </div>
+
+                  <div
+                    className="mt-5 h-3 w-full overflow-hidden rounded-full bg-[color-mix(in_oklch,var(--color-muted)_75%,transparent)]"
+                    role="progressbar"
+                    aria-valuenow={progressPct}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label="Import progress"
+                  >
+                    <div
+                      className="h-full rounded-full bg-[var(--color-maroon)] transition-all"
+                      style={{ width: `${progressPct}%` }}
+                    />
+                  </div>
                 </div>
 
-                <div
-                  className="h-2 w-full overflow-hidden rounded-full bg-[var(--color-muted)]"
-                  role="progressbar"
-                  aria-valuenow={progressPct}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-label="Import progress"
-                >
-                  <div
-                    className="h-full bg-[var(--color-ink-600)] transition-all"
-                    style={{ width: `${progressPct}%` }}
+                <dl className="grid gap-3 sm:grid-cols-3">
+                  <ImportMetric
+                    label="Total rows"
+                    value={status.total_rows}
+                    hint="Rows detected in the uploaded file."
+                    icon={ClipboardList}
                   />
-                </div>
+                  <ImportMetric
+                    label="Imported"
+                    value={status.imported_rows}
+                    hint="Rows accepted into the semester timetable."
+                    icon={FileCheck2}
+                    tone="success"
+                  />
+                  <ImportMetric
+                    label="Needs review"
+                    value={status.error_rows}
+                    hint="Rows skipped because validation failed."
+                    icon={TriangleAlert}
+                    tone={status.error_rows > 0 ? "warning" : "neutral"}
+                  />
+                </dl>
 
                 {status.error_rows > 0 ? (
                   <Alert variant="warning">
@@ -269,25 +459,25 @@ export function TimetableClient() {
                 ) : null}
 
                 {status.error_report && status.error_report.length > 0 ? (
-                  <div className="max-h-64 overflow-auto rounded-lg border border-[var(--color-border)]">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Row</TableHead>
-                          <TableHead>Field</TableHead>
-                          <TableHead>Message</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {status.error_report.map((er, i) => (
-                          <TableRow key={`${er.row}-${i}`}>
-                            <TableCell className="tabular-nums">{er.row}</TableCell>
-                            <TableCell>{er.field ?? "—"}</TableCell>
-                            <TableCell>{er.message}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                  <div className="space-y-3">
+                    <div>
+                      <h4 className="text-base font-semibold text-[var(--color-foreground)]">
+                        Row error report
+                      </h4>
+                      <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
+                        Fix these rows in the source file, then upload again.
+                      </p>
+                    </div>
+                    <DataTable
+                      columns={errorColumns}
+                      data={status.error_report}
+                      caption="Timetable import errors"
+                      initialPageSize={5}
+                      pageSizeOptions={[5, 10, 25]}
+                      emptyIcon={CheckCircle2}
+                      emptyTitle="No row errors"
+                      emptyDescription="All parsed rows passed validation."
+                    />
                   </div>
                 ) : null}
               </div>

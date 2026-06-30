@@ -28,6 +28,7 @@ import { Skeleton } from "@cbs/ui/components/skeleton";
 import { api, unwrap } from "@/lib/api/client";
 import { qk } from "@/lib/query-keys";
 import { useBuildings, useEquipment } from "@/lib/hooks/reference";
+import { Combobox } from "@/components/combobox";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { ProblemAlert } from "@/components/problem-alert";
@@ -140,24 +141,22 @@ export function SearchClient() {
 
               <Field id="building_id" label="Building">
                 {(p) => (
-                  <Select
-                    onValueChange={(v) =>
-                      form.setValue("building_id", v === "any" ? "" : v)
-                    }
-                    value={form.watch("building_id") || "any"}
-                  >
-                    <SelectTrigger id={p.id}>
-                      <SelectValue placeholder="Any building" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">Any building</SelectItem>
-                      {(buildings.data ?? []).map((b) => (
-                        <SelectItem key={b.id} value={b.id}>
-                          {b.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Combobox
+                    id={p.id}
+                    value={form.watch("building_id") || ""}
+                    onValueChange={(v) => form.setValue("building_id", v)}
+                    placeholder="Any building"
+                    searchPlaceholder="Search buildings…"
+                    emptyText="No buildings found."
+                    options={[
+                      { value: "", label: "Any building" },
+                      ...(buildings.data ?? []).map((b) => ({
+                        value: b.id,
+                        label: b.name,
+                        description: b.code,
+                      })),
+                    ]}
+                  />
                 )}
               </Field>
 

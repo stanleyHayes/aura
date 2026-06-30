@@ -64,10 +64,23 @@ INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, changes, ip_ad
 VALUES ($1, $2, $3, $4, $5, $6, $7);
 
 -- name: ListAuditLogs :many
-SELECT * FROM audit_logs
-WHERE (sqlc.narg('actor_id')::uuid IS NULL OR actor_id = sqlc.narg('actor_id'))
-  AND (sqlc.narg('entity_type')::text IS NULL OR entity_type = sqlc.narg('entity_type'))
-  AND (sqlc.narg('entity_id')::uuid IS NULL OR entity_id = sqlc.narg('entity_id'))
-  AND (sqlc.narg('cursor')::uuid IS NULL OR id < sqlc.narg('cursor'))
-ORDER BY id DESC
+SELECT
+  audit_logs.id,
+  audit_logs.actor_id,
+  users.full_name AS actor_name,
+  audit_logs.action,
+  audit_logs.entity_type,
+  audit_logs.entity_id,
+  audit_logs.changes,
+  audit_logs.ip_address,
+  audit_logs.user_agent,
+  audit_logs.created_at
+FROM audit_logs
+LEFT JOIN users ON users.id = audit_logs.actor_id
+WHERE (sqlc.narg('actor_id')::uuid IS NULL OR audit_logs.actor_id = sqlc.narg('actor_id'))
+  AND (sqlc.narg('entity_type')::text IS NULL OR audit_logs.entity_type = sqlc.narg('entity_type'))
+  AND (sqlc.narg('entity_id')::uuid IS NULL OR audit_logs.entity_id = sqlc.narg('entity_id'))
+  AND (sqlc.narg('action')::text IS NULL OR audit_logs.action = sqlc.narg('action'))
+  AND (sqlc.narg('cursor')::uuid IS NULL OR audit_logs.id < sqlc.narg('cursor'))
+ORDER BY audit_logs.id DESC
 LIMIT sqlc.arg('lim');

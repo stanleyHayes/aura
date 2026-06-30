@@ -78,13 +78,27 @@ func TestMFAEnrolVerifyAndLogin(t *testing.T) {
 	require.NotEmpty(t, enrol.Secret)
 	require.Contains(t, enrol.ProvisioningURI, "otpauth://")
 
-	code, err := totp.GenerateCode(enrol.Secret, time.Now())
+	// Enrol against the PREVIOUS timestep so a fresh code from the current/next
+	// timestep is still within the verification skew window AND has a strictly
+	// greater timestep (so replay protection accepts it once). Using real-time
+	// validation we cannot fast-forward, so we lean on adjacent timesteps.
+	now := time.Now()
+	prev := now.Add(-30 * time.Second)
+	next := now.Add(30 * time.Second)
+
+	codePrev, err := totp.GenerateCode(enrol.Secret, prev)
 	require.NoError(t, err)
-	require.NoError(t, svc.VerifyMFA(ctx, u.ID, code))
+	require.NoError(t, svc.VerifyMFA(ctx, u.ID, codePrev))
+
+	// Re-enrolment is now refused (MED-5): MFA is already enabled.
+	_, err = svc.EnrolMFA(ctx, u.ID)
+	ae, ok := apperr.As(err)
+	require.True(t, ok)
+	require.Equal(t, "MFA_ALREADY_ENABLED", ae.Code)
 
 	// Login now requires an MFA code.
 	_, err = svc.Authenticate(ctx, email, pw, "", "ua", nil)
-	ae, ok := apperr.As(err)
+	ae, ok = apperr.As(err)
 	require.True(t, ok)
 	require.Equal(t, "MFA_REQUIRED", ae.Code)
 
@@ -93,11 +107,22 @@ func TestMFAEnrolVerifyAndLogin(t *testing.T) {
 	ae, _ = apperr.As(err)
 	require.Equal(t, "INVALID_MFA_CODE", ae.Code)
 
-	// Correct code succeeds.
-	good, err := totp.GenerateCode(enrol.Secret, time.Now())
+	// Replay protection (LOW-8): the code already consumed at enrolment cannot be
+	// reused to authenticate — its timestep is not greater than the stored one.
+	_, err = svc.Authenticate(ctx, email, pw, codePrev, "ua", nil)
+	ae, _ = apperr.As(err)
+	require.Equal(t, "INVALID_MFA_CODE", ae.Code, "a replayed TOTP code must be rejected")
+
+	// A code from a later timestep (current/next, still within skew) succeeds.
+	good, err := totp.GenerateCode(enrol.Secret, next)
 	require.NoError(t, err)
 	_, err = svc.Authenticate(ctx, email, pw, good, "ua", nil)
 	require.NoError(t, err)
+
+	// Replaying that same accepted code is now rejected too.
+	_, err = svc.Authenticate(ctx, email, pw, good, "ua", nil)
+	ae, _ = apperr.As(err)
+	require.Equal(t, "INVALID_MFA_CODE", ae.Code, "the same code must not be accepted twice")
 }
 
 func TestLogoutAndForgotPassword(t *testing.T) {

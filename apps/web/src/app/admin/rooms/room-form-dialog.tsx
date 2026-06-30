@@ -30,8 +30,11 @@ import {
 import { useToast } from "@cbs/ui/components/toast";
 import { api, unwrap } from "@/lib/api/client";
 import { useBuildings } from "@/lib/hooks/reference";
+import { Combobox } from "@/components/combobox";
 import { Field } from "@/components/forms/field";
 import { ProblemAlert } from "@/components/problem-alert";
+import { ImagePicker } from "@/components/forms/image-picker";
+import { uploadCatalogueImages } from "@/lib/api/multipart";
 
 export function RoomFormDialog({
   open,
@@ -46,6 +49,16 @@ export function RoomFormDialog({
   const queryClient = useQueryClient();
   const buildings = useBuildings();
   const [error, setError] = React.useState<unknown>(null);
+  const [mainImage, setMainImage] = React.useState<File | null>(null);
+  const [galleryImages, setGalleryImages] = React.useState<File[]>([]);
+
+  React.useEffect(() => {
+    if (open) {
+      setMainImage(null);
+      setGalleryImages([]);
+      setError(null);
+    }
+  }, [open, room?.id]);
 
   const form = useForm<Values>({
     resolver: zodResolver(Schema),
@@ -70,21 +83,31 @@ export function RoomFormDialog({
 
   const save = useMutation({
     mutationFn: async (values: Values) => {
-      if (room) {
-        return unwrap(
+      const saved = (room
+        ? unwrap(
           await api.PATCH("/api/v1/rooms/{id}", {
             params: { path: { id: room.id } },
             body: values as never,
           }),
-        );
+        )
+        : unwrap(
+            await api.POST("/api/v1/rooms", { body: values as never }),
+          )) as Room;
+
+      if (mainImage || galleryImages.length > 0) {
+        return uploadCatalogueImages<Room>({
+          path: `/api/v1/rooms/${saved.id}/images`,
+          main: mainImage,
+          gallery: galleryImages,
+        });
       }
-      return unwrap(
-        await api.POST("/api/v1/rooms", { body: values as never }),
-      );
+      return saved;
     },
     onSuccess: () => {
       toast({ variant: "success", title: room ? "Room updated" : "Room created" });
       void queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      setMainImage(null);
+      setGalleryImages([]);
       onOpenChange(false);
     },
     onError: (err) => setError(err),
@@ -92,7 +115,7 @@ export function RoomFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{room ? "Edit room" : "New room"}</DialogTitle>
         </DialogHeader>
@@ -148,21 +171,19 @@ export function RoomFormDialog({
             required
           >
             {(p) => (
-              <Select
+              <Combobox
+                id={p.id}
                 value={form.watch("building_id")}
                 onValueChange={(v) => form.setValue("building_id", v)}
-              >
-                <SelectTrigger id={p.id} aria-invalid={p["aria-invalid"]}>
-                  <SelectValue placeholder="Choose a building" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(buildings.data ?? []).map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Choose a building"
+                searchPlaceholder="Search buildings…"
+                emptyText="No buildings found."
+                options={(buildings.data ?? []).map((b) => ({
+                  value: b.id,
+                  label: b.name,
+                  description: b.code,
+                }))}
+              />
             )}
           </Field>
 
@@ -185,6 +206,16 @@ export function RoomFormDialog({
               </Select>
             )}
           </Field>
+
+          <ImagePicker
+            title="Room images"
+            existingMainUrl={room?.image_url}
+            existingGalleryUrls={room?.gallery_urls ?? []}
+            mainFile={mainImage}
+            galleryFiles={galleryImages}
+            onMainFileChange={setMainImage}
+            onGalleryFilesChange={setGalleryImages}
+          />
 
           <DialogFooter>
             <Button

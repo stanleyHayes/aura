@@ -31,6 +31,29 @@ WHERE (sqlc.narg('requester_id')::uuid IS NULL OR requested_by = sqlc.narg('requ
 ORDER BY id DESC
 LIMIT sqlc.arg('lim');
 
+-- name: ListPendingForApproval :many
+-- Pending bookings enriched with room + requester (+ department) for the
+-- approvals queue (FR8, §11). Joined here so the handler avoids N+1 lookups; the
+-- approvability blockers are then computed per row in the service layer.
+SELECT b.id, b.room_id, b.requested_by, b.purpose, b.attendee_count,
+       b.starts_at, b.ends_at, b.status, b.reviewed_by, b.review_note,
+       b.reviewed_at, b.cancelled_at, b.created_at, b.updated_at,
+       r.room_code        AS room_code,
+       r.name             AS room_name,
+       r.capacity         AS room_capacity,
+       u.full_name        AS requester_full_name,
+       u.department_id    AS requester_department_id,
+       d.name             AS requester_department_name
+FROM bookings b
+JOIN rooms r ON r.id = b.room_id
+JOIN users u ON u.id = b.requested_by
+LEFT JOIN departments d ON d.id = u.department_id
+WHERE b.status = 'PENDING'
+  AND (sqlc.narg('room_id')::uuid IS NULL OR b.room_id = sqlc.narg('room_id'))
+  AND (sqlc.narg('cursor')::uuid IS NULL OR b.id < sqlc.narg('cursor'))
+ORDER BY b.id DESC
+LIMIT sqlc.arg('lim');
+
 -- name: SetBookingStatus :one
 -- Generic status transition used by approve/reject/cancel/override/expire.
 UPDATE bookings

@@ -142,8 +142,8 @@ bar. **Every item has an icon, a title, and a description line:**
 |---|---|---|---|
 | Profile | `User` | Profile | View and edit your account details |
 | Settings | `Settings` | Settings | Preferences, notifications, security (MFA) |
-| User guide | `BookOpen` / `Volume2` | User guide | Hear how this page works (text-to-speech) |
-| Replay guide | `RotateCcw` | Replay guide | Play the first-time walkthrough again |
+| User guide | `BookOpen` | User guide | Open the complete AURA workflow guide |
+| Replay tour | `Map` | Replay tour | Play the first-login dashboard tour again |
 | Logout | `LogOut` | Sign out | End your session on this device |
 
 - Each row: icon (left), title (Outfit 500), description (muted, smaller) stacked.
@@ -152,10 +152,10 @@ bar. **Every item has an icon, a title, and a description line:**
   title + description + the "how-to" steps (the same content as the §2 help popover).
   Show a small playing indicator and a stop control while speaking. Provide a visible
   transcript for accessibility; never rely on audio alone.
-- **First-login auto-guide + replay:** on a user's **first login** (a per-user flag
-  persisted via the API/profile or localStorage), automatically offer/play the guide
-  once. **Replay guide** re-runs it on demand. Respect a "don't auto-play" preference
-  and reduced-motion/`prefers-reduced-data`.
+- **First-login auto-tour + replay:** on a user's **first login** (a per-user flag
+  persisted via the API/profile or localStorage), automatically offer/play the
+  step-by-step dashboard tour once. **Replay tour** re-runs that tour on demand.
+  Respect a "don't auto-play" preference and reduced-motion/`prefers-reduced-data`.
 - Keyboard accessible; `aria-label`s on controls; the menu closes on select/Esc.
 
 ---
@@ -199,8 +199,8 @@ the page's real layout:
 - Each page renders its own skeleton (matching its structure) while data loads —
   e.g. the rooms list shows skeleton room cards; the dashboard shows skeleton KPI
   tiles; tables show skeleton rows.
-- Skeletons use a subtle shimmer (animated gradient) on `--color-border`/paper;
-  shimmer stops under reduced-motion (static placeholder blocks).
+- Skeletons use a subtle flat pulse on `--color-border`/paper; animation stops
+  under reduced-motion (static placeholder blocks).
 - Wire via React Query `isLoading`/Suspense fallbacks and Next.js `loading.tsx` route
   segments so navigation shows the skeleton immediately. `aria-busy` on the region.
 
@@ -284,9 +284,9 @@ header anatomy as every other page: **icon + title + description + help + action
 
 ### 12.1 Layout
 - **Split screen (desktop ≥ 768px):**
-  - **Brand panel** (left, ~45%): maroon (`--color-maroon` → `--color-maroon-dark`)
-    gradient, the AURA logo + wordmark, the tagline *"Smart Space Management for
-    Ashesi."*, a one-line value sentence, and a subtle, tasteful motif (e.g. a faint
+  - **Brand panel** (left, ~45%): solid maroon (`--color-maroon`), the AURA logo
+    + wordmark, the tagline *"Smart Space Management for Ashesi."*, a one-line
+    value sentence, and a subtle, tasteful motif (e.g. a faint
     campus/where-rooms line illustration or geometric "A" pattern). Decorative,
     `aria-hidden`.
   - **Form panel** (right, ~55%): a centred card on `--color-paper` with the

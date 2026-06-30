@@ -7,14 +7,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { LoginForm as LoginSchema, type LoginForm as LoginValues } from "@cbs/schemas";
 import { ApiError } from "@cbs/api-client";
 import { ERROR_CODES } from "@cbs/schemas";
-import { ShieldCheck } from "lucide-react";
+import { KeyRound, ShieldCheck } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@cbs/ui/components/alert";
 import { Button } from "@cbs/ui/components/button";
 import { Input } from "@cbs/ui/components/input";
 import { api, unwrap } from "@/lib/api/client";
 import { defaultLandingPath } from "@/lib/auth";
 import { route } from "@/lib/route";
+import { AuthHeader } from "@/components/auth-header";
 import { Field } from "@/components/forms/field";
+import { PasswordInput } from "@/components/password-input";
 import { ProblemAlert } from "@/components/problem-alert";
 
 export function LoginForm({ next }: { next?: string }) {
@@ -57,71 +59,109 @@ export function LoginForm({ next }: { next?: string }) {
     }
   });
 
+  const header = mfaRequired
+    ? {
+        icon: <ShieldCheck className="size-6" />,
+        title: "Two-factor verification",
+        description: "Enter the 6-digit code from your authenticator app.",
+        help: {
+          title: "Verifying your sign-in",
+          steps: [
+            "Open the authenticator app linked to your AURA account.",
+            "Enter the current 6-digit code before it refreshes.",
+            "If you have lost the device, contact your department administrator.",
+          ],
+        },
+      }
+    : {
+        icon: <KeyRound className="size-6" />,
+        title: "Sign in to AURA",
+        description: "Access your Ashesi classrooms and facilities.",
+        help: {
+          title: "Signing in",
+          steps: [
+            "Use your Ashesi email and password.",
+            "If two-factor is enabled, enter the 6-digit code next.",
+            "Forgotten your password? Use the reset link below.",
+            "No account yet? Ask your department administrator to create one.",
+          ],
+        },
+      };
+
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-      {submitError ? <ProblemAlert error={submitError} /> : null}
+    <div className="flex flex-col gap-6">
+      <AuthHeader {...header} />
 
-      <Field id="email" label="Email" error={form.formState.errors.email?.message} required>
-        {(p) => (
-          <Input
-            {...p}
-            type="email"
-            autoComplete="username"
-            autoFocus
-            placeholder="you@ashesi.edu.gh"
-            {...form.register("email")}
-          />
-        )}
-      </Field>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+        {submitError ? <ProblemAlert error={submitError} /> : null}
 
-      <Field
-        id="password"
-        label="Password"
-        error={form.formState.errors.password?.message}
-        required
-      >
-        {(p) => (
-          <Input
-            {...p}
-            type="password"
-            autoComplete="current-password"
-            {...form.register("password")}
-          />
-        )}
-      </Field>
+        <Field id="email" label="Email" error={form.formState.errors.email?.message} required>
+          {(p) => (
+            <Input
+              {...p}
+              type="email"
+              autoComplete="username"
+              autoFocus
+              placeholder="you@ashesi.edu.gh"
+              {...form.register("email")}
+            />
+          )}
+        </Field>
 
-      {mfaRequired ? (
-        <>
-          <Alert variant="info">
-            <ShieldCheck />
-            <AlertTitle>Authenticator required</AlertTitle>
-            <AlertDescription>
-              Enter the current code from your authenticator app to finish
-              signing in.
-            </AlertDescription>
-          </Alert>
-          <Field
-            id="mfa_code"
-            label="Authentication code"
-            error={form.formState.errors.mfa_code?.message}
-          >
-            {(p) => (
-              <Input
-                {...p}
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                placeholder="123456"
-                {...form.register("mfa_code")}
-              />
-            )}
-          </Field>
-        </>
-      ) : null}
+        <Field
+          id="password"
+          label="Password"
+          error={form.formState.errors.password?.message}
+          required
+        >
+          {(p) => (
+            <PasswordInput
+              {...p}
+              placeholder="Enter your password"
+              autoComplete="current-password"
+              {...form.register("password")}
+            />
+          )}
+        </Field>
 
-      <Button type="submit" disabled={form.formState.isSubmitting} className="mt-2">
-        {form.formState.isSubmitting ? "Signing in…" : "Sign in to AURA"}
-      </Button>
-    </form>
+        {mfaRequired ? (
+          <>
+            <Alert variant="info">
+              <ShieldCheck />
+              <AlertTitle>Authenticator required</AlertTitle>
+              <AlertDescription>
+                Enter the current code from your authenticator app to finish
+                signing in.
+              </AlertDescription>
+            </Alert>
+            <Field
+              id="mfa_code"
+              label="Authentication code"
+              error={form.formState.errors.mfa_code?.message}
+            >
+              {(p) => (
+                <Input
+                  {...p}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  placeholder="123456"
+                  {...form.register("mfa_code")}
+                />
+              )}
+            </Field>
+          </>
+        ) : null}
+
+        <Button
+          type="submit"
+          loading={form.formState.isSubmitting}
+          loadingLabel={mfaRequired ? "Verifying…" : "Signing in…"}
+          className="mt-2 w-full [--aura-button-slant:0.9rem]"
+        >
+          {mfaRequired ? "Verify" : "Sign in"}
+        </Button>
+      </form>
+    </div>
   );
 }

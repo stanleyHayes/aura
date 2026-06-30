@@ -15,7 +15,7 @@ export default function PublicLayout({
         {children}
       </main>
 
-      <footer className="border-t border-[var(--color-border)] bg-[var(--color-paper-100)]">
+      <footer className="border-t border-[var(--color-border)] bg-[var(--color-muted)] text-[var(--color-foreground)]">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-10 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-1">
             <Brand />

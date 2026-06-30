@@ -31,6 +31,9 @@ type TokenSigner interface {
 	Sign(userID uuid.UUID, role dbgen.UserRole, email string, ttl time.Duration) (string, error)
 	Verify(token string) (*Claims, error)
 	KeyID() string
+	// Alg reports the JWT signing algorithm in use (e.g. "HS256", "EdDSA") so
+	// startup can log it and apply algorithm-specific policy (LOW-10).
+	Alg() string
 }
 
 // hmacSigner is the HS256 signer (dev/test). The key is raw bytes.
@@ -53,6 +56,10 @@ func NewHMACSigner(keyB64, keyID string) (TokenSigner, error) {
 }
 
 func (s *hmacSigner) KeyID() string { return s.keyID }
+func (s *hmacSigner) Alg() string   { return "HS256" }
+
+// KeyLen returns the length in bytes of the decoded HMAC key (LOW-10 policy).
+func (s *hmacSigner) KeyLen() int { return len(s.key) }
 
 func (s *hmacSigner) Sign(userID uuid.UUID, role dbgen.UserRole, email string, ttl time.Duration) (string, error) {
 	now := time.Now()
@@ -116,6 +123,7 @@ func NewEdDSASigner(privPEM, keyID string) (TokenSigner, error) {
 }
 
 func (s *edDSASigner) KeyID() string { return s.keyID }
+func (s *edDSASigner) Alg() string   { return "EdDSA" }
 
 func (s *edDSASigner) Sign(userID uuid.UUID, role dbgen.UserRole, email string, ttl time.Duration) (string, error) {
 	now := time.Now()

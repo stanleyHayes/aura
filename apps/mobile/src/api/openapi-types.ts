@@ -40,7 +40,7 @@ export interface paths {
           'application/json': {
             email: string;
             password: string;
-            mfaCode?: string;
+            mfa_code?: string;
           };
         };
       };
@@ -52,7 +52,7 @@ export interface paths {
   '/auth/refresh': {
     post: {
       requestBody: {
-        content: { 'application/json': { refreshToken: string } };
+        content: { 'application/json': { refresh_token: string } };
       };
       responses: {
         200: JsonContent<LoginResponse>;
@@ -62,7 +62,7 @@ export interface paths {
   '/auth/logout': {
     post: {
       requestBody: {
-        content: { 'application/json': { refreshToken: string } };
+        content: { 'application/json': { refresh_token: string } };
       };
       responses: { 204: { content?: never } };
     };

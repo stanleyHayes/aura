@@ -27,6 +27,11 @@ type Config struct {
 	S3AccessKey string `env:"S3_ACCESS_KEY"`
 	S3SecretKey string `env:"S3_SECRET_KEY"`
 
+	CloudinaryCloudName    string `env:"CLOUDINARY_CLOUD_NAME"`
+	CloudinaryAPIKey       string `env:"CLOUDINARY_API_KEY"`
+	CloudinaryAPISecret    string `env:"CLOUDINARY_API_SECRET"`
+	CloudinaryUploadFolder string `env:"CLOUDINARY_UPLOAD_FOLDER" envDefault:"aura/catalogue"`
+
 	JWTSigningKey   string        `env:"JWT_SIGNING_KEY,required"`
 	JWTKeyID        string        `env:"JWT_KEY_ID" envDefault:"dev-key-1"`
 	AccessTokenTTL  time.Duration `env:"ACCESS_TOKEN_TTL" envDefault:"15m"`
@@ -52,11 +57,27 @@ type Config struct {
 	RateLimitDefaultPerMin int `env:"RATE_LIMIT_DEFAULT_PER_MIN" envDefault:"120"`
 	RateLimitAuthPerMin    int `env:"RATE_LIMIT_AUTH_PER_MIN" envDefault:"10"`
 
+	// TrustedProxyCount is the number of trusted reverse proxies in front of the
+	// API. 0 (default) means the X-Forwarded-For header is untrusted and ignored:
+	// the rate limiter and audit logs use the direct RemoteAddr. Set to the exact
+	// number of trusted hops (e.g. 1 behind Render/Cloudflare) so the real client
+	// IP is read from the right position and cannot be spoofed (MED-4).
+	TrustedProxyCount int `env:"TRUSTED_PROXY_COUNT" envDefault:"0"`
+
 	OTELEndpoint string `env:"OTEL_EXPORTER_OTLP_ENDPOINT"`
 	SentryDSN    string `env:"SENTRY_DSN"`
 }
 
 func (c Config) IsProduction() bool { return c.AppEnv == "production" }
+
+// Committed dev/example secret values. These ship in .env.example and the dev
+// compose file purely so local development works out of the box; they must never
+// be used in production (MED-3). validateProduction() rejects them.
+const (
+	devMFAEncryptionKey = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=" // "0123456789abcdef0123456789abcdef"
+	devJWTSigningKey    = "ZGV2LW9ubHktY2hhbmdlLW1lLXRoaXMtaXMtbm90LWEtcmVhbC1rZXk="
+	minJWTSigningKeyLen = 32
+)
 
 // Load reads .env (if present) then the process environment.
 func Load() (Config, error) {
@@ -71,5 +92,31 @@ func Load() (Config, error) {
 	if len(c.CORSAllowedOrigins) == 0 {
 		c.CORSAllowedOrigins = []string{"http://localhost:3000"}
 	}
+	if c.IsProduction() {
+		if err := c.validateProduction(); err != nil {
+			return Config{}, err
+		}
+	}
 	return c, nil
+}
+
+// validateProduction refuses to start with insecure or committed default secrets
+// (MED-3). It is only invoked when APP_ENV=production.
+func (c Config) validateProduction() error {
+	if c.MFAEncryptionKey == "" {
+		return fmt.Errorf("MFA_ENCRYPTION_KEY is required in production")
+	}
+	if c.MFAEncryptionKey == devMFAEncryptionKey {
+		return fmt.Errorf("MFA_ENCRYPTION_KEY must not be the committed development value in production")
+	}
+	if c.JWTSigningKey == "" {
+		return fmt.Errorf("JWT_SIGNING_KEY is required in production")
+	}
+	if c.JWTSigningKey == devJWTSigningKey {
+		return fmt.Errorf("JWT_SIGNING_KEY must not be the committed development value in production")
+	}
+	if len(c.JWTSigningKey) < minJWTSigningKeyLen {
+		return fmt.Errorf("JWT_SIGNING_KEY must be at least %d characters in production", minJWTSigningKeyLen)
+	}
+	return nil
 }

@@ -96,13 +96,18 @@ func (h *Handler) stream(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, r, h.log, apperr.ErrInternal.WithDetail("streaming unsupported"))
 		return
 	}
+	ch, unsubscribe, err := h.broker.Subscribe(id.UserID)
+	if err != nil {
+		// Per-user stream cap reached (MED-6) — reject before writing SSE headers.
+		httpx.Error(w, r, h.log, apperr.New(http.StatusTooManyRequests, "TOO_MANY_STREAMS", "Too many concurrent notification streams"))
+		return
+	}
+	defer unsubscribe()
+
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
-
-	ch, unsubscribe := h.broker.Subscribe(id.UserID)
-	defer unsubscribe()
 
 	_, _ = fmt.Fprint(w, ": connected\n\n")
 	flusher.Flush()

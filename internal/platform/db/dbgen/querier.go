@@ -64,6 +64,8 @@ type Querier interface {
 	GetEquipment(ctx context.Context, id uuid.UUID) (Equipment, error)
 	// ── Idempotency keys (§8.1) ───────────────────────────────────
 	GetIdempotencyKey(ctx context.Context, arg GetIdempotencyKeyParams) (IdempotencyKey, error)
+	// LOW-8: read the last accepted TOTP timestep for replay detection.
+	GetLastMFATimestep(ctx context.Context, id uuid.UUID) (*int64, error)
 	GetMaintenanceWindow(ctx context.Context, id uuid.UUID) (GetMaintenanceWindowRow, error)
 	GetPasswordResetToken(ctx context.Context, tokenHash string) (PasswordResetToken, error)
 	GetRefreshTokenByHash(ctx context.Context, tokenHash string) (RefreshToken, error)
@@ -78,7 +80,7 @@ type Querier interface {
 	InsertAuditLog(ctx context.Context, arg InsertAuditLogParams) error
 	// Approved bookings whose time overlaps [day_start, day_end). Availability (§7.1, BR5).
 	ListApprovedBookingsForRoomInRange(ctx context.Context, arg ListApprovedBookingsForRoomInRangeParams) ([]ListApprovedBookingsForRoomInRangeRow, error)
-	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]AuditLog, error)
+	ListAuditLogs(ctx context.Context, arg ListAuditLogsParams) ([]ListAuditLogsRow, error)
 	ListBookings(ctx context.Context, arg ListBookingsParams) ([]ListBookingsRow, error)
 	ListBuildings(ctx context.Context) ([]Building, error)
 	// Other approved bookings overlapping the given window for a room (override support, BR6).
@@ -90,6 +92,10 @@ type Querier interface {
 	ListMaintenanceForRoomInRange(ctx context.Context, arg ListMaintenanceForRoomInRangeParams) ([]ListMaintenanceForRoomInRangeRow, error)
 	ListMaintenanceWindows(ctx context.Context, roomID *uuid.UUID) ([]ListMaintenanceWindowsRow, error)
 	ListNotifications(ctx context.Context, arg ListNotificationsParams) ([]Notification, error)
+	// Pending bookings enriched with room + requester (+ department) for the
+	// approvals queue (FR8, §11). Joined here so the handler avoids N+1 lookups; the
+	// approvability blockers are then computed per row in the service layer.
+	ListPendingForApproval(ctx context.Context, arg ListPendingForApprovalParams) ([]ListPendingForApprovalRow, error)
 	ListRoomEquipment(ctx context.Context, roomID uuid.UUID) ([]ListRoomEquipmentRow, error)
 	// Active-semester lectures for a room on a given weekday, where the date falls
 	// inside the semester window. Used by the availability engine (§7.1, BR1/BR2).
@@ -110,16 +116,21 @@ type Querier interface {
 	RevokeRefreshToken(ctx context.Context, id uuid.UUID) error
 	// Generic status transition used by approve/reject/cancel/override/expire.
 	SetBookingStatus(ctx context.Context, arg SetBookingStatusParams) (SetBookingStatusRow, error)
+	// LOW-8: persist the accepted TOTP timestep so an earlier/equal one is rejected.
+	SetLastMFATimestep(ctx context.Context, arg SetLastMFATimestepParams) error
 	SetMFASecret(ctx context.Context, arg SetMFASecretParams) error
 	SetRoomStatus(ctx context.Context, arg SetRoomStatusParams) (Room, error)
 	SetSemesterStatus(ctx context.Context, arg SetSemesterStatusParams) (Semester, error)
 	SetUserStatus(ctx context.Context, arg SetUserStatusParams) (User, error)
 	UpdateBuilding(ctx context.Context, arg UpdateBuildingParams) (Building, error)
+	UpdateBuildingImages(ctx context.Context, arg UpdateBuildingImagesParams) (Building, error)
 	UpdateDepartment(ctx context.Context, arg UpdateDepartmentParams) (Department, error)
 	UpdateEquipment(ctx context.Context, arg UpdateEquipmentParams) (Equipment, error)
+	UpdateEquipmentImages(ctx context.Context, arg UpdateEquipmentImagesParams) (Equipment, error)
 	UpdateImportProgress(ctx context.Context, arg UpdateImportProgressParams) (TimetableImport, error)
 	UpdatePasswordHash(ctx context.Context, arg UpdatePasswordHashParams) error
 	UpdateRoom(ctx context.Context, arg UpdateRoomParams) (Room, error)
+	UpdateRoomImages(ctx context.Context, arg UpdateRoomImagesParams) (Room, error)
 	UpdateSemester(ctx context.Context, arg UpdateSemesterParams) (Semester, error)
 	UpdateTimetableEvent(ctx context.Context, arg UpdateTimetableEventParams) (TimetableEvent, error)
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error)

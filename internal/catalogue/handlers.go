@@ -12,17 +12,19 @@ import (
 	"github.com/aura/cbs/internal/platform/auth"
 	"github.com/aura/cbs/internal/platform/db/dbgen"
 	"github.com/aura/cbs/internal/platform/httpx"
+	"github.com/aura/cbs/internal/platform/media"
 	"github.com/aura/cbs/internal/platform/rbac"
 )
 
 type Handler struct {
-	svc   *Service
-	audit *audit.Recorder
-	log   *slog.Logger
+	svc     *Service
+	audit   *audit.Recorder
+	log     *slog.Logger
+	uploads *media.Cloudinary
 }
 
-func NewHandler(svc *Service, rec *audit.Recorder, log *slog.Logger) *Handler {
-	return &Handler{svc: svc, audit: rec, log: log}
+func NewHandler(svc *Service, rec *audit.Recorder, log *slog.Logger, uploads *media.Cloudinary) *Handler {
+	return &Handler{svc: svc, audit: rec, log: log, uploads: uploads}
 }
 
 // Mount registers buildings, equipment and rooms onto the parent router. Reads
@@ -32,14 +34,18 @@ func (h *Handler) Mount(r chi.Router) {
 
 	r.Route("/buildings", func(r chi.Router) {
 		r.Get("/", h.listBuildings)
+		r.Get("/{id}", h.getBuilding)
 		r.With(manage).Post("/", h.createBuilding)
 		r.With(manage).Patch("/{id}", h.updateBuilding)
+		r.With(manage).Post("/{id}/images", h.uploadBuildingImages)
 		r.With(manage).Delete("/{id}", h.deleteBuilding)
 	})
 	r.Route("/equipment", func(r chi.Router) {
 		r.Get("/", h.listEquipment)
+		r.Get("/{id}", h.getEquipment)
 		r.With(manage).Post("/", h.createEquipment)
 		r.With(manage).Patch("/{id}", h.updateEquipment)
+		r.With(manage).Post("/{id}/images", h.uploadEquipmentImages)
 		r.With(manage).Delete("/{id}", h.deleteEquipment)
 	})
 	r.Route("/rooms", func(r chi.Router) {
@@ -47,9 +53,51 @@ func (h *Handler) Mount(r chi.Router) {
 		r.Get("/{id}", h.getRoom)
 		r.With(manage).Post("/", h.createRoom)
 		r.With(manage).Patch("/{id}", h.updateRoom)
+		r.With(manage).Post("/{id}/images", h.uploadRoomImages)
 		r.With(manage).Post("/{id}/deactivate", h.deactivateRoom)
 		r.With(manage).Put("/{id}/equipment", h.setRoomEquipment)
 	})
+}
+
+// PublicRoutes registers anonymous, read-only catalogue endpoints for the public
+// room directory (§12.1). Only ACTIVE rooms are exposed and there are no write
+// paths, so these are safe to serve unauthenticated. Mounted under
+// /api/v1/public, outside the authn group.
+func (h *Handler) PublicRoutes(r chi.Router) {
+	r.Get("/rooms", h.listPublicRooms)
+	r.Get("/rooms/{id}", h.getPublicRoom)
+}
+
+func (h *Handler) listPublicRooms(w http.ResponseWriter, r *http.Request) {
+	f := ParseRoomFilter(r)
+	active := dbgen.RoomStatusACTIVE
+	f.Status = &active // force ACTIVE regardless of the query string
+	rooms, err := h.svc.SearchRooms(r.Context(), f)
+	if err != nil {
+		httpx.Error(w, r, h.log, err)
+		return
+	}
+	h.attachEquipment(r, rooms)
+	httpx.JSON(w, http.StatusOK, httpx.NewPage(rooms, f.Limit, func(d RoomDetail) uuid.UUID { return d.ID }))
+}
+
+func (h *Handler) getPublicRoom(w http.ResponseWriter, r *http.Request) {
+	id, err := httpx.PathUUID(r, "id")
+	if err != nil {
+		httpx.Error(w, r, h.log, err)
+		return
+	}
+	room, err := h.svc.GetRoom(r.Context(), id)
+	if err != nil {
+		httpx.Error(w, r, h.log, err)
+		return
+	}
+	if room.Status != dbgen.RoomStatusACTIVE {
+		httpx.Error(w, r, h.log, apperr.ErrNotFound)
+		return
+	}
+	eq, _ := h.svc.RoomEquipment(r.Context(), id)
+	httpx.JSON(w, http.StatusOK, map[string]any{"room": room, "equipment": eq})
 }
 
 // ── Buildings ────────────────────────────────────────────────────────────────
@@ -67,6 +115,20 @@ func (h *Handler) listBuildings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"data": bs})
+}
+
+func (h *Handler) getBuilding(w http.ResponseWriter, r *http.Request) {
+	id, err := httpx.PathUUID(r, "id")
+	if err != nil {
+		httpx.Error(w, r, h.log, err)
+		return
+	}
+	b, err := h.svc.GetBuilding(r.Context(), id)
+	if err != nil {
+		httpx.Error(w, r, h.log, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, b)
 }
 
 func (h *Handler) createBuilding(w http.ResponseWriter, r *http.Request) {
@@ -132,6 +194,20 @@ func (h *Handler) listEquipment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"data": es})
+}
+
+func (h *Handler) getEquipment(w http.ResponseWriter, r *http.Request) {
+	id, err := httpx.PathUUID(r, "id")
+	if err != nil {
+		httpx.Error(w, r, h.log, err)
+		return
+	}
+	e, err := h.svc.GetEquipment(r.Context(), id)
+	if err != nil {
+		httpx.Error(w, r, h.log, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, e)
 }
 
 func (h *Handler) createEquipment(w http.ResponseWriter, r *http.Request) {

@@ -3,11 +3,11 @@
  *
  * Visual direction: the Ashesi University identity — maroon/burgundy as the
  * brand anchor (primary actions, active nav, links, brand marks), warm
- * paper-tinted neutrals for large surfaces, and a disciplined status palette
- * (success / warning / danger) kept perceptually distinct from maroon so
- * "approved / pending / rejected" never read as the brand. Everything is
- * OKLCH so light and dark stay perceptually consistent. The brand "ink" scale
- * is a maroon ramp; `--color-maroon*` expose the exact BRAND.md anchors.
+ * paper-tinted neutrals for large surfaces, warm ink neutrals for readable text,
+ * and a disciplined status palette (success / warning / danger) kept
+ * perceptually distinct from maroon so "approved / pending / rejected" never read
+ * as the brand. Everything is OKLCH so light and dark stay perceptually
+ * consistent. Maroon stays in the explicit `--color-maroon*` anchors.
  *
  * These tokens are the single source of truth shared with mobile (NativeWind).
  */
@@ -42,18 +42,18 @@
   --color-maroon-dark: oklch(0.314 0.113 26); /* #5E0D0F hover/pressed     */
   --color-maroon-tint: oklch(0.924 0.02 18); /* #F3E1E1 subtle bg/badges  */
 
-  /* ── Brand "ink" scale — now a maroon ramp anchored on #7B1113 ─ */
-  --color-ink-50: oklch(0.971 0.012 27);
-  --color-ink-100: oklch(0.936 0.022 27);
-  --color-ink-200: oklch(0.88 0.045 27);
-  --color-ink-300: oklch(0.8 0.075 27);
-  --color-ink-400: oklch(0.66 0.115 27);
-  --color-ink-500: oklch(0.52 0.15 27);
-  --color-ink-600: oklch(0.44 0.15 27);
-  --color-ink-700: oklch(0.377 0.14 27); /* = #7B1113 */
-  --color-ink-800: oklch(0.33 0.118 27);
-  --color-ink-900: oklch(0.3 0.1 27);
-  --color-ink-950: oklch(0.25 0.075 27);
+  /* ── Warm ink neutrals (BRAND.md text #23201F) ──────────────── */
+  --color-ink-50: oklch(0.985 0.003 90);
+  --color-ink-100: oklch(0.958 0.004 85);
+  --color-ink-200: oklch(0.905 0.005 80);
+  --color-ink-300: oklch(0.79 0.006 75);
+  --color-ink-400: oklch(0.65 0.007 68);
+  --color-ink-500: oklch(0.53 0.008 62);
+  --color-ink-600: oklch(0.43 0.008 58);
+  --color-ink-700: oklch(0.36 0.008 54);
+  --color-ink-800: oklch(0.31 0.007 50);
+  --color-ink-900: oklch(0.28 0.006 48);
+  --color-ink-950: oklch(0.252 0.006 45); /* ≈ #23201F */
 
   /* ── Warm paper neutrals (BRAND.md paper #FBFBF9 / border #E6E3DF
         / gray #6B6B6B / ink text #23201F) ──────────────────────── */
@@ -125,5 +125,24 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes empty-state-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.35rem);
+  }
+}
+
+@keyframes splash-progress {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(220%);
   }
 }

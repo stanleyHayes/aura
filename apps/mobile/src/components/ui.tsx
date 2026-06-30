@@ -86,7 +86,7 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
       <TextInput
         ref={ref}
         placeholderTextColor={palette.muted}
-        className={`min-h-12 rounded-md border bg-background px-3 py-3 text-base text-foreground ${error ? 'border-danger' : 'border-border'}`}
+        className={`min-h-12 rounded-md border bg-background px-3 py-3 text-base text-foreground outline-none focus:border-primary focus:outline-none ${error ? 'border-danger' : 'border-border'}`}
         {...rest}
       />
       {error ? (

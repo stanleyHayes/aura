@@ -86,7 +86,7 @@ func (s *Service) Authenticate(ctx context.Context, email, password, mfaCode, ua
 		if mfaCode == "" {
 			return Tokens{}, apperr.ErrMFARequired
 		}
-		valid, err := s.verifyTOTP(u, mfaCode)
+		valid, err := s.verifyTOTP(ctx, u, mfaCode)
 		if err != nil || !valid {
 			s.recordFailure(ctx, u.ID)
 			return Tokens{}, apperr.ErrInvalidMFACode
@@ -178,6 +178,10 @@ func (s *Service) Logout(ctx context.Context, rawRefresh string) error {
 func (s *Service) ForgotPassword(ctx context.Context, email string) error {
 	u, err := s.store.GetUserByEmail(ctx, email)
 	if err != nil {
+		// LOW-9: do the same token+hash work as the found branch so the synchronous
+		// latency is ~constant whether or not the email exists (no timing oracle).
+		// The result is discarded.
+		_, _, _ = auth.NewOpaqueToken()
 		return nil // always 200; do not reveal whether the email exists
 	}
 	raw, hash, err := auth.NewOpaqueToken()
@@ -192,7 +196,14 @@ func (s *Service) ForgotPassword(ctx context.Context, email string) error {
 		return nil
 	}
 	if s.mailer != nil {
-		_ = s.mailer.SendPasswordReset(ctx, u.Email, raw)
+		// LOW-9: send off the request path so a slow mail provider cannot be used to
+		// distinguish existing from non-existing accounts via response latency. Use a
+		// background context because the request context ends when we return.
+		email, raw := u.Email, raw
+		// #nosec G118 -- background context is intentional: the request context is
+		// cancelled when the handler returns, which would abort this fire-and-forget
+		// email and reintroduce the timing oracle this fix removes (LOW-9).
+		go func() { _ = s.mailer.SendPasswordReset(context.Background(), email, raw) }()
 	}
 	return nil
 }
@@ -217,6 +228,32 @@ func (s *Service) ResetPassword(ctx context.Context, rawToken, newPassword strin
 	}
 	_ = s.store.ConsumePasswordResetToken(ctx, prt.ID)
 	_ = s.store.RevokeAllUserRefreshTokens(ctx, prt.UserID) // force re-login everywhere
+	return nil
+}
+
+func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, currentPassword, newPassword string) error {
+	if currentPassword == "" {
+		return apperr.ErrValidation.WithFields(apperr.FieldError{Field: "current_password", Message: "enter your current password"})
+	}
+	if len(newPassword) < 10 {
+		return apperr.ErrValidation.WithFields(apperr.FieldError{Field: "new_password", Message: "must be at least 10 characters"})
+	}
+	u, err := s.store.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	ok, err := auth.VerifyPassword(currentPassword, u.PasswordHash)
+	if err != nil || !ok {
+		return apperr.ErrInvalidCredentials.WithDetail("Current password is incorrect")
+	}
+	hash, err := auth.HashPassword(newPassword, s.argon)
+	if err != nil {
+		return err
+	}
+	if err := s.store.UpdatePasswordHash(ctx, dbgen.UpdatePasswordHashParams{ID: userID, PasswordHash: hash}); err != nil {
+		return err
+	}
+	_ = s.store.RevokeAllUserRefreshTokens(ctx, userID)
 	return nil
 }
 
@@ -261,11 +298,22 @@ func (s *Service) ListUsers(ctx context.Context, p dbgen.ListUsersParams) ([]dbg
 }
 
 func (s *Service) UpdateUser(ctx context.Context, id uuid.UUID, fullName string, dept *uuid.UUID) (dbgen.User, error) {
+	if fullName == "" {
+		return dbgen.User{}, apperr.ErrValidation.WithFields(apperr.FieldError{Field: "full_name", Message: "full name is required"})
+	}
 	return s.store.UpdateUserProfile(ctx, dbgen.UpdateUserProfileParams{ID: id, FullName: fullName, DepartmentID: dept})
 }
 
 func (s *Service) ChangeRole(ctx context.Context, id uuid.UUID, role dbgen.UserRole) (dbgen.User, error) {
-	return s.store.UpdateUserRole(ctx, dbgen.UpdateUserRoleParams{ID: id, Role: role})
+	u, err := s.store.UpdateUserRole(ctx, dbgen.UpdateUserRoleParams{ID: id, Role: role})
+	if err == nil {
+		// LOW-7: the role is baked into the access JWT, so an already-issued token
+		// keeps the old role until it expires. Revoke refresh tokens so the user
+		// cannot mint new access tokens with the stale role; the existing access
+		// token still self-heals within at most one access-token TTL (≤15m).
+		_ = s.store.RevokeAllUserRefreshTokens(ctx, id)
+	}
+	return u, err
 }
 
 func (s *Service) SetStatus(ctx context.Context, id uuid.UUID, status dbgen.UserStatus) (dbgen.User, error) {

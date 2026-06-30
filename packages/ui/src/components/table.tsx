@@ -5,10 +5,13 @@ const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-x-auto">
+  <div className="relative w-full overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] shadow-sm">
     <table
       ref={ref}
-      className={cn("w-full caption-bottom text-sm", className)}
+      className={cn(
+        "w-full caption-bottom border-separate border-spacing-0 text-sm",
+        className,
+      )}
       {...props}
     />
   </div>
@@ -21,7 +24,7 @@ const TableHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <thead
     ref={ref}
-    className={cn("[&_tr]:border-b [&_tr]:border-[var(--color-border)]", className)}
+    className={cn("bg-[var(--color-muted)]/55", className)}
     {...props}
   />
 ));
@@ -33,7 +36,7 @@ const TableBody = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <tbody
     ref={ref}
-    className={cn("[&_tr:last-child]:border-0", className)}
+    className={cn("[&_tr:last-child_td]:border-b-0", className)}
     {...props}
   />
 ));
@@ -46,7 +49,7 @@ const TableRow = React.forwardRef<
   <tr
     ref={ref}
     className={cn(
-      "border-b border-[var(--color-border)] transition-colors hover:bg-[var(--color-muted)]/50 data-[state=selected]:bg-[var(--color-muted)]",
+      "transition-colors hover:bg-[var(--color-muted)]/45 data-[state=selected]:bg-[var(--color-muted)]",
       className,
     )}
     {...props}
@@ -62,7 +65,7 @@ const TableHead = React.forwardRef<
     ref={ref}
     scope="col"
     className={cn(
-      "h-11 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]",
+      "h-12 border-b border-[var(--color-border)] px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)] first:pl-5 last:pr-5",
       className,
     )}
     {...props}
@@ -76,7 +79,10 @@ const TableCell = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <td
     ref={ref}
-    className={cn("px-4 py-3 align-middle", className)}
+    className={cn(
+      "border-b border-[var(--color-border)] px-4 py-3.5 align-middle text-[var(--color-foreground)] first:pl-5 last:pr-5",
+      className,
+    )}
     {...props}
   />
 ));

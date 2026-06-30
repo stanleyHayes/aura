@@ -75,7 +75,7 @@ export function AvailabilityGrid({
             </div>
             <div className="relative flex-1 border-l border-[var(--color-border)]">
               {/* Occupied background */}
-              <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,color-mix(in_oklch,var(--color-paper-300)_40%,transparent),color-mix(in_oklch,var(--color-paper-300)_40%,transparent)_6px,transparent_6px,transparent_12px)]" />
+              <div className="absolute inset-0 bg-[color-mix(in_oklch,var(--color-muted)_55%,transparent)]" />
               {/* Hour gridlines */}
               {ticks.map((m) => {
                 const pos = bandPosition(m, m, window);
@@ -125,7 +125,7 @@ export function AvailabilityGrid({
 export function AvailabilityLegend() {
   const items = [
     { label: "Free (click to book)", cls: "bg-[color-mix(in_oklch,var(--color-booking)_25%,transparent)] border border-[var(--color-booking)]" },
-    { label: "Occupied", cls: "bg-[repeating-linear-gradient(45deg,var(--color-paper-300),var(--color-paper-300)_4px,transparent_4px,transparent_8px)]" },
+    { label: "Occupied", cls: "bg-[color-mix(in_oklch,var(--color-muted)_70%,transparent)] border border-[var(--color-border)]" },
     { label: "Requested window", cls: "border-x-2 border-dashed border-[var(--color-ink-400)] bg-[color-mix(in_oklch,var(--color-ink-300)_8%,transparent)]" },
   ];
   return (

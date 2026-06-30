@@ -117,9 +117,34 @@ paths:
               properties: { token: { type: string }, new_password: { type: string } }
       responses: { "204": { description: No Content }, "401": { $ref: "#/components/responses/Problem" } }
   /api/v1/auth/mfa/enrol:
-    post: { tags: [Auth], summary: Begin TOTP enrolment, responses: { "200": { description: Provisioning URI } } }
+    post:
+      tags: [Auth]
+      summary: Begin TOTP enrolment
+      responses:
+        "200":
+          description: Provisioning URI and manual TOTP secret
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [provisioning_uri, secret]
+                properties:
+                  provisioning_uri: { type: string }
+                  secret: { type: string }
   /api/v1/auth/mfa/verify:
-    post: { tags: [Auth], summary: Confirm TOTP and enable MFA, responses: { "204": { description: Enabled } } }
+    post:
+      tags: [Auth]
+      summary: Confirm TOTP and enable MFA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string }
+      responses: { "204": { description: Enabled } }
 
   /api/v1/users:
     get:
@@ -149,6 +174,143 @@ paths:
                 department_id: { type: string, format: uuid, nullable: true }
       responses: { "201": { description: Created }, "403": { $ref: "#/components/responses/Problem" } }
 
+  /api/v1/buildings:
+    get:
+      tags: [Catalogue]
+      summary: List buildings
+      parameters:
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Cursor" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/Building" } }
+    post:
+      tags: [Catalogue]
+      summary: Create a building (ROOM_MANAGE)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, name]
+              properties:
+                code: { type: string }
+                name: { type: string }
+                campus: { type: string, nullable: true }
+      responses: { "201": { description: Created }, "403": { $ref: "#/components/responses/Problem" } }
+
+  /api/v1/buildings/{id}:
+    get:
+      tags: [Catalogue]
+      summary: Get building detail
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Building" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/buildings/{id}/images:
+    post:
+      tags: [Catalogue]
+      summary: Upload a building main image and gallery images (ROOM_MANAGE)
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                main: { type: string, format: binary }
+                gallery:
+                  type: array
+                  items: { type: string, format: binary }
+      responses:
+        "200":
+          description: Updated building
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Building" }
+        "503": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/equipment:
+    get:
+      tags: [Catalogue]
+      summary: List equipment
+      parameters:
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Cursor" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/Equipment" } }
+    post:
+      tags: [Catalogue]
+      summary: Create equipment (ROOM_MANAGE)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, name]
+              properties:
+                code: { type: string }
+                name: { type: string }
+      responses: { "201": { description: Created }, "403": { $ref: "#/components/responses/Problem" } }
+
+  /api/v1/equipment/{id}:
+    get:
+      tags: [Catalogue]
+      summary: Get equipment detail
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Equipment" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/equipment/{id}/images:
+    post:
+      tags: [Catalogue]
+      summary: Upload an equipment main image and gallery images (ROOM_MANAGE)
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                main: { type: string, format: binary }
+                gallery:
+                  type: array
+                  items: { type: string, format: binary }
+      responses:
+        "200":
+          description: Updated equipment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Equipment" }
+        "503": { $ref: "#/components/responses/Problem" }
+
   /api/v1/rooms:
     get:
       tags: [Catalogue]
@@ -171,6 +333,50 @@ paths:
                 properties:
                   data: { type: array, items: { $ref: "#/components/schemas/Room" } }
                   next_cursor: { type: string, nullable: true }
+
+  /api/v1/rooms/{id}:
+    get:
+      tags: [Catalogue]
+      summary: Get room detail
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  room: { $ref: "#/components/schemas/Room" }
+                  equipment:
+                    type: array
+                    nullable: true
+                    items: { $ref: "#/components/schemas/RoomEquipment" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/rooms/{id}/images:
+    post:
+      tags: [Catalogue]
+      summary: Upload a room main image and gallery images (ROOM_MANAGE)
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                main: { type: string, format: binary }
+                gallery:
+                  type: array
+                  items: { type: string, format: binary }
+      responses:
+        "200":
+          description: Updated room
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Room" }
+        "503": { $ref: "#/components/responses/Problem" }
 
   /api/v1/availability/search:
     get:
@@ -246,13 +452,47 @@ paths:
     get:
       tags: [Bookings]
       summary: List bookings (scope mine|pending|all)
+      description: >
+        Returns a cursor-paginated {data, next_cursor} envelope. For scope=pending
+        (the approvals queue), each data item is a BookingApprovability object —
+        the booking enriched with nested room/requester plus the §11/FR8 blockers
+        explaining whether it can be approved. For scope=mine|all, each data item
+        is a plain Booking.
       parameters:
         - { name: scope, in: query, schema: { type: string, enum: [mine, pending, all] } }
         - { name: status, in: query, schema: { $ref: "#/components/schemas/BookingStatus" } }
         - { name: room_id, in: query, schema: { type: string, format: uuid } }
         - { $ref: "#/components/parameters/Limit" }
         - { $ref: "#/components/parameters/Cursor" }
-      responses: { "200": { description: OK } }
+      responses:
+        "200":
+          description: >
+            OK. data is an array of Booking (scope mine|all) or
+            BookingApprovability (scope pending).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      oneOf:
+                        - { $ref: "#/components/schemas/Booking" }
+                        - { $ref: "#/components/schemas/BookingApprovability" }
+                  next_cursor: { type: string, nullable: true }
+
+  /api/v1/bookings/metrics:
+    get:
+      tags: [Bookings]
+      summary: Current booking request counts by approval status
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BookingMetrics" }
+        "403": { $ref: "#/components/responses/Problem" }
 
   /api/v1/bookings/{id}:
     get:
@@ -325,6 +565,24 @@ paths:
     get: { tags: [Reports], summary: Booking statistics (FR12), responses: { "200": { description: OK } } }
   /api/v1/reports/conflicts:
     get: { tags: [Reports], summary: Conflict statistics (FR12), responses: { "200": { description: OK } } }
+  /api/v1/reports/overview:
+    get:
+      tags: [Reports]
+      summary: Admin overview dashboard aggregate (FR12). Defaults to the last 30 days.
+      description: >
+        Single aggregate report powering the admin overview dashboard. When from/to
+        are omitted it defaults to the last 30 days (to = today, from = today − 30d).
+        In-range counts are scoped by starts_at within [from, to); current-state KPIs
+        (pending, active rooms/users, buildings) ignore the range.
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OverviewReport" }
 
 components:
   securitySchemes:
@@ -362,6 +620,13 @@ components:
         access_token: { type: string }
         token_type: { type: string, example: Bearer }
         expires_in: { type: integer }
+        refresh_token:
+          type: string
+          description: >
+            Only returned when the request sends the header `X-Auth-Mode: bearer`
+            (native/mobile clients that cannot use HttpOnly cookies). In the
+            default web flow the refresh token is set as an HttpOnly cookie and
+            this field is omitted.
         user: { $ref: "#/components/schemas/User" }
     User:
       type: object
@@ -373,6 +638,35 @@ components:
         department_id: { type: string, format: uuid, nullable: true }
         status: { type: string }
         mfa_enabled: { type: boolean }
+    Building:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        campus: { type: string, nullable: true }
+        image_url: { type: string, nullable: true }
+        image_public_id: { type: string, nullable: true }
+        gallery_urls: { type: array, items: { type: string } }
+        gallery_public_ids: { type: array, items: { type: string } }
+    Equipment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        image_url: { type: string, nullable: true }
+        image_public_id: { type: string, nullable: true }
+        gallery_urls: { type: array, items: { type: string } }
+        gallery_public_ids: { type: array, items: { type: string } }
+    RoomEquipment:
+      type: object
+      properties:
+        equipment_id: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        image_url: { type: string, nullable: true }
+        quantity: { type: integer }
     Room:
       type: object
       properties:
@@ -385,6 +679,10 @@ components:
         status: { type: string }
         building_code: { type: string }
         building_name: { type: string }
+        image_url: { type: string, nullable: true }
+        image_public_id: { type: string, nullable: true }
+        gallery_urls: { type: array, items: { type: string } }
+        gallery_public_ids: { type: array, items: { type: string } }
     Booking:
       type: object
       properties:
@@ -397,3 +695,114 @@ components:
         ends_at: { type: string, format: date-time }
         status: { $ref: "#/components/schemas/BookingStatus" }
         review_note: { type: string, nullable: true }
+        # Optional nested relations, returned on the enriched approvals projection.
+        room: { allOf: [ { $ref: "#/components/schemas/Room" } ], nullable: true }
+        requester: { allOf: [ { $ref: "#/components/schemas/User" } ], nullable: true }
+    ApprovalBlocker:
+      type: object
+      description: A reason a pending booking can or cannot be approved (§11/FR8).
+      required: [kind, message]
+      properties:
+        kind:
+          type: string
+          enum: [LECTURE, MAINTENANCE, APPROVED_BOOKING, COMPETING_PENDING, CAPACITY, IN_PAST]
+        message: { type: string }
+        starts_at: { type: string, format: date-time, nullable: true }
+        ends_at: { type: string, format: date-time, nullable: true }
+    BookingApprovability:
+      type: object
+      description: >
+        A pending booking enriched with approvability info, used on the approvals
+        queue. can_approve is true only when there are no hard blockers (IN_PAST,
+        CAPACITY, LECTURE, MAINTENANCE, APPROVED_BOOKING); competing pendings are
+        informational and never block.
+      required: [booking, can_approve, blockers, competing_pending_count]
+      properties:
+        booking: { $ref: "#/components/schemas/Booking" }
+        can_approve: { type: boolean }
+        blockers:
+          type: array
+          items: { $ref: "#/components/schemas/ApprovalBlocker" }
+        competing_pending_count: { type: integer }
+    BookingMetrics:
+      type: object
+      required: [pending, approved, rejected, total]
+      properties:
+        pending: { type: integer }
+        approved: { type: integer }
+        rejected: { type: integer }
+        total: { type: integer }
+    LabelCount:
+      type: object
+      required: [label, count]
+      properties:
+        label: { type: string }
+        count: { type: integer }
+    OverviewReport:
+      type: object
+      description: Aggregate report powering the admin overview dashboard (FR12).
+      required: [range, kpis, status_breakdown, by_room_type, by_building, top_rooms, series, peak_hours]
+      properties:
+        range:
+          type: object
+          required: [from, to]
+          properties:
+            from: { type: string, format: date }
+            to: { type: string, format: date }
+        kpis:
+          type: object
+          required: [total_bookings, pending, approved, rejected, cancelled, expired, active_rooms, active_users, buildings, avg_utilisation_pct, approval_rate_pct]
+          properties:
+            total_bookings: { type: integer, description: Bookings with starts_at in range }
+            pending: { type: integer, description: Current count of PENDING bookings (ignores range) }
+            approved: { type: integer }
+            rejected: { type: integer }
+            cancelled: { type: integer }
+            expired: { type: integer }
+            active_rooms: { type: integer, description: Current rooms WHERE status='ACTIVE' }
+            active_users: { type: integer, description: Current users WHERE status='ACTIVE' }
+            buildings: { type: integer, description: Current building count }
+            avg_utilisation_pct: { type: number, format: float }
+            approval_rate_pct: { type: number, format: float, description: approved/(approved+rejected), 1 decimal }
+        status_breakdown:
+          type: array
+          description: Bookings by status in range; all 5 statuses, zeros included.
+          items: { $ref: "#/components/schemas/LabelCount" }
+        by_room_type:
+          type: array
+          description: Bookings by room.room_type in range.
+          items: { $ref: "#/components/schemas/LabelCount" }
+        by_building:
+          type: array
+          description: Bookings by building.code in range.
+          items: { $ref: "#/components/schemas/LabelCount" }
+        top_rooms:
+          type: array
+          description: Top 8 rooms by utilisation_pct desc over the range.
+          items:
+            type: object
+            required: [room_code, room_name, utilisation_pct, booked_hours]
+            properties:
+              room_code: { type: string }
+              room_name: { type: string }
+              utilisation_pct: { type: number, format: float }
+              booked_hours: { type: number, format: float }
+        series:
+          type: array
+          description: One point per calendar day in range (institution tz); empty days are zero.
+          items:
+            type: object
+            required: [date, submitted, approved]
+            properties:
+              date: { type: string, format: date }
+              submitted: { type: integer, description: Bookings created that day }
+              approved: { type: integer, description: Bookings created that day whose status is APPROVED }
+        peak_hours:
+          type: array
+          description: Bookings by local start hour-of-day 0..23 in range; all 24 hours included.
+          items:
+            type: object
+            required: [hour, count]
+            properties:
+              hour: { type: integer, minimum: 0, maximum: 23 }
+              count: { type: integer }

@@ -13,7 +13,8 @@ import { apiOrigin } from "@/lib/env";
 export async function serverApi() {
   const cookieStore = await cookies();
   const cookieHeader = cookieStore.toString();
-  const csrf = cookieStore.get("cbs-csrf")?.value;
+  const csrf =
+    cookieStore.get("cbs_csrf")?.value ?? cookieStore.get("cbs-csrf")?.value;
 
   const fwdHeaders: Record<string, string> = {};
   if (cookieHeader) fwdHeaders["cookie"] = cookieHeader;

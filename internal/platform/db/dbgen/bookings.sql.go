@@ -412,6 +412,100 @@ func (q *Queries) ListConflictingApprovedBookings(ctx context.Context, arg ListC
 	return items, nil
 }
 
+const listPendingForApproval = `-- name: ListPendingForApproval :many
+SELECT b.id, b.room_id, b.requested_by, b.purpose, b.attendee_count,
+       b.starts_at, b.ends_at, b.status, b.reviewed_by, b.review_note,
+       b.reviewed_at, b.cancelled_at, b.created_at, b.updated_at,
+       r.room_code        AS room_code,
+       r.name             AS room_name,
+       r.capacity         AS room_capacity,
+       u.full_name        AS requester_full_name,
+       u.department_id    AS requester_department_id,
+       d.name             AS requester_department_name
+FROM bookings b
+JOIN rooms r ON r.id = b.room_id
+JOIN users u ON u.id = b.requested_by
+LEFT JOIN departments d ON d.id = u.department_id
+WHERE b.status = 'PENDING'
+  AND ($1::uuid IS NULL OR b.room_id = $1)
+  AND ($2::uuid IS NULL OR b.id < $2)
+ORDER BY b.id DESC
+LIMIT $3
+`
+
+type ListPendingForApprovalParams struct {
+	RoomID *uuid.UUID `json:"room_id"`
+	Cursor *uuid.UUID `json:"cursor"`
+	Lim    int32      `json:"lim"`
+}
+
+type ListPendingForApprovalRow struct {
+	ID                      uuid.UUID          `json:"id"`
+	RoomID                  uuid.UUID          `json:"room_id"`
+	RequestedBy             uuid.UUID          `json:"requested_by"`
+	Purpose                 string             `json:"purpose"`
+	AttendeeCount           int32              `json:"attendee_count"`
+	StartsAt                pgtype.Timestamptz `json:"starts_at"`
+	EndsAt                  pgtype.Timestamptz `json:"ends_at"`
+	Status                  BookingStatus      `json:"status"`
+	ReviewedBy              *uuid.UUID         `json:"reviewed_by"`
+	ReviewNote              *string            `json:"review_note"`
+	ReviewedAt              pgtype.Timestamptz `json:"reviewed_at"`
+	CancelledAt             pgtype.Timestamptz `json:"cancelled_at"`
+	CreatedAt               pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt               pgtype.Timestamptz `json:"updated_at"`
+	RoomCode                string             `json:"room_code"`
+	RoomName                string             `json:"room_name"`
+	RoomCapacity            int32              `json:"room_capacity"`
+	RequesterFullName       string             `json:"requester_full_name"`
+	RequesterDepartmentID   *uuid.UUID         `json:"requester_department_id"`
+	RequesterDepartmentName *string            `json:"requester_department_name"`
+}
+
+// Pending bookings enriched with room + requester (+ department) for the
+// approvals queue (FR8, §11). Joined here so the handler avoids N+1 lookups; the
+// approvability blockers are then computed per row in the service layer.
+func (q *Queries) ListPendingForApproval(ctx context.Context, arg ListPendingForApprovalParams) ([]ListPendingForApprovalRow, error) {
+	rows, err := q.db.Query(ctx, listPendingForApproval, arg.RoomID, arg.Cursor, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPendingForApprovalRow
+	for rows.Next() {
+		var i ListPendingForApprovalRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.RoomID,
+			&i.RequestedBy,
+			&i.Purpose,
+			&i.AttendeeCount,
+			&i.StartsAt,
+			&i.EndsAt,
+			&i.Status,
+			&i.ReviewedBy,
+			&i.ReviewNote,
+			&i.ReviewedAt,
+			&i.CancelledAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.RoomCode,
+			&i.RoomName,
+			&i.RoomCapacity,
+			&i.RequesterFullName,
+			&i.RequesterDepartmentID,
+			&i.RequesterDepartmentName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setBookingStatus = `-- name: SetBookingStatus :one
 UPDATE bookings
 SET status = $2,

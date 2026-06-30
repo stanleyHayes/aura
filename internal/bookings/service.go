@@ -3,6 +3,7 @@ package bookings
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -264,6 +265,163 @@ func (s *Service) List(ctx context.Context, p dbgen.ListBookingsParams) ([]Booki
 		views[i] = viewFromList(r)
 	}
 	return views, nil
+}
+
+// PendingApprovability lists PENDING bookings (enriched with room + requester)
+// and computes, per row, the §11/FR8 blockers that explain whether the request
+// can be approved. Hard blockers (IN_PAST, CAPACITY, LECTURE, MAINTENANCE,
+// APPROVED_BOOKING) make can_approve false; competing PENDING requests are only
+// informational (approving supersedes them) and never block (BR5/BR6).
+//
+// All checks reuse the existing read queries the availability engine and the
+// override path already rely on — no hand-written SQL here.
+func (s *Service) PendingApprovability(ctx context.Context, p dbgen.ListPendingForApprovalParams) ([]Approvability, error) {
+	rows, err := s.store.Read.ListPendingForApproval(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+	now := time.Now()
+	out := make([]Approvability, 0, len(rows))
+	for _, row := range rows {
+		item, err := s.approvabilityFor(ctx, row, now)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, item)
+	}
+	return out, nil
+}
+
+// approvabilityFor computes the blockers for one pending booking row.
+func (s *Service) approvabilityFor(ctx context.Context, row dbgen.ListPendingForApprovalRow, now time.Time) (Approvability, error) {
+	startsAt := row.StartsAt.Time
+	endsAt := row.EndsAt.Time
+	var blockers []ApprovalBlocker
+
+	// IN_PAST (hard): the slot has already started.
+	if startsAt.Before(now) {
+		blockers = append(blockers, ApprovalBlocker{
+			Kind:    blockerInPast,
+			Message: "This request's start time is in the past.",
+		})
+	}
+
+	// CAPACITY (hard): more attendees than the room holds.
+	if row.AttendeeCount > row.RoomCapacity {
+		blockers = append(blockers, ApprovalBlocker{
+			Kind: blockerCapacity,
+			Message: fmt.Sprintf("Requested %d attendees exceed the room capacity of %d.",
+				row.AttendeeCount, row.RoomCapacity),
+		})
+	}
+
+	// LECTURE / MAINTENANCE / APPROVED_BOOKING (hard): overlap checks that reuse
+	// the same read queries as the availability engine and the override path.
+	overlapBlockers, err := s.overlapBlockers(ctx, row, startsAt, endsAt)
+	if err != nil {
+		return Approvability{}, err
+	}
+	blockers = append(blockers, overlapBlockers...)
+
+	// can_approve depends only on the hard blockers gathered so far.
+	canApprove := len(blockers) == 0
+
+	// COMPETING_PENDING (soft): other pending requests for the same slot. This is
+	// informational only — approving this one supersedes them — so it does NOT
+	// flip can_approve.
+	competing, err := s.store.Read.CountPendingOverlap(ctx, dbgen.CountPendingOverlapParams{
+		RoomID: row.RoomID, ExcludeID: row.ID, WinStart: row.StartsAt, WinEnd: row.EndsAt,
+	})
+	if err != nil {
+		return Approvability{}, err
+	}
+	if competing > 0 {
+		noun := "request"
+		if competing != 1 {
+			noun = "requests"
+		}
+		blockers = append(blockers, ApprovalBlocker{
+			Kind:    blockerCompetingPend,
+			Message: fmt.Sprintf("%d other pending %s compete for this slot; approving this one supersedes them.", competing, noun),
+		})
+	}
+
+	if blockers == nil {
+		blockers = []ApprovalBlocker{}
+	}
+	return Approvability{
+		Booking:               enrichedFromPending(row),
+		CanApprove:            canApprove,
+		Blockers:              blockers,
+		CompetingPendingCount: competing,
+	}, nil
+}
+
+// overlapBlockers gathers the hard time-overlap blockers (lecture, maintenance,
+// approved booking) for a pending booking's room+window. Each check reuses an
+// existing read query.
+func (s *Service) overlapBlockers(ctx context.Context, row dbgen.ListPendingForApprovalRow, startsAt, endsAt time.Time) ([]ApprovalBlocker, error) {
+	var blockers []ApprovalBlocker
+	day := time.Date(startsAt.In(s.loc).Year(), startsAt.In(s.loc).Month(), startsAt.In(s.loc).Day(), 0, 0, 0, 0, s.loc)
+	win := availability.Interval{Start: minutesInto(startsAt.In(s.loc), day), End: minutesInto(endsAt.In(s.loc), day)}
+
+	// LECTURE: an active-semester lecture overlaps the room+window.
+	lectures, err := s.store.Read.ListRoomLecturesOnDay(ctx, dbgen.ListRoomLecturesOnDayParams{
+		RoomID: row.RoomID, Day: availability.WeekdayEnum(day), OnDate: pgconv.Date(day),
+	})
+	if err != nil {
+		return nil, err
+	}
+	for _, lec := range lectures {
+		sh, sm := pgconv.PgTimeToClock(lec.StartTime)
+		eh, em := pgconv.PgTimeToClock(lec.EndTime)
+		if availability.Overlaps(win, availability.Interval{Start: sh*60 + sm, End: eh*60 + em}) {
+			ls := time.Date(day.Year(), day.Month(), day.Day(), sh, sm, 0, 0, s.loc)
+			le := time.Date(day.Year(), day.Month(), day.Day(), eh, em, 0, 0, s.loc)
+			blockers = append(blockers, ApprovalBlocker{
+				Kind:     blockerLecture,
+				Message:  fmt.Sprintf("A scheduled lecture (%s) occupies this room during the requested time.", lec.CourseCode),
+				StartsAt: &ls, EndsAt: &le,
+			})
+			break
+		}
+	}
+
+	// MAINTENANCE: a maintenance window overlaps the room+window.
+	maint, err := s.store.Read.ListMaintenanceForRoomInRange(ctx, dbgen.ListMaintenanceForRoomInRangeParams{
+		RoomID: row.RoomID, DayStart: pgconv.TS(day), DayEnd: pgconv.TS(day.Add(24 * time.Hour)),
+	})
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range maint {
+		if m.StartsAt.Time.Before(endsAt) && startsAt.Before(m.EndsAt.Time) {
+			ms, me := m.StartsAt.Time, m.EndsAt.Time
+			blockers = append(blockers, ApprovalBlocker{
+				Kind:     blockerMaintenance,
+				Message:  "A maintenance window is scheduled on this room during the requested time.",
+				StartsAt: &ms, EndsAt: &me,
+			})
+			break
+		}
+	}
+
+	// APPROVED_BOOKING: another approved booking already holds the slot.
+	approved, err := s.store.Read.ListConflictingApprovedBookings(ctx, dbgen.ListConflictingApprovedBookingsParams{
+		RoomID: row.RoomID, ExcludeID: row.ID, WinStart: row.StartsAt, WinEnd: row.EndsAt,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(approved) > 0 {
+		as, ae := approved[0].StartsAt.Time, approved[0].EndsAt.Time
+		blockers = append(blockers, ApprovalBlocker{
+			Kind:     blockerApprovedBooking,
+			Message:  "Another approved booking already holds this room during the requested time.",
+			StartsAt: &as, EndsAt: &ae,
+		})
+	}
+	return blockers, nil
 }
 
 func (s *Service) getStatus(ctx context.Context, id uuid.UUID) (dbgen.BookingStatus, error) {

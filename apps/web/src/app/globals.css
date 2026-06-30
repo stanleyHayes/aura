@@ -5,25 +5,405 @@
 @import "@cbs/ui/globals.css";
 
 /* Tailwind v4 content sources: scan the app and the shared UI package so
-   utility classes used in @cbs/ui are emitted. */
+   utility classes used in @cbs/ui are emitted. Paths are resolved relative to
+   THIS file (apps/web/src/app/), so the package needs four "../" to reach the
+   repo root - three only reaches apps/, which is why @cbs/ui-only utilities
+   (e.g. the popover/dropdown/select `bg-[var(--color-popover)]`) were never
+   generated and those surfaces rendered transparent. */
 @source "../";
-@source "../../../packages/ui/src";
+@source "../../../../packages/ui/src";
 
-/* Schedule-X calendar theme bridged to CBS tokens (ADR-0005). */
-.sx-react-calendar-wrapper {
-  --sx-color-primary: var(--color-ink-600);
-  --sx-color-on-primary: var(--color-paper-50);
+/* Schedule-X calendar theme bridged to AURA tokens (ADR-0005). */
+.sx-react-calendar-wrapper,
+.sx__date-picker-popup {
+  --sx-color-primary: var(--color-maroon);
+  --sx-color-on-primary: var(--color-primary-foreground);
   --sx-color-primary-container: color-mix(
     in oklch,
-    var(--color-ink-200) 60%,
+    var(--color-maroon-tint) 78%,
+    var(--color-card)
+  );
+  --sx-color-on-primary-container: var(--color-maroon-dark);
+  --sx-color-secondary: var(--color-muted-foreground);
+  --sx-color-on-secondary: var(--color-card);
+  --sx-color-secondary-container: var(--color-muted);
+  --sx-color-on-secondary-container: var(--color-foreground);
+  --sx-color-surface: var(--color-card);
+  --sx-color-surface-dim: color-mix(
+    in oklch,
+    var(--color-muted) 72%,
     transparent
+  );
+  --sx-color-surface-bright: var(--color-card);
+  --sx-color-on-surface: var(--color-foreground);
+  --sx-color-surface-container: color-mix(
+    in oklch,
+    var(--color-muted) 58%,
+    var(--color-card)
+  );
+  --sx-color-surface-container-low: color-mix(
+    in oklch,
+    var(--color-muted) 34%,
+    var(--color-card)
+  );
+  --sx-color-surface-container-high: color-mix(
+    in oklch,
+    var(--color-muted) 76%,
+    var(--color-card)
   );
   --sx-color-background: var(--color-card);
   --sx-color-on-background: var(--color-foreground);
-  --sx-color-surface: var(--color-card);
-  --sx-color-on-surface: var(--color-foreground);
-  --sx-color-border: var(--color-border);
+  --sx-color-outline: var(--color-muted-foreground);
+  --sx-color-outline-variant: var(--color-border);
+  --sx-color-neutral: var(--color-muted-foreground);
+  --sx-color-neutral-variant: color-mix(
+    in oklch,
+    var(--color-muted-foreground) 62%,
+    transparent
+  );
+  --sx-internal-color-gray-ripple-background: color-mix(
+    in oklch,
+    var(--color-maroon-tint) 55%,
+    transparent
+  );
+  --sx-internal-color-light-gray: color-mix(
+    in oklch,
+    var(--color-muted) 64%,
+    transparent
+  );
+  --sx-internal-color-text: var(--color-foreground);
+  --sx-border: 1px solid var(--color-border);
+  --sx-box-shadow-level3:
+    0 22px 55px color-mix(in oklch, var(--color-ink-950) 18%, transparent),
+    0 6px 18px color-mix(in oklch, var(--color-ink-950) 12%, transparent);
+  --sx-calendar-header-input-font-size: 0.95rem;
+  --sx-calendar-week-grid-padding-left: 4.85rem;
   font-family: var(--font-sans);
-  border-radius: var(--radius-xl);
+}
+
+.sx-react-calendar-wrapper {
+  min-height: clamp(34rem, calc(100dvh - 17rem), 52rem);
   overflow: hidden;
+  background: var(--color-card);
+}
+
+.sx-react-calendar-wrapper .sx__calendar {
+  border: 0;
+  border-radius: 0;
+  background: var(--color-card);
+}
+
+.sx-react-calendar-wrapper .sx__calendar-header {
+  align-items: center;
+  gap: 1rem;
+  padding: 1.15rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in oklch, var(--color-card) 88%, transparent);
+}
+
+.sx-react-calendar-wrapper .sx__calendar-header-content {
+  gap: 0.7rem;
+}
+
+.sx-react-calendar-wrapper .sx__range-heading {
+  max-width: none;
+  color: var(--color-foreground);
+  font-size: clamp(1.45rem, 2.2vw, 2rem);
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.sx-react-calendar-wrapper .sx__forward-backward-navigation {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.sx-react-calendar-wrapper .sx__chevron-wrapper {
+  min-width: 2.7rem;
+  min-height: 2.7rem;
+  color: var(--color-foreground);
+}
+
+.sx-react-calendar-wrapper .sx__chevron-wrapper:hover,
+.sx-react-calendar-wrapper .sx__chevron-wrapper:focus,
+.sx__date-picker-popup .sx__chevron-wrapper:hover,
+.sx__date-picker-popup .sx__chevron-wrapper:focus {
+  background: var(--color-accent);
+}
+
+.sx-react-calendar-wrapper .sx__chevron-wrapper .sx__chevron,
+.sx__date-picker-popup .sx__chevron-wrapper .sx__chevron {
+  border-color: currentColor;
+}
+
+.sx-react-calendar-wrapper .sx__today-button,
+.sx-react-calendar-wrapper .sx__view-selection-selected-item,
+.sx-react-calendar-wrapper .sx__date-input {
+  min-height: 3rem;
+  border: 1px solid var(--color-input);
+  border-radius: var(--radius-lg);
+  background: var(--color-card);
+  color: var(--color-foreground);
+  box-shadow: 0 1px 0 color-mix(in oklch, var(--color-foreground) 8%, transparent);
+}
+
+.sx-react-calendar-wrapper .sx__today-button:hover,
+.sx-react-calendar-wrapper .sx__today-button:focus,
+.sx-react-calendar-wrapper .sx__view-selection-selected-item:hover,
+.sx-react-calendar-wrapper .sx__view-selection-selected-item:focus,
+.sx-react-calendar-wrapper .sx__date-input:hover,
+.sx-react-calendar-wrapper .sx__date-input:focus {
+  background: var(--color-accent);
+  color: var(--color-accent-foreground);
+}
+
+.sx-react-calendar-wrapper .sx__view-selection-label,
+.sx-react-calendar-wrapper .sx__date-input-label {
+  display: block;
+  background: var(--color-card);
+  color: var(--color-muted-foreground);
+  font-weight: 600;
+}
+
+.sx-react-calendar-wrapper .is-dark .sx__view-selection-label,
+.sx-react-calendar-wrapper .is-dark .sx__date-input-label,
+.sx-react-calendar-wrapper.is-dark .sx__view-selection-label,
+.sx-react-calendar-wrapper.is-dark .sx__date-input-label {
+  display: block;
+}
+
+.sx-react-calendar-wrapper .sx__view-selection-items {
+  min-width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-popover);
+  color: var(--color-popover-foreground);
+  box-shadow: var(--sx-box-shadow-level3);
+}
+
+.sx-react-calendar-wrapper .sx__view-selection-item {
+  background: var(--color-popover);
+  color: var(--color-popover-foreground);
+  font-weight: 560;
+}
+
+.sx-react-calendar-wrapper .sx__view-selection-item:hover,
+.sx-react-calendar-wrapper .sx__view-selection-item:focus {
+  background: var(--color-accent);
+  color: var(--color-accent-foreground);
+}
+
+.sx-react-calendar-wrapper .sx__view-selection-item.is-selected,
+.sx-react-calendar-wrapper .sx__view-selection-item.is-selected:hover,
+.sx-react-calendar-wrapper .sx__view-selection-item.is-selected:focus {
+  background: var(--color-maroon-tint);
+  color: var(--color-maroon-dark);
+}
+
+.dark .sx-react-calendar-wrapper .sx__view-selection-item.is-selected,
+.dark .sx-react-calendar-wrapper .sx__view-selection-item.is-selected:hover,
+.dark .sx-react-calendar-wrapper .sx__view-selection-item.is-selected:focus {
+  background: color-mix(in oklch, var(--color-maroon) 34%, var(--color-card));
+  color: var(--color-maroon-tint);
+}
+
+.sx__date-picker-popup,
+.sx__date-picker-popup.is-dark {
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  background: var(--color-popover);
+  color: var(--color-popover-foreground);
+  box-shadow: var(--sx-box-shadow-level3);
+}
+
+.sx__date-picker-popup *,
+.sx__date-picker-popup.is-dark * {
+  color: inherit;
+}
+
+.sx__date-picker-popup .sx__date-picker__month-view-header__month-year {
+  color: var(--color-foreground);
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.sx__date-picker-popup .sx__date-picker__day-name {
+  color: var(--color-muted-foreground);
+}
+
+.sx__date-picker-popup .sx__date-picker__day {
+  color: var(--color-foreground);
+}
+
+.sx__date-picker-popup .sx__date-picker__day:hover,
+.sx__date-picker-popup .sx__date-picker__years-view-accordion__month:hover,
+.sx__date-picker-popup .sx__date-picker__month-view-header__month-year:hover {
+  background: var(--color-accent);
+  color: var(--color-accent-foreground);
+  text-decoration: none;
+}
+
+.sx__date-picker-popup .sx__date-picker__day.is-leading-or-trailing,
+.sx__date-picker-popup .sx__date-picker__day:disabled {
+  color: color-mix(in oklch, var(--color-muted-foreground) 58%, transparent);
+}
+
+.sx__date-picker-popup .sx__date-picker__day.sx__date-picker__day--selected,
+.sx__date-picker-popup .sx__date-picker__day.sx__date-picker__day--today {
+  background: var(--color-maroon);
+  color: var(--color-primary-foreground);
+}
+
+.sx-react-calendar-wrapper .sx__week-header {
+  background: color-mix(in oklch, var(--color-card) 94%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.sx-react-calendar-wrapper .sx__week-header-border,
+.sx-react-calendar-wrapper .sx__week-grid__hour,
+.sx-react-calendar-wrapper .sx__time-grid-day,
+.sx-react-calendar-wrapper .sx__month-grid-week,
+.sx-react-calendar-wrapper .sx__month-grid-day:not(:last-child) {
+  border-color: color-mix(in oklch, var(--color-border) 72%, transparent);
+}
+
+.sx-react-calendar-wrapper .sx__week-grid__day-name,
+.sx-react-calendar-wrapper .sx__month-grid-day__header-day-name,
+.sx-react-calendar-wrapper .sx__week-grid__hour-text {
+  color: var(--color-muted-foreground);
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.sx-react-calendar-wrapper .sx__week-grid__date-number {
+  color: color-mix(in oklch, var(--color-muted-foreground) 76%, var(--color-foreground));
+  font-weight: 650;
+}
+
+.sx-react-calendar-wrapper .sx__week-grid__date--is-today .sx__week-grid__day-name {
+  color: var(--color-maroon);
+}
+
+.sx-react-calendar-wrapper .sx__week-grid__date--is-today .sx__week-grid__date-number,
+.sx-react-calendar-wrapper .sx__month-grid-day__header-date.sx__is-today {
+  background: color-mix(in oklch, var(--color-muted) 58%, var(--color-card));
+  color: var(--color-foreground);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
+
+.sx-react-calendar-wrapper .sx__time-grid-event,
+.sx-react-calendar-wrapper .sx__month-grid-event,
+.sx-react-calendar-wrapper .sx__date-grid-event {
+  border: 1px solid color-mix(in oklch, currentColor 18%, transparent);
+  border-left-width: 0.28rem;
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 24px color-mix(in oklch, var(--color-ink-950) 10%, transparent);
+}
+
+.sx-react-calendar-wrapper .sx__time-grid-event-title,
+.sx-react-calendar-wrapper .sx__time-grid-event-time,
+.sx-react-calendar-wrapper .sx__date-grid-event-text,
+.sx-react-calendar-wrapper .sx__month-grid-event {
+  color: inherit;
+}
+
+.sx-react-calendar-wrapper .sx__event-modal,
+.sx-react-calendar-wrapper .sx__event-modal-default {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  background: var(--color-popover);
+  color: var(--color-popover-foreground);
+  box-shadow: var(--sx-box-shadow-level3);
+}
+
+.sx-react-calendar-wrapper .sx__current-time-indicator,
+.sx-react-calendar-wrapper .sx__current-time-indicator-full-week {
+  background: var(--color-maroon);
+}
+
+@media (max-width: 767px) {
+  .sx-react-calendar-wrapper {
+    min-height: 34rem;
+  }
+
+  .sx-react-calendar-wrapper .sx__calendar-header {
+    align-items: stretch;
+    padding: 1rem;
+  }
+
+  .sx-react-calendar-wrapper .sx__calendar-header-content {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .sx-react-calendar-wrapper .sx__range-heading {
+    order: 3;
+    width: 100%;
+    text-align: center;
+    font-size: 1.45rem;
+  }
+}
+
+html.theme-reveal::view-transition-new(root) {
+  /* Circular clip-path reveal of the new theme. The toggle removes the
+     `theme-reveal` class on transition.finished (not a fixed timer), so this
+     duration alone controls the reveal speed. */
+  animation: aura-theme-reveal 800ms var(--ease-out-quart);
+}
+
+html.theme-reveal::view-transition-old(root) {
+  animation: none;
+}
+
+@keyframes aura-theme-reveal {
+  from {
+    clip-path: circle(0 at var(--theme-reveal-x) var(--theme-reveal-y));
+  }
+  to {
+    clip-path: circle(150vmax at var(--theme-reveal-x) var(--theme-reveal-y));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-reveal::view-transition-new(root),
+  html.theme-reveal::view-transition-old(root) {
+    animation: none;
+  }
+}
+
+/* Per-route page transition (applied via each route group's template.tsx and
+   the PageTransition component). Only runs under motion-safe (the utility uses
+   the motion-safe: variant), so reduced-motion users see no movement. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scroll-triggered 3D reveal (Reveal3D component) used on the home + rooms
+   pages. Cards start tilted back in 3D + transparent and settle flat as they
+   enter the viewport. Gated by motion-safe: reduced-motion users (and no-JS)
+   get the content immediately and fully visible. */
+@media (prefers-reduced-motion: no-preference) {
+  .aura-reveal-3d {
+    opacity: 0;
+    transform: perspective(1200px) rotateX(-16deg) translateY(28px);
+    transform-origin: center top;
+    transition:
+      opacity 600ms var(--ease-out-quart),
+      transform 700ms var(--ease-out-quart);
+    will-change: opacity, transform;
+  }
+  .aura-reveal-3d.is-revealed {
+    opacity: 1;
+    transform: perspective(1200px) rotateX(0) translateY(0);
+  }
 }

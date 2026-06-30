@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+import { BarChart3, Building2 } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -11,10 +13,17 @@ import {
   YAxis,
 } from "recharts";
 import type { UtilisationRow } from "@cbs/schemas";
+import { EmptyState } from "@/components/empty-state";
 
 const tickStyle = { fontSize: 12, fill: "var(--color-muted-foreground)" };
 
-export function UtilisationChart({ rows }: { rows: UtilisationRow[] }) {
+export function UtilisationChart({
+  rows,
+  emptyActions,
+}: {
+  rows: UtilisationRow[];
+  emptyActions?: ReactNode;
+}) {
   const data = rows
     .slice()
     .sort((a, b) => b.utilisation_pct - a.utilisation_pct)
@@ -26,9 +35,13 @@ export function UtilisationChart({ rows }: { rows: UtilisationRow[] }) {
 
   if (data.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-[var(--color-muted-foreground)]">
-        No utilisation data for this range.
-      </p>
+      <EmptyState
+        icon={BarChart3}
+        title="No utilisation data for this range"
+        description="This chart needs timetable rows or approved bookings inside the selected dates."
+        actions={emptyActions}
+        className="min-h-80 border-0 bg-transparent py-12 shadow-none"
+      />
     );
   }
 
@@ -59,8 +72,10 @@ export function UtilisationChart({ rows }: { rows: UtilisationRow[] }) {
 
 export function BookingsChart({
   data: byKey,
+  emptyActions,
 }: {
   data: Record<string, number>;
+  emptyActions?: ReactNode;
 }) {
   const data = Object.entries(byKey)
     .sort((a, b) => b[1] - a[1])
@@ -69,9 +84,13 @@ export function BookingsChart({
 
   if (data.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-[var(--color-muted-foreground)]">
-        No bookings for this range.
-      </p>
+      <EmptyState
+        icon={Building2}
+        title="No bookings for this range"
+        description="Department booking totals appear once approved or requested bookings fall inside the selected dates."
+        actions={emptyActions}
+        className="min-h-80 border-0 bg-transparent py-12 shadow-none"
+      />
     );
   }
 

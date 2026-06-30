@@ -83,10 +83,11 @@ export const MeSchema = z.object({
 export type Me = z.infer<typeof MeSchema>;
 
 export const AuthTokensSchema = z.object({
-  accessToken: z.string().min(1),
-  refreshToken: z.string().min(1),
+  access_token: z.string().min(1),
+  refresh_token: z.string().min(1),
+  token_type: z.string().optional(),
   // Seconds until the access token expires (15 min per Section 9.1).
-  expiresIn: z.number().int().positive().optional(),
+  expires_in: z.number().int().positive().optional(),
 });
 export type AuthTokens = z.infer<typeof AuthTokensSchema>;
 
