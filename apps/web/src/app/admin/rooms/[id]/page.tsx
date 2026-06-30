@@ -55,6 +55,52 @@ function RoomStatusBadge({ status }: { status: Room["status"] }) {
   return <Badge variant={ROOM_STATUS_VARIANT[status]}>{label(status)}</Badge>;
 }
 
+function BuildingProfileLink({
+  room,
+  building,
+}: {
+  room: Room;
+  building: Building | null;
+}) {
+  const name = building?.name ?? room.building_name ?? "Building profile";
+  const code = building?.code ?? room.building_code;
+  const campus = building?.campus;
+
+  return (
+    <Link
+      href={route(`/admin/buildings/${building?.id ?? room.building_id}`)}
+      className="group flex flex-col gap-4 rounded-xl border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-muted)_28%,var(--color-card))] p-4 transition-colors hover:border-[color-mix(in_oklch,var(--color-maroon)_45%,var(--color-border))] hover:bg-[color-mix(in_oklch,var(--color-maroon-tint)_44%,var(--color-card))] sm:flex-row sm:items-center"
+    >
+      {building?.image_url ? (
+        <img
+          src={building.image_url}
+          alt={`${name} building`}
+          className="aspect-[4/3] w-full rounded-xl border border-[var(--color-border)] object-cover sm:size-20 sm:shrink-0"
+        />
+      ) : (
+        <span className="grid aspect-[4/3] w-full place-items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-maroon)] sm:size-20 sm:shrink-0">
+          <Building2 className="size-7" aria-hidden="true" />
+        </span>
+      )}
+      <span className="min-w-0 flex-1">
+        <span className="block text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+          Building
+        </span>
+        <span className="mt-1 block truncate text-base font-semibold text-[var(--color-foreground)]">
+          {name}
+        </span>
+        <span className="mt-2 flex flex-wrap gap-2">
+          {code ? <Badge variant="secondary">{code}</Badge> : null}
+          {campus ? <Badge variant="outline">{campus}</Badge> : null}
+        </span>
+      </span>
+      <span className="inline-flex shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-1.5 text-sm font-semibold text-[var(--color-maroon)] transition-colors group-hover:border-[color-mix(in_oklch,var(--color-maroon)_50%,var(--color-border))]">
+        View building
+      </span>
+    </Link>
+  );
+}
+
 async function getRoom(id: string) {
   const api = await serverApi();
   const roomResult = await api.GET("/api/v1/rooms/{id}", {
@@ -252,13 +298,15 @@ export default async function AdminRoomDetailPage({
 
       <DetailPanel
         title="Record details"
-        description="Identifiers and audit timestamps for this catalogue record."
+        description="Linked building profile, identifiers and audit timestamps for this catalogue record."
         className="bg-[color-mix(in_oklch,var(--color-muted)_18%,var(--color-card))]"
       >
+        <div className="mb-3">
+          <BuildingProfileLink room={room} building={building} />
+        </div>
         <DetailFields
           fields={[
             { label: "Room ID", value: room.id },
-            { label: "Building ID", value: room.building_id },
             { label: "Created", value: formatDateTime(room.created_at) },
             { label: "Updated", value: formatDateTime(room.updated_at) },
             { label: "Status", value: <RoomStatusBadge status={room.status} /> },
