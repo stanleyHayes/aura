@@ -1,0 +1,22 @@
+{
+  "name": "@cbs/tokens",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Framework-neutral design tokens — Ashesi brand palette + dark-tint catalogue. Single source of truth shared by web + mobile (no React, no React Native, no CSS).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./palette": "./src/palette.ts",
+    "./dark-tints": "./src/dark-tints.ts"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "devDependencies": {
+    "@cbs/config": "workspace:*",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
+  }
+}

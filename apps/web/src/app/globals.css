@@ -270,6 +270,27 @@
   border-color: color-mix(in oklch, var(--color-border) 72%, transparent);
 }
 
+.sx-react-calendar-wrapper .sx__week-grid__hour {
+  border-top-color: color-mix(
+    in oklch,
+    var(--color-border) 88%,
+    var(--color-foreground)
+  );
+}
+
+.sx-react-calendar-wrapper .sx__time-grid-day {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--sx-week-grid-hour-height) - 1px),
+    color-mix(in oklch, var(--color-border) 78%, transparent)
+      calc(var(--sx-week-grid-hour-height) - 1px),
+    color-mix(in oklch, var(--color-border) 78%, transparent)
+      var(--sx-week-grid-hour-height)
+  );
+  background-size: 100% var(--sx-week-grid-hour-height);
+}
+
 .sx-react-calendar-wrapper .sx__week-grid__day-name,
 .sx-react-calendar-wrapper .sx__month-grid-day__header-day-name,
 .sx-react-calendar-wrapper .sx__week-grid__hour-text {
@@ -297,10 +318,51 @@
 .sx-react-calendar-wrapper .sx__time-grid-event,
 .sx-react-calendar-wrapper .sx__month-grid-event,
 .sx-react-calendar-wrapper .sx__date-grid-event {
-  border: 1px solid color-mix(in oklch, currentColor 18%, transparent);
-  border-left-width: 0.28rem;
+  border: 1px solid color-mix(in oklch, currentColor 30%, transparent);
+  border-left-width: 0.32rem;
+  border-radius: var(--radius-lg);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklch, currentColor 10%, transparent),
+    0 8px 18px color-mix(in oklch, var(--color-ink-950) 10%, transparent);
+}
+
+.sx-react-calendar-wrapper .sx__time-grid-event.aura-cal-event {
+  width: calc(100% - 12px) !important;
+  margin-inline-start: 3px;
+}
+
+.sx-react-calendar-wrapper .aura-cal-event-booking {
+  border-color: color-mix(in oklch, var(--color-booking) 56%, var(--color-border));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklch, var(--color-booking) 28%, transparent),
+    0 9px 20px color-mix(in oklch, var(--color-booking) 18%, transparent);
+}
+
+.sx-react-calendar-wrapper .aura-cal-event-available {
+  border-color: color-mix(in oklch, var(--color-approved) 46%, var(--color-border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--color-paper-50) 30%, transparent),
+    inset 0 -1px 0 color-mix(in oklch, var(--color-approved) 34%, transparent);
+}
+
+.sx-react-calendar-wrapper .aura-cal-event-hourly {
   border-radius: var(--radius-md);
-  box-shadow: 0 10px 24px color-mix(in oklch, var(--color-ink-950) 10%, transparent);
+  border-top-width: 2px;
+  border-bottom-width: 2px;
+}
+
+.dark .sx-react-calendar-wrapper .aura-cal-event-booking {
+  border-color: color-mix(in oklch, var(--color-booking) 76%, var(--color-border));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklch, var(--color-paper-50) 12%, transparent),
+    0 10px 22px color-mix(in oklch, var(--color-booking) 26%, transparent);
+}
+
+.dark .sx-react-calendar-wrapper .aura-cal-event-available {
+  border-color: color-mix(in oklch, var(--color-approved) 66%, var(--color-border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--color-paper-50) 18%, transparent),
+    inset 0 -1px 0 color-mix(in oklch, var(--color-approved) 40%, transparent);
 }
 
 .sx-react-calendar-wrapper .sx__time-grid-event-title,

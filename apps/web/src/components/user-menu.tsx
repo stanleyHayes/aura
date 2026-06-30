@@ -25,8 +25,9 @@ import {
 } from "@cbs/ui/components/dropdown-menu";
 import { useSession } from "@/components/session-provider";
 import { dispatchReplayTour } from "@/components/app-tour";
-import { logoutAction } from "@/app/actions/auth";
+import { api } from "@/lib/api/client";
 import { route } from "@/lib/route";
+import type { AppUser } from "@/lib/session-types";
 
 function initials(name: string): string {
   return name
@@ -60,11 +61,27 @@ function MenuRow({
   );
 }
 
-export function UserMenu() {
-  const { user } = useSession();
+export function UserMenu({ fallbackUser }: { fallbackUser?: AppUser | null }) {
+  const { user: hydratedUser } = useSession();
+  const user = hydratedUser ?? fallbackUser ?? null;
   const pathname = usePathname();
   if (!user) return null;
   const accountBase = pathname.startsWith("/admin") ? "/admin" : "/app";
+
+  async function handleSignOut() {
+    try {
+      // Log out through the browser (same-origin proxy) so the API's
+      // cookie-clearing Set-Cookie actually reaches the browser. A Server
+      // Action calls the API server-to-server and cannot clear the cookie,
+      // which left the session alive and bounced /login back to the app.
+      await api.POST("/api/v1/auth/logout");
+    } catch {
+      // Fall through: still drop client state and send the user to /login.
+    }
+    // Full navigation so cached React Query / session state is discarded and
+    // the now-unauthenticated request re-renders cleanly.
+    window.location.assign("/login");
+  }
 
   return (
     <DropdownMenu>
@@ -130,17 +147,20 @@ export function UserMenu() {
           />
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <form action={logoutAction}>
-          <DropdownMenuItem asChild className="items-start gap-3 p-3">
-            <button type="submit" className="w-full text-left">
-              <MenuRow
-                icon={LogOut}
-                title="Sign out"
-                description="End your session on this device"
-              />
-            </button>
-          </DropdownMenuItem>
-        </form>
+        <DropdownMenuItem
+          className="items-start gap-3 p-3"
+          onSelect={(event) => {
+            // Prevent the menu from closing before the request fires.
+            event.preventDefault();
+            void handleSignOut();
+          }}
+        >
+          <MenuRow
+            icon={LogOut}
+            title="Sign out"
+            description="End your session on this device"
+          />
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -1,12 +1,13 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element -- Equipment thumbnails are runtime catalogue upload URLs. */
 import * as React from "react";
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Eye, ImageIcon, Plus, Upload, Wrench } from "lucide-react";
+import { Eye, ImageIcon, Plus, Search, Upload, Wrench } from "lucide-react";
 import {
   EquipmentForm as Schema,
   type EquipmentForm as Values,
@@ -43,6 +44,7 @@ export function EquipmentClient() {
   const [mainImage, setMainImage] = React.useState<File | null>(null);
   const [galleryImages, setGalleryImages] = React.useState<File[]>([]);
   const [error, setError] = React.useState<unknown>(null);
+  const [search, setSearch] = React.useState("");
 
   const query = useQuery({
     queryKey: qk.equipment,
@@ -154,6 +156,18 @@ export function EquipmentClient() {
     },
   ];
 
+  const equipment = React.useMemo(() => query.data ?? [], [query.data]);
+
+  const filtered = React.useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    if (!needle) return equipment;
+    return equipment.filter((e) =>
+      `${e.name} ${e.code}`.toLowerCase().includes(needle),
+    );
+  }, [equipment, search]);
+
+  const hasFilters = search.trim() !== "";
+
   return (
     <>
       <PageHeader
@@ -184,7 +198,54 @@ export function EquipmentClient() {
       ) : query.isError ? (
         <ProblemAlert error={query.error} />
       ) : (
-        <DataTable columns={columns} data={query.data ?? []} caption="Equipment" />
+        <div className="flex flex-col gap-4">
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 shadow-sm">
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--color-muted-foreground)]"
+                aria-hidden="true"
+              />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name or code"
+                aria-label="Search equipment"
+                className="h-11 bg-[var(--color-card)] pl-9"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-[var(--color-muted-foreground)]">
+              {filtered.length === 0
+                ? "No equipment"
+                : `${filtered.length} item${filtered.length === 1 ? "" : "s"}`}
+              {hasFilters ? " match your search" : ""}
+            </p>
+            {hasFilters ? (
+              <Button variant="ghost" size="sm" onClick={() => setSearch("")}>
+                Clear filters
+              </Button>
+            ) : null}
+          </div>
+
+          <DataTable
+            columns={columns}
+            data={filtered}
+            caption="Equipment"
+            emptyTitle={hasFilters ? "No equipment matches" : undefined}
+            emptyDescription={
+              hasFilters ? "Try a different search term." : undefined
+            }
+            emptyActions={
+              hasFilters ? (
+                <Button type="button" onClick={() => setSearch("")}>
+                  Clear filters
+                </Button>
+              ) : undefined
+            }
+          />
+        </div>
       )}
 
       <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>

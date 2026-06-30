@@ -146,7 +146,7 @@ export default async function AdminLayout({
     .filter((section) => section.items.length > 0);
 
   return (
-    <AppShell sections={sections} title="AURA">
+    <AppShell sections={sections} title="AURA" session={session}>
       {children}
     </AppShell>
   );

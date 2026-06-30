@@ -10,6 +10,7 @@ import { TooltipProvider } from "@cbs/ui/components/tooltip";
 import { ToastProvider } from "@cbs/ui/components/toast";
 import { ApiError } from "@cbs/api-client";
 import { SessionProvider } from "@/components/session-provider";
+import { ThemePreferenceSync } from "@/components/theme-preference-sync";
 import type { AppSession } from "@/lib/session-types";
 
 const defaultOptions: DefaultOptions = {
@@ -39,6 +40,7 @@ export function Providers({
     <QueryClientProvider client={queryClient}>
       <SessionProvider session={session}>
         <TooltipProvider delayDuration={200}>
+          <ThemePreferenceSync />
           <ToastProvider>{children}</ToastProvider>
         </TooltipProvider>
       </SessionProvider>

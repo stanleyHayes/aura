@@ -2,25 +2,27 @@
 
 import * as React from "react";
 import { Moon, Sun } from "lucide-react";
-
-function prefersDark() {
-  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
-}
+import {
+  applyThemeMode,
+  readSavedThemeMode,
+  THEME_STORAGE_KEY,
+} from "@/lib/theme-preferences";
 
 export function ThemeToggle() {
   const [dark, setDark] = React.useState(() => {
     if (typeof window === "undefined") return false;
-    const stored = window.localStorage.getItem("aura-theme");
-    return stored ? stored === "dark" : prefersDark();
+    return readSavedThemeMode() === "dark";
   });
 
   React.useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
+    applyThemeMode(dark ? "dark" : "light");
   }, [dark]);
 
   function applyTheme(nextDark: boolean) {
-    document.documentElement.classList.toggle("dark", nextDark);
-    window.localStorage.setItem("aura-theme", nextDark ? "dark" : "light");
+    const mode = nextDark ? "dark" : "light";
+    applyThemeMode(mode);
+    window.localStorage.setItem(THEME_STORAGE_KEY, mode);
+    window.dispatchEvent(new Event("aura-theme-change"));
     setDark(nextDark);
   }
 

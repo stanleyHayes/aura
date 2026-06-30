@@ -60,6 +60,7 @@ type Querier interface {
 	// Lock the row for the approval re-check (§7.3).
 	GetBookingForUpdate(ctx context.Context, id uuid.UUID) (GetBookingForUpdateRow, error)
 	GetBuilding(ctx context.Context, id uuid.UUID) (Building, error)
+	GetBuildingByName(ctx context.Context, lower string) (Building, error)
 	GetDepartment(ctx context.Context, id uuid.UUID) (Department, error)
 	GetEquipment(ctx context.Context, id uuid.UUID) (Equipment, error)
 	// ── Idempotency keys (§8.1) ───────────────────────────────────
@@ -71,6 +72,7 @@ type Querier interface {
 	GetRefreshTokenByHash(ctx context.Context, tokenHash string) (RefreshToken, error)
 	GetRoom(ctx context.Context, id uuid.UUID) (Room, error)
 	GetRoomByCode(ctx context.Context, roomCode string) (Room, error)
+	GetRoomByName(ctx context.Context, lower string) (Room, error)
 	GetSemester(ctx context.Context, id uuid.UUID) (Semester, error)
 	GetTimetableEvent(ctx context.Context, id uuid.UUID) (TimetableEvent, error)
 	GetTimetableImport(ctx context.Context, id uuid.UUID) (TimetableImport, error)

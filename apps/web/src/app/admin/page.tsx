@@ -235,11 +235,27 @@ export default async function AdminDashboard() {
     },
   ].filter((item) => item.show);
 
-  const primaryAction = canManageRooms
-    ? { href: "/admin/rooms", label: "Add room", icon: Plus }
-    : canApprove
-      ? { href: "/admin/approvals", label: "Review approvals", icon: ClipboardCheck }
-      : null;
+  const primaryAction = (() => {
+    if (canManageRooms) return { href: "/admin/rooms", label: "Add room", icon: Plus };
+    if (canApprove) {
+      return {
+        href: "/admin/approvals",
+        label: "Review approvals",
+        icon: ClipboardCheck,
+      };
+    }
+    if (canManageTimetable) {
+      return { href: "/admin/timetable", label: "Upload timetable", icon: Upload };
+    }
+    if (canManageMaintenance) {
+      return {
+        href: "/admin/maintenance",
+        label: "Schedule maintenance",
+        icon: Wrench,
+      };
+    }
+    return null;
+  })();
   const PrimaryActionIcon = primaryAction?.icon;
 
   const quickActions = [

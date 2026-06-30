@@ -58,12 +58,12 @@ Turborepo workspace** (web, mobile, shared TS packages).
 /
 ├── cmd/                      Go entrypoints (the only `package main`s)
 │   ├── api/                  HTTP API server (composition root: wires everything)
-│   ├── worker/               background jobs (booking-expiry sweep, cleanup)
+│   ├── worker/               background jobs (now folded into cmd/api; kept for a paid separate-worker deploy)
 │   └── migrate/              goose migration runner (embeds db/migrations)
 │
 ├── internal/                Go application code (not importable outside this module)
 │   ├── iam/                  identity, auth, sessions, RBAC subjects, users, departments
-│   ├── catalogue/            buildings, equipment, rooms, room-equipment, room search
+│   ├── catalogue/            buildings, equipment, rooms, room-equipment, room search, image uploads
 │   ├── scheduling/           semesters, lecture timetable events, CSV/XLSX ingestion
 │   ├── availability/         read-only engine: derives free/occupied from the others
 │   ├── bookings/             booking lifecycle, conflict detection, approval, maintenance
@@ -77,7 +77,8 @@ Turborepo workspace** (web, mobile, shared TS packages).
 │       ├── rbac/             permission matrix (role → permissions)
 │       ├── httpx/            problem+json, JSON helpers, pagination, middleware, cookies
 │       ├── audit/            append-only audit-log recorder
-│       ├── mailer/           Mailer interface + log/SMTP implementations
+│       ├── mailer/           Mailer interface + log/SMTP (Resend) implementations
+│       ├── media/            Cloudinary image uploads (catalogue photos)
 │       ├── metrics/          Prometheus domain metrics
 │       ├── logging/          slog JSON logger + correlation id
 │       └── pgconv/           conversions between Go time and pgtype values
@@ -85,23 +86,24 @@ Turborepo workspace** (web, mobile, shared TS packages).
 ├── db/
 │   ├── migrations/           goose SQL migrations (forward-only) + embed.go
 │   ├── queries/              sqlc source queries (*.sql) → generate dbgen/
-│   └── seed/                 seed.sql + sample timetable CSV
+│   └── seed/                 seed.sql (clean demo data; embedded into the API for SEED_DATA)
 │
 ├── api/openapi.yaml          OpenAPI 3.1 contract (source of truth for clients)
 │
 ├── apps/
 │   ├── web/                  Next.js 16 app (public + requester portal + admin)
-│   └── mobile/               Expo SDK 56 app (requester + booking officer)
+│   └── mobile/               Expo SDK 56 app (requester + booking officer; theming + reports)
 │
 ├── packages/                 shared TS workspace packages
 │   ├── api-client/           openapi-fetch client + generated schema.gen.ts
 │   ├── schemas/              shared zod schemas + enums + error codes
-│   ├── ui/                   design tokens, shadcn-style components, datetime/cn helpers
+│   ├── tokens/               framework-neutral brand palette + dark-tint catalogue (web + mobile)
+│   ├── ui/                   Tailwind v4 tokens, shadcn-style components, datetime/cn helpers
 │   └── config/               shared eslint / tsconfig
 │
 ├── deploy/
 │   ├── compose/              local docker-compose stack + Dockerfile.api
-│   ├── render/               render.yaml image (single image: api+worker+migrate)
+│   ├── render/               Dockerfile (one image: api+worker+migrate; Render deploys only the API)
 │   ├── helm/                 Kubernetes chart (alternative to Render)
 │   └── terraform/            IaC for the K8s target
 │
@@ -335,12 +337,12 @@ a layout) and **feature folders**:
 
 ```
 src/app/
-├── (public)/          marketing landing + room directory (SSG/ISR, SEO, JSON-LD)
+├── (public)/          landing + room directory + privacy/terms (Ghana Act 843); SEO: sitemap/robots/manifest, OG + Twitter images, JSON-LD
 ├── (auth)/            login, forgot-password, reset-password
-├── app/               REQUESTER portal  (gated): /app, /app/search, /app/bookings, /app/calendar, /app/notifications
-├── admin/             ADMIN console     (gated): dashboard, approvals, rooms, buildings, equipment,
-│                       semesters, timetable, maintenance, users, departments, reports, audit, calendar
-└── layout.tsx         root (no session read → public pages stay static for SEO)
+├── app/               REQUESTER portal  (gated): /app, /app/search, /app/bookings, /app/calendar, /app/notifications, /app/profile, /app/settings
+├── admin/             ADMIN console     (gated): dashboard, approvals, rooms/buildings/equipment (search/filter + image uploads),
+│                       semesters, timetable (alias-tolerant import + room provisioning), maintenance, users, departments, reports, audit, calendar
+└── layout.tsx         root: no session read (public stays static for SEO) + a pre-paint theme bootstrap (mode + dark tint)
 ```
 
 - `src/proxy.ts` (Next 16's renamed middleware) is the cheap first gate: it redirects
@@ -350,8 +352,13 @@ src/app/
 - Data: Server Components fetch via the typed client; interactive bits are Client
   Components using `@tanstack/react-query`. Forms use `react-hook-form` + the shared
   zod schemas. The notifications bell subscribes to the SSE stream.
-- The app talks to the API through `next.config.ts` rewrites (`/api/v1/* → :8080`), so
-  calls are same-origin (cookies + CSRF work without CORS).
+- The app talks to the API through `next.config.ts` rewrites (`/api/v1/* → API_ORIGIN`),
+  so calls are same-origin (cookies + CSRF work without CORS) — the same proxy makes the
+  Vercel→Render split possible.
+- **Theming**: light/dark plus selectable dark "tints" — a `data-dark-tint` attribute drives
+  CSS-variable overrides in `@cbs/ui`; a blocking inline script applies the saved mode + tint
+  before first paint (no FOUC) and `ThemePreferenceSync` keeps it live. Account **Settings** is a
+  tabbed surface (Profile / Security / Notifications / Preferences) carrying the tint picker.
 
 ### Shared TS packages
 
@@ -359,32 +366,49 @@ src/app/
   `ApiError`/`unwrap` helpers, and `schema.gen.ts` generated from `api/openapi.yaml`.
 - **`@cbs/schemas`** — zod schemas + enums + the stable error-code list, shared by web
   forms and (a copy in) mobile.
-- **`@cbs/ui`** — Tailwind v4 `@theme` tokens, shadcn-style components, `cn` and
-  institution-timezone datetime helpers (always render in `Africa/Accra`).
+- **`@cbs/tokens`** — framework-neutral source of truth for the Ashesi brand palette and the
+  dark-tint catalogue (value/label/swatches), consumed by both web (`@cbs/ui` + theme prefs)
+  and mobile so the two stay in lockstep.
+- **`@cbs/ui`** — Tailwind v4 `@theme` tokens (incl. the `.dark[data-dark-tint=…]` palettes),
+  shadcn-style components, `cn` and institution-timezone datetime helpers (`Africa/Accra`).
 - **`@cbs/config`** — shared eslint/tsconfig.
 
 ---
 
 ## 9. The mobile app (`apps/mobile`)
 
-Expo SDK 56 + expo-router (file-based). Screen groups mirror roles: `(auth)/login`,
-`(requester)/` (search → results → request, bookings, notifications, settings),
-`(officer)/` (approvals, notifications, settings), and `booking/[id]`. It uses Bearer
-tokens in `expo-secure-store`, the same zod schemas (local copy), and registers an Expo
-push token via `POST /devices`. It is a **scaffold** — it type-checks and lints but has
-not been run on a device.
+Expo SDK 56 + expo-router (file-based) + NativeWind. Screen groups mirror roles:
+`(auth)/login`, `(requester)/` (search → results → request with an availability view,
+bookings, `booking/[id]`, notifications, settings), `(officer)/` (approvals with blocker
+panels, reports, notifications, settings). It uses Bearer tokens in `expo-secure-store`,
+the same zod schemas (local copy), and registers an Expo push token via `POST /devices`.
+Theming mirrors web — light/dark + the same dark tints from `@cbs/tokens`, persisted via
+AsyncStorage and applied on launch, with the Outfit font. Local APK builds use an
+`eas.json` profile (`pnpm apk` → `apps/mobile/build/aura.apk`). It type-checks + lints;
+not yet run on a physical device.
 
 ---
 
 ## 10. Background work & deployment
 
-- **`cmd/worker`** runs the booking-expiry sweep (PENDING whose start passed → EXPIRED)
-  and idempotency-key cleanup on tickers. It's structured so River (Postgres-backed
-  jobs) drops in behind the same `Store` without touching domain code (ADR-0002).
-- **Deploy**: the chosen path is **Render** (`render.yaml`: managed Postgres + Key Value
-  + API web service + worker + Next.js web). The Helm chart + Terraform under `deploy/`
-  remain valid for a Kubernetes target. Migrations run as the API's pre-deploy step.
-  A `uuidv7()` polyfill (migration `00001`) keeps the schema portable to PG 16/17.
+- **Background jobs are folded into the API.** `cmd/api` runs the booking-expiry sweep
+  (PENDING whose start has passed → EXPIRED) and idempotency-key cleanup on tickers in a
+  goroutine (`runBackgroundJobs`), stopped on shutdown. `cmd/worker` still holds the same
+  logic for a separate-worker / River deploy (ADR-0002), but the default single-service
+  deploy needs no extra worker.
+- **The API self-bootstraps on startup** so a shell-less, pre-deploy-less host just works:
+  `AUTO_MIGRATE=true` applies the embedded goose migrations on boot (`runMigrations`), then
+  `SEED_DATA=true` loads the embedded, idempotent `db/seed/seed.sql` (clean demo data) via the
+  pgx simple-query protocol (`runSeed`). A `uuidv7()` polyfill (migration `00001`) keeps the
+  schema portable to PG 16/17.
+- **Deploy is split**: the **web** app → **Vercel** (root `apps/web`); the **Go API + Postgres**
+  → **Render** (`render.yaml` Blueprint, one Docker image). The browser only talks to the Vercel
+  origin; Next rewrites `/api/v1/*` to the API so cookies stay first-party. To keep costs low
+  there is no separate worker and no Redis (rate-limit + SSE are in-process); managed Blueprint
+  Postgres needs a paid plan (`basic-256mb`), with a free-Postgres-via-dashboard alternative
+  documented in `render.yaml`. Mail is **Resend** (SMTP); catalogue images are **Cloudinary**.
+  The Helm chart + Terraform under `deploy/` remain valid for a Kubernetes target. See
+  `docs/DEPLOYMENT.md`.
 
 ---
 

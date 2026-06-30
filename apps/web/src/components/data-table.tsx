@@ -78,6 +78,7 @@ export function DataTable<TData, TValue>({
         .sort((a, b) => a - b),
     [initialPageSize, pageSizeOptions],
   );
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table intentionally returns handler functions from this hook.
   const table = useReactTable({
     data,
     columns,

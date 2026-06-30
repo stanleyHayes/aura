@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -52,14 +52,6 @@ export function RoomFormDialog({
   const [mainImage, setMainImage] = React.useState<File | null>(null);
   const [galleryImages, setGalleryImages] = React.useState<File[]>([]);
 
-  React.useEffect(() => {
-    if (open) {
-      setMainImage(null);
-      setGalleryImages([]);
-      setError(null);
-    }
-  }, [open, room?.id]);
-
   const form = useForm<Values>({
     resolver: zodResolver(Schema),
     values: room
@@ -79,6 +71,14 @@ export function RoomFormDialog({
           room_type: "LECTURE_HALL",
           status: "ACTIVE",
         },
+  });
+  const selectedBuildingId = useWatch({
+    control: form.control,
+    name: "building_id",
+  });
+  const selectedRoomType = useWatch({
+    control: form.control,
+    name: "room_type",
   });
 
   const save = useMutation({
@@ -113,8 +113,19 @@ export function RoomFormDialog({
     onError: (err) => setError(err),
   });
 
+  function resetUploadState() {
+    setMainImage(null);
+    setGalleryImages([]);
+    setError(null);
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) resetUploadState();
+    onOpenChange(nextOpen);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{room ? "Edit room" : "New room"}</DialogTitle>
@@ -173,7 +184,7 @@ export function RoomFormDialog({
             {(p) => (
               <Combobox
                 id={p.id}
-                value={form.watch("building_id")}
+                value={selectedBuildingId}
                 onValueChange={(v) => form.setValue("building_id", v)}
                 placeholder="Choose a building"
                 searchPlaceholder="Search buildings…"
@@ -190,7 +201,7 @@ export function RoomFormDialog({
           <Field id="room_type" label="Room type">
             {(p) => (
               <Select
-                value={form.watch("room_type")}
+                value={selectedRoomType}
                 onValueChange={(v) => form.setValue("room_type", v as RoomType)}
               >
                 <SelectTrigger id={p.id}>
@@ -221,7 +232,7 @@ export function RoomFormDialog({
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => handleOpenChange(false)}
             >
               Cancel
             </Button>

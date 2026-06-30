@@ -1,7 +1,7 @@
-# Classroom Booking System — Mobile (`apps/mobile`)
+# AURA — Mobile (`apps/mobile`)
 
-Expo SDK 56 (React Native 0.85, React 19.2) app for the Classroom Booking
-System. Two audiences (Section 13 of the spec):
+Expo SDK 56 (React Native 0.85, React 19.2) app for **AURA — Ashesi University
+Resource Allocation**. Two audiences (Section 13 of the spec):
 
 - **Requesters** — search availability, request bookings, track status.
 - **Booking officers** — review pending requests and approve/reject on the go.
@@ -88,8 +88,8 @@ The API defaults to `http://localhost:8080/api/v1`. On a physical device, set
 
 - On sign-in the app registers its Expo push token via `POST /api/v1/devices`.
 - Tapping a booking push (`data.bookingId` / `relatedEntityId`) deep-links to
-  `/booking/<id>`. The app owns the `cbs://` scheme plus universal/app links on
-  `https://app.cbs.example.edu/booking/*` (see `app.config.ts`).
+  `/booking/<id>`. The app owns the `aura://` scheme plus universal/app links on
+  `https://app.aura.ashesi.edu/booking/*` (see `app.config.ts`).
 
 ## Offline read-only caching (Section 13)
 
@@ -119,7 +119,7 @@ EAS Update channel is matched to the build channel. `runtimeVersion` uses the
 # one-time
 npm i -g eas-cli
 eas login
-eas init                 # writes the EAS project id (also set EAS_PROJECT_ID)
+eas init                 # writes the EAS project id; also set EAS_PROJECT_ID
 
 # Builds (APP_VARIANT comes from the profile's env in eas.json)
 eas build --profile development --platform ios     # dev client
@@ -139,11 +139,14 @@ Profiles → channels:
 
 | Profile | Channel | App name | Bundle id |
 |---|---|---|---|
-| `development` | `development` | CBS (Dev) | `edu.example.cbs.dev` |
-| `staging` | `staging` | CBS (Staging) | `edu.example.cbs.staging` |
-| `production` | `production` | Classroom Booking | `edu.example.cbs` |
+| `development` | `development` | AURA (Dev) | `edu.ashesi.aura.dev` |
+| `staging` | `staging` | AURA (Staging) | `edu.ashesi.aura.staging` |
+| `production` | `production` | AURA | `edu.ashesi.aura` |
 
-Secrets (Sentry auth token, etc.) are provided via EAS secrets, never committed.
+Staging and production builds intentionally fail unless `EXPO_PUBLIC_API_BASE_URL`
+is an HTTPS deployed API URL and `EAS_PROJECT_ID` is the real UUID from
+`eas init`. Secrets (Sentry auth token, etc.) are provided via EAS secrets, never
+committed.
 
 ## Testing
 
@@ -157,9 +160,8 @@ scaffold.
   self-contained note above); replace with the generated `/packages` versions.
 - **QR check-in** — `expo-camera` permission is declared but no scanner UI is
   built (Phase 2, Section 4.3).
-- **Asset images** under `assets/` are 1×1 placeholders — replace with real
-  icon/splash artwork before a store build.
 - **Institution timezone** rendering uses the device locale; a production build
   should resolve the institution TZ (e.g. `Africa/Accra`, Section 6.7).
-- **EAS project id** is an env placeholder until `eas init` is run.
+- **EAS project id** is injected with `EAS_PROJECT_ID` until `eas init` writes the
+  project id into the managed EAS project configuration.
 ```

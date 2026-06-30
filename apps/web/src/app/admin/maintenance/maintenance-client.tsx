@@ -1,9 +1,10 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element -- Room thumbnails are runtime catalogue upload URLs. */
 import * as React from "react";
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DoorOpen, Plus, Wrench } from "lucide-react";
@@ -110,6 +111,10 @@ export function MaintenanceClient() {
   const form = useForm<Values>({
     resolver: zodResolver(Schema),
     defaultValues: { room_id: "", date: "", start: "", end: "", reason: "" },
+  });
+  const selectedRoomId = useWatch({
+    control: form.control,
+    name: "room_id",
   });
 
   const create = useMutation({
@@ -241,7 +246,7 @@ export function MaintenanceClient() {
               {(p) => (
                 <Combobox
                   id={p.id}
-                  value={form.watch("room_id")}
+                  value={selectedRoomId}
                   onValueChange={(v) => form.setValue("room_id", v)}
                   placeholder="Choose a room"
                   searchPlaceholder="Search rooms…"

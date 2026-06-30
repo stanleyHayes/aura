@@ -23,6 +23,10 @@ type Config struct {
 	// AutoMigrate runs the embedded goose migrations on API startup — lets a
 	// shell-less, pre-deploy-less platform (e.g. Render's free tier) self-migrate.
 	AutoMigrate bool `env:"AUTO_MIGRATE"`
+	// SeedData loads the embedded, idempotent demo seed (db/seed/seed.sql) on
+	// startup — runs after migrations. Best-effort: a seed error is logged, not
+	// fatal. Set true for ONE deploy to publish the clean demo data, then false.
+	SeedData bool `env:"SEED_DATA"`
 
 	S3Endpoint  string `env:"S3_ENDPOINT"`
 	S3Bucket    string `env:"S3_BUCKET"`

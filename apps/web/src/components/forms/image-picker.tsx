@@ -1,5 +1,6 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element -- This previewer renders local object URLs before upload. */
 import * as React from "react";
 import { ImagePlus, Images, X } from "lucide-react";
 import { Button } from "@cbs/ui/components/button";

@@ -47,9 +47,10 @@ func (q *Queries) CreateSemester(ctx context.Context, arg CreateSemesterParams) 
 
 const createTimetableEvent = `-- name: CreateTimetableEvent :one
 INSERT INTO timetable_events
-  (semester_id, import_id, room_id, course_code, course_title, lecturer_name, day, start_time, end_time)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, semester_id, import_id, room_id, course_code, course_title, lecturer_name, day, start_time, end_time, created_at
+  (semester_id, import_id, room_id, course_code, course_title, lecturer_name, day, start_time, end_time,
+   section, program, department)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+RETURNING id, semester_id, import_id, room_id, course_code, course_title, lecturer_name, day, start_time, end_time, created_at, section, program, department
 `
 
 type CreateTimetableEventParams struct {
@@ -62,6 +63,9 @@ type CreateTimetableEventParams struct {
 	Day          DayOfWeek   `json:"day"`
 	StartTime    pgtype.Time `json:"start_time"`
 	EndTime      pgtype.Time `json:"end_time"`
+	Section      string      `json:"section"`
+	Program      string      `json:"program"`
+	Department   string      `json:"department"`
 }
 
 // ── Timetable events ──────────────────────────────────────────
@@ -76,6 +80,9 @@ func (q *Queries) CreateTimetableEvent(ctx context.Context, arg CreateTimetableE
 		arg.Day,
 		arg.StartTime,
 		arg.EndTime,
+		arg.Section,
+		arg.Program,
+		arg.Department,
 	)
 	var i TimetableEvent
 	err := row.Scan(
@@ -90,6 +97,9 @@ func (q *Queries) CreateTimetableEvent(ctx context.Context, arg CreateTimetableE
 		&i.StartTime,
 		&i.EndTime,
 		&i.CreatedAt,
+		&i.Section,
+		&i.Program,
+		&i.Department,
 	)
 	return i, err
 }
@@ -198,7 +208,7 @@ func (q *Queries) GetSemester(ctx context.Context, id uuid.UUID) (Semester, erro
 }
 
 const getTimetableEvent = `-- name: GetTimetableEvent :one
-SELECT id, semester_id, import_id, room_id, course_code, course_title, lecturer_name, day, start_time, end_time, created_at FROM timetable_events WHERE id = $1
+SELECT id, semester_id, import_id, room_id, course_code, course_title, lecturer_name, day, start_time, end_time, created_at, section, program, department FROM timetable_events WHERE id = $1
 `
 
 func (q *Queries) GetTimetableEvent(ctx context.Context, id uuid.UUID) (TimetableEvent, error) {
@@ -216,6 +226,9 @@ func (q *Queries) GetTimetableEvent(ctx context.Context, id uuid.UUID) (Timetabl
 		&i.StartTime,
 		&i.EndTime,
 		&i.CreatedAt,
+		&i.Section,
+		&i.Program,
+		&i.Department,
 	)
 	return i, err
 }
@@ -364,7 +377,7 @@ func (q *Queries) ListSemesters(ctx context.Context) ([]Semester, error) {
 }
 
 const listTimetableEvents = `-- name: ListTimetableEvents :many
-SELECT id, semester_id, import_id, room_id, course_code, course_title, lecturer_name, day, start_time, end_time, created_at FROM timetable_events
+SELECT id, semester_id, import_id, room_id, course_code, course_title, lecturer_name, day, start_time, end_time, created_at, section, program, department FROM timetable_events
 WHERE ($1::uuid IS NULL OR semester_id = $1)
   AND ($2::uuid IS NULL OR room_id = $2)
   AND ($3::day_of_week IS NULL OR day = $3)
@@ -398,6 +411,9 @@ func (q *Queries) ListTimetableEvents(ctx context.Context, arg ListTimetableEven
 			&i.StartTime,
 			&i.EndTime,
 			&i.CreatedAt,
+			&i.Section,
+			&i.Program,
+			&i.Department,
 		); err != nil {
 			return nil, err
 		}
@@ -514,7 +530,7 @@ const updateTimetableEvent = `-- name: UpdateTimetableEvent :one
 UPDATE timetable_events
 SET room_id = $2, course_code = $3, course_title = $4, lecturer_name = $5,
     day = $6, start_time = $7, end_time = $8
-WHERE id = $1 RETURNING id, semester_id, import_id, room_id, course_code, course_title, lecturer_name, day, start_time, end_time, created_at
+WHERE id = $1 RETURNING id, semester_id, import_id, room_id, course_code, course_title, lecturer_name, day, start_time, end_time, created_at, section, program, department
 `
 
 type UpdateTimetableEventParams struct {
@@ -552,6 +568,9 @@ func (q *Queries) UpdateTimetableEvent(ctx context.Context, arg UpdateTimetableE
 		&i.StartTime,
 		&i.EndTime,
 		&i.CreatedAt,
+		&i.Section,
+		&i.Program,
+		&i.Department,
 	)
 	return i, err
 }

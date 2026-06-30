@@ -72,7 +72,7 @@
   /* ── Calendar / status sources (also the calendar legend) ────
         Kept distinct from maroon so sources/states never read as brand. */
   --color-lecture: oklch(0.55 0.14 255); /* indigo — recurring lectures   */
-  --color-booking: oklch(0.62 0.15 162); /* teal-green — approved bookings */
+  --color-booking: oklch(0.5 0.182 30); /* red — occupied / booked */
   --color-maintenance: oklch(0.614 0.13 70); /* amber — maintenance           */
   --color-available: oklch(0.95 0.02 162); /* faint green — free gaps       */
 

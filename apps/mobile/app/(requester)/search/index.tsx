@@ -5,11 +5,13 @@
  */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
-import { Controller, useForm } from 'react-hook-form';
+import { useState } from 'react';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { useBuildings, useEquipment } from '@/api/hooks';
 import { Button, Card, Field } from '@/components/ui';
+import { ROOM_TYPE_LABELS } from '@/components/booking-bits';
 import { todayIso } from '@/lib/datetime';
 import {
   AvailabilitySearchSchema,
@@ -17,22 +19,15 @@ import {
   type AvailabilitySearch,
 } from '@/schemas';
 
-const ROOM_TYPE_LABELS: Record<(typeof RoomType.options)[number], string> = {
-  LECTURE_HALL: 'Lecture hall',
-  LAB: 'Lab',
-  SEMINAR_ROOM: 'Seminar room',
-  AUDITORIUM: 'Auditorium',
-  CONFERENCE_ROOM: 'Conference room',
-};
-
 export default function SearchScreen() {
   const buildings = useBuildings();
   const equipment = useEquipment();
+  // Free-text room name/code filter, applied case-insensitively on the results.
+  const [text, setText] = useState('');
 
   const {
     control,
     handleSubmit,
-    watch,
     setValue,
     formState: { errors },
   } = useForm<AvailabilitySearch>({
@@ -48,9 +43,9 @@ export default function SearchScreen() {
     },
   });
 
-  const selectedBuilding = watch('buildingId');
-  const selectedType = watch('roomType');
-  const selectedEquipment = watch('equipment') ?? [];
+  const selectedBuilding = useWatch({ control, name: 'buildingId' });
+  const selectedType = useWatch({ control, name: 'roomType' });
+  const selectedEquipment = useWatch({ control, name: 'equipment' }) ?? [];
 
   const onSubmit = handleSubmit((values) => {
     // Pass the query through as route params; the results screen rebuilds it.
@@ -64,6 +59,7 @@ export default function SearchScreen() {
         minCapacity: values.minCapacity ? String(values.minCapacity) : '',
         roomType: values.roomType ?? '',
         equipment: (values.equipment ?? []).join(','),
+        q: text.trim(),
       },
     });
   });
@@ -77,11 +73,21 @@ export default function SearchScreen() {
 
   return (
     <ScrollView
-      className="flex-1 bg-surface"
+      className="flex-1 bg-background"
       contentContainerClassName="gap-4 p-4"
       keyboardShouldPersistTaps="handled"
     >
       <Card className="gap-4">
+        <Field
+          label="Room name or code"
+          placeholder="e.g. Auditorium or NB-201"
+          value={text}
+          onChangeText={setText}
+          autoCapitalize="none"
+          autoCorrect={false}
+          hint="Optional — filters results by name or code."
+        />
+
         <Controller
           control={control}
           name="date"
@@ -218,19 +224,25 @@ function ChoiceChip({
   label,
   active,
   onPress,
-}: {
+}: Readonly<{
   label: string;
   active: boolean;
   onPress: () => void;
-}) {
+}>) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
       onPress={onPress}
-      className={`rounded-full border px-3 py-2 ${active ? 'border-primary bg-primary' : 'border-border bg-background'}`}
+      className={`rounded-full border px-3 py-2 ${active ? 'border-primary bg-primary' : 'border-border bg-card'}`}
     >
-      <Text className={active ? 'text-sm text-white' : 'text-sm text-foreground'}>
+      <Text
+        className={
+          active
+            ? 'text-sm text-primary-foreground'
+            : 'text-sm text-foreground'
+        }
+      >
         {label}
       </Text>
     </Pressable>

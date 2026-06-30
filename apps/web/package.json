@@ -16,6 +16,7 @@
   "dependencies": {
     "@cbs/api-client": "workspace:*",
     "@cbs/schemas": "workspace:*",
+    "@cbs/tokens": "workspace:*",
     "@cbs/ui": "workspace:*",
     "@hookform/resolvers": "catalog:",
     "@schedule-x/calendar": "catalog:",

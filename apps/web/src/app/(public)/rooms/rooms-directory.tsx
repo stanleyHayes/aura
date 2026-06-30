@@ -1,5 +1,6 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element -- Public room imagery is served from runtime catalogue upload URLs. */
 import * as React from "react";
 import Link from "next/link";
 import { Building2, DoorOpen, ImageIcon, Search, Users } from "lucide-react";

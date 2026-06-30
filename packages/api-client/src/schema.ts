@@ -11,8 +11,6 @@
  * The shapes deliberately mirror `@cbs/schemas` (zod) field-for-field.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 // ── Reusable component shapes (mirror @cbs/schemas/entities) ──────────────
 export interface components {
   schemas: {

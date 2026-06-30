@@ -44,6 +44,7 @@ import { useSession } from "@/components/session-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
 import { route } from "@/lib/route";
+import type { AppSession } from "@/lib/session-types";
 
 /**
  * Icon registry. Server layouts pass a string key (functions cannot cross the
@@ -276,13 +277,16 @@ function NavList({
 export function AppShell({
   sections,
   title,
+  session,
   children,
 }: {
   sections: NavSection[];
   title: string;
+  session?: AppSession | null;
   children: React.ReactNode;
 }) {
-  const { user } = useSession();
+  const { user: hydratedUser } = useSession();
+  const user = hydratedUser ?? session?.user ?? null;
   const pathname = usePathname();
   const activeItem = sections
     .flatMap((section) => section.items)
@@ -386,7 +390,7 @@ export function AppShell({
               <NotificationsBell />
             </span>
             <span data-tour="user-menu" className="inline-flex">
-              <UserMenu />
+              <UserMenu fallbackUser={user} />
             </span>
           </div>
         </header>
@@ -402,7 +406,7 @@ export function AppShell({
       <AppTour
         userId={user?.id}
         mode={pathname.startsWith("/admin") ? "admin" : "app"}
-        autoStart={pathname === "/app" || pathname === "/admin"}
+        autoStart={pathname.startsWith("/admin") || pathname.startsWith("/app")}
       />
     </div>
   );

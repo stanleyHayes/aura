@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { Brand } from "@/components/brand";
 import { PublicHeader } from "@/components/public-header";
+import { PrivacyConsent } from "@/components/privacy-consent";
 import { env } from "@/lib/env";
+import { route } from "@/lib/route";
 
 export default function PublicLayout({
   children,
@@ -75,6 +77,12 @@ export default function PublicLayout({
             <Link className="hover:underline" href="/login">
               Sign in
             </Link>
+            <Link className="hover:underline" href={route("/privacy")}>
+              Privacy
+            </Link>
+            <Link className="hover:underline" href={route("/terms")}>
+              Terms
+            </Link>
           </nav>
         </div>
         <div className="border-t border-[var(--color-border)] px-4 py-4">
@@ -84,6 +92,8 @@ export default function PublicLayout({
           </p>
         </div>
       </footer>
+
+      <PrivacyConsent />
     </div>
   );
 }

@@ -26,6 +26,7 @@ import { Skeleton } from "@cbs/ui/components/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@cbs/ui/components/tabs";
 import { api, unwrap } from "@/lib/api/client";
 import { qk } from "@/lib/query-keys";
+import { useDepartments } from "@/lib/hooks/reference";
 import { PageHeader } from "@/components/page-header";
 import { ProblemAlert } from "@/components/problem-alert";
 import { DataTable } from "@/components/data-table";
@@ -73,6 +74,15 @@ export function ReportsClient() {
       ),
   });
 
+  // Department booking totals are keyed by department code; map codes to names
+  // so the bookings chart shows recognizable labels instead of raw codes.
+  const departments = useDepartments();
+  const departmentLabels = React.useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const d of departments.data ?? []) map[d.code] = d.name;
+    return map;
+  }, [departments.data]);
+
   function exportUrl(report: string, format: string) {
     const params = new URLSearchParams({ from, to, format });
     return `/api/v1/reports/${report}?${params.toString()}`;
@@ -86,10 +96,15 @@ export function ReportsClient() {
   const utilisationColumns = React.useMemo<ColumnDef<UtilisationRow>[]>(
     () => [
       {
-        accessorKey: "room_code",
+        accessorKey: "room_name",
         header: "Room",
         cell: ({ row }) => (
-          <span className="font-medium">{row.original.room_code}</span>
+          <span className="flex flex-col">
+            <span className="font-medium">{row.original.room_name}</span>
+            <span className="text-xs text-[var(--color-muted-foreground)]">
+              {row.original.room_code}
+            </span>
+          </span>
         ),
       },
       {
@@ -268,6 +283,7 @@ export function ReportsClient() {
                 <CardContent>
                   <BookingsChart
                     data={bookings.data?.by_department ?? {}}
+                    labels={departmentLabels}
                     emptyActions={
                       <Button type="button" onClick={resetRange}>
                         Reset range

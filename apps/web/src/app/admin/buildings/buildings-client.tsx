@@ -1,12 +1,13 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element -- Building thumbnails are runtime catalogue upload URLs. */
 import * as React from "react";
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Eye, ImageIcon, Plus, Upload } from "lucide-react";
+import { Building2, Eye, ImageIcon, Plus, Search, Upload } from "lucide-react";
 import {
   BuildingForm as Schema,
   type BuildingForm as Values,
@@ -28,11 +29,14 @@ import { qk } from "@/lib/query-keys";
 import { PageHeader } from "@/components/page-header";
 import { ProblemAlert } from "@/components/problem-alert";
 import { DataTable } from "@/components/data-table";
+import { Combobox } from "@/components/combobox";
 import { Field } from "@/components/forms/field";
 import { ImagePicker } from "@/components/forms/image-picker";
 import { CatalogueImportDialog } from "@/components/catalogue-import-dialog";
 import { uploadCatalogueImages } from "@/lib/api/multipart";
 import { route } from "@/lib/route";
+
+const ALL = "ALL";
 
 export function BuildingsClient() {
   const queryClient = useQueryClient();
@@ -43,6 +47,8 @@ export function BuildingsClient() {
   const [mainImage, setMainImage] = React.useState<File | null>(null);
   const [galleryImages, setGalleryImages] = React.useState<File[]>([]);
   const [error, setError] = React.useState<unknown>(null);
+  const [search, setSearch] = React.useState("");
+  const [campus, setCampus] = React.useState<string>(ALL);
 
   const query = useQuery({
     queryKey: qk.buildings,
@@ -166,6 +172,33 @@ export function BuildingsClient() {
     },
   ];
 
+  const buildings = React.useMemo(() => query.data ?? [], [query.data]);
+
+  const campuses = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const b of buildings) if (b.campus) set.add(b.campus);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [buildings]);
+
+  const filtered = React.useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return buildings.filter((b) => {
+      if (campus !== ALL && (b.campus ?? "") !== campus) return false;
+      if (needle) {
+        const hay = `${b.name} ${b.code} ${b.campus ?? ""}`.toLowerCase();
+        if (!hay.includes(needle)) return false;
+      }
+      return true;
+    });
+  }, [buildings, search, campus]);
+
+  const hasFilters = search.trim() !== "" || campus !== ALL;
+
+  function clearFilters() {
+    setSearch("");
+    setCampus(ALL);
+  }
+
   return (
     <>
       <PageHeader
@@ -189,7 +222,70 @@ export function BuildingsClient() {
       ) : query.isError ? (
         <ProblemAlert error={query.error} />
       ) : (
-        <DataTable columns={columns} data={query.data ?? []} caption="Buildings" />
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 shadow-sm sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--color-muted-foreground)]"
+                aria-hidden="true"
+              />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name, code or campus"
+                aria-label="Search buildings"
+                className="h-11 bg-[var(--color-card)] pl-9"
+              />
+            </div>
+            {campuses.length > 0 ? (
+              <Combobox
+                value={campus}
+                onValueChange={setCampus}
+                placeholder="Campus"
+                searchPlaceholder="Search campuses…"
+                emptyText="No campuses found."
+                triggerClassName="h-11 w-full bg-[var(--color-card)] sm:w-48"
+                options={[
+                  { value: ALL, label: "All campuses" },
+                  ...campuses.map((c) => ({ value: c, label: c })),
+                ]}
+              />
+            ) : null}
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-[var(--color-muted-foreground)]">
+              {filtered.length === 0
+                ? "No buildings"
+                : `${filtered.length} building${filtered.length === 1 ? "" : "s"}`}
+              {hasFilters ? " match your filters" : ""}
+            </p>
+            {hasFilters ? (
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            ) : null}
+          </div>
+
+          <DataTable
+            columns={columns}
+            data={filtered}
+            caption="Buildings"
+            emptyTitle={hasFilters ? "No buildings match" : undefined}
+            emptyDescription={
+              hasFilters
+                ? "Try a different search term or campus."
+                : undefined
+            }
+            emptyActions={
+              hasFilters ? (
+                <Button type="button" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              ) : undefined
+            }
+          />
+        </div>
       )}
 
       <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : closeDialog())}>

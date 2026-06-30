@@ -633,6 +633,9 @@ type TimetableEvent struct {
 	StartTime    pgtype.Time        `json:"start_time"`
 	EndTime      pgtype.Time        `json:"end_time"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	Section      string             `json:"section"`
+	Program      string             `json:"program"`
+	Department   string             `json:"department"`
 }
 
 type TimetableImport struct {

@@ -1,17 +1,26 @@
--- Reference + demo data for local development and staging (§18.1).
--- Passwords below are Argon2id hashes of "Password123!" (DEV ONLY — never in prod).
--- Idempotent: re-running upserts by natural key.
+-- AURA — clean production/demo seed (§18.1).
+--
+-- IDEMPOTENT: safe to run repeatedly (psql -f, `make seed`, or on API boot via
+-- SEED_DATA=true). Every statement uses a natural key (ON CONFLICT / WHERE NOT
+-- EXISTS) so a re-run inserts nothing new and never errors.
+--
+-- DEMO ACCOUNTS: the four users below share ONE password ("Password123!", stored
+-- as an Argon2id hash). They exist so a fresh deployment is immediately usable for
+-- a demo. ROTATE THESE FOR REAL PRODUCTION — change the passwords (or delete the
+-- accounts) once real administrators have onboarded.
 
 SET app.institution_tz = 'Africa/Accra';
 
--- Departments
+-- ── Departments ──────────────────────────────────────────────────────────────
 INSERT INTO departments (code, name, faculty) VALUES
-  ('CS',   'Computer Science', 'Science'),
-  ('MATH', 'Mathematics',      'Science'),
-  ('BUS',  'Business Admin',   'Business')
+  ('CSIS', 'Computer Science & Information Systems', 'Science & Technology'),
+  ('ENGR', 'Engineering',                            'Science & Technology'),
+  ('BA',   'Business Administration',                'Business'),
+  ('MATH', 'Mathematics & Statistics',               'Science & Technology'),
+  ('HUSS', 'Humanities & Social Sciences',           'Humanities')
 ON CONFLICT (code) DO NOTHING;
 
--- Equipment
+-- ── Equipment (generic catalogue) ────────────────────────────────────────────
 INSERT INTO equipment (code, name) VALUES
   ('PROJECTOR',       'Projector'),
   ('SMART_BOARD',     'Smart Board'),
@@ -20,44 +29,81 @@ INSERT INTO equipment (code, name) VALUES
   ('CONFERENCE_SETUP','Conference Setup')
 ON CONFLICT (code) DO NOTHING;
 
--- Buildings
-INSERT INTO buildings (code, name, campus) VALUES
-  ('SCI', 'Science Block',  'Main'),
-  ('ENG', 'Engineering Block', 'Main')
-ON CONFLICT (code) DO NOTHING;
+-- ── Buildings (real Ashesi facilities) ───────────────────────────────────────
+-- Natural key: lower(name). Building codes are deterministic initials.
+INSERT INTO buildings (code, name, campus)
+SELECT v.code, v.name, 'Ashesi University, Berekuso'
+FROM (VALUES
+  ('APT',  'Apt Hall'),
+  ('BIO',  'Bio Lab'),
+  ('DFH',  'Databank Foundation Hall'),
+  ('EE',   'EE Lab'),
+  ('FL',   'Fab Lab'),
+  ('JH',   'Jackson Hall'),
+  ('JL',   'Jackson Lab'),
+  ('NM',   'Norton-Motulsky'),
+  ('NH',   'Nutor Hall'),
+  ('OT',   'OT'),
+  ('RMPR', 'Radichel MPR'),
+  ('SL',   'Science Lab')
+) AS v(code, name)
+WHERE NOT EXISTS (
+  SELECT 1 FROM buildings b WHERE lower(b.name) = lower(v.name)
+);
 
--- Rooms
+-- ── Rooms (real Ashesi rooms) ────────────────────────────────────────────────
+-- Natural key: lower(name). room_code is a deterministic, collision-free
+-- building-initials[-number] code. Capacity/type/status as specified.
 INSERT INTO rooms (room_code, name, building_id, capacity, room_type, status)
 SELECT v.room_code, v.name, b.id, v.capacity, v.room_type::room_type, 'ACTIVE'
 FROM (VALUES
-  ('A101', 'Lecture Hall A101', 'SCI', 120, 'LECTURE_HALL'),
-  ('A102', 'Seminar Room A102',  'SCI', 40,  'SEMINAR_ROOM'),
-  ('LAB1', 'Computing Lab 1',    'SCI', 60,  'LAB'),
-  ('E201', 'Auditorium E201',    'ENG', 300, 'AUDITORIUM'),
-  ('E202', 'Conference Room E202','ENG', 20,  'CONFERENCE_ROOM')
-) AS v(room_code, name, bcode, capacity, room_type)
-JOIN buildings b ON b.code = v.bcode
-ON CONFLICT (room_code) DO NOTHING;
+  ('APT-216', 'Apt Hall 216',              'Apt Hall',                 68, 'LECTURE_HALL'),
+  ('BIO',     'Bio Lab',                   'Bio Lab',                  24, 'LAB'),
+  ('DFH-218', 'Databank Foundation Hall 218','Databank Foundation Hall',69, 'LECTURE_HALL'),
+  ('EE',      'EE Lab',                    'EE Lab',                   48, 'LAB'),
+  ('FL-203',  'Fab Lab 203',               'Fab Lab',                  70, 'LAB'),
+  ('FL-303',  'Fab Lab 303',               'Fab Lab',                  57, 'LAB'),
+  ('JH-115',  'Jackson Hall 115',          'Jackson Hall',             68, 'LECTURE_HALL'),
+  ('JH-116',  'Jackson Hall 116',          'Jackson Hall',             54, 'LECTURE_HALL'),
+  ('JL-221',  'Jackson Lab 221',           'Jackson Lab',              60, 'LAB'),
+  ('JL-222',  'Jackson Lab 222',           'Jackson Lab',              54, 'LAB'),
+  ('NM-207A', 'Norton-Motulsky 207A',      'Norton-Motulsky',          48, 'LECTURE_HALL'),
+  ('NM-207B', 'Norton-Motulsky 207B',      'Norton-Motulsky',          68, 'LECTURE_HALL'),
+  ('NH-100',  'Nutor Hall 100',            'Nutor Hall',               68, 'LECTURE_HALL'),
+  ('NH-115',  'Nutor Hall 115',            'Nutor Hall',               69, 'LECTURE_HALL'),
+  ('NH-216',  'Nutor Hall 216',            'Nutor Hall',               51, 'LECTURE_HALL'),
+  ('OT',      'OT',                        'OT',                       28, 'LECTURE_HALL'),
+  ('RMPR',    'Radichel MPR',              'Radichel MPR',             40, 'CONFERENCE_ROOM'),
+  ('SL',      'Science Lab',               'Science Lab',              30, 'LAB')
+) AS v(room_code, name, building_name, capacity, room_type)
+JOIN buildings b ON lower(b.name) = lower(v.building_name)
+WHERE NOT EXISTS (
+  SELECT 1 FROM rooms r WHERE lower(r.name) = lower(v.name)
+);
 
--- Equip A101 with a projector + audio.
+-- ── Room equipment (equip a couple of lecture halls) ─────────────────────────
 INSERT INTO room_equipment (room_id, equipment_id, quantity)
-SELECT r.id, e.id, 1 FROM rooms r, equipment e
-WHERE r.room_code = 'A101' AND e.code IN ('PROJECTOR','AUDIO_SYSTEM')
+SELECT r.id, e.id, 1
+FROM rooms r, equipment e
+WHERE lower(r.name) IN (lower('Nutor Hall 100'), lower('Jackson Hall 115'))
+  AND e.code IN ('PROJECTOR', 'AUDIO_SYSTEM')
 ON CONFLICT DO NOTHING;
 
--- Users (password = "Password123!"). One per role.
+-- ── Demo users (password = "Password123!" — Argon2id; ROTATE FOR PRODUCTION) ──
 INSERT INTO users (email, password_hash, full_name, role, status, department_id)
 SELECT v.email, v.hash, v.full_name, v.role::user_role, 'ACTIVE', d.id
 FROM (VALUES
-  ('admin@cbs.example.edu',    '$argon2id$v=19$m=65536,t=3,p=2$zuGX5BP1ng00hcpl67NsGQ$U3e5r+04E+bcULh75MSFR3dFTfsKDUiRrKDzBibVbis', 'System Admin',    'SYSTEM_ADMIN',    'CS'),
-  ('timetable@cbs.example.edu','$argon2id$v=19$m=65536,t=3,p=2$zuGX5BP1ng00hcpl67NsGQ$U3e5r+04E+bcULh75MSFR3dFTfsKDUiRrKDzBibVbis', 'Timetable Admin', 'TIMETABLE_ADMIN', 'CS'),
-  ('officer@cbs.example.edu',  '$argon2id$v=19$m=65536,t=3,p=2$zuGX5BP1ng00hcpl67NsGQ$U3e5r+04E+bcULh75MSFR3dFTfsKDUiRrKDzBibVbis', 'Booking Officer', 'BOOKING_OFFICER', 'CS'),
-  ('lecturer@cbs.example.edu', '$argon2id$v=19$m=65536,t=3,p=2$zuGX5BP1ng00hcpl67NsGQ$U3e5r+04E+bcULh75MSFR3dFTfsKDUiRrKDzBibVbis', 'Jane Lecturer',   'REQUESTER',       'MATH')
+  ('admin@cbs.example.edu',     '$argon2id$v=19$m=65536,t=3,p=2$zuGX5BP1ng00hcpl67NsGQ$U3e5r+04E+bcULh75MSFR3dFTfsKDUiRrKDzBibVbis', 'System Admin',    'SYSTEM_ADMIN',    'CSIS'),
+  ('timetable@cbs.example.edu', '$argon2id$v=19$m=65536,t=3,p=2$zuGX5BP1ng00hcpl67NsGQ$U3e5r+04E+bcULh75MSFR3dFTfsKDUiRrKDzBibVbis', 'Timetable Admin', 'TIMETABLE_ADMIN', 'CSIS'),
+  ('officer@cbs.example.edu',   '$argon2id$v=19$m=65536,t=3,p=2$zuGX5BP1ng00hcpl67NsGQ$U3e5r+04E+bcULh75MSFR3dFTfsKDUiRrKDzBibVbis', 'Booking Officer', 'BOOKING_OFFICER', 'BA'),
+  ('lecturer@cbs.example.edu',  '$argon2id$v=19$m=65536,t=3,p=2$zuGX5BP1ng00hcpl67NsGQ$U3e5r+04E+bcULh75MSFR3dFTfsKDUiRrKDzBibVbis', 'Jane Lecturer',   'REQUESTER',       'MATH')
 ) AS v(email, hash, full_name, role, dept)
 JOIN departments d ON d.code = v.dept
 ON CONFLICT (email) DO NOTHING;
 
--- A draft semester (activate via the API to exercise BR2).
+-- ── Semester (one DRAFT; activate via the API to exercise BR2) ────────────────
 INSERT INTO semesters (name, start_date, end_date, status)
-VALUES ('2026 Semester 1', DATE '2026-01-13', DATE '2026-05-15', 'DRAFT')
-ON CONFLICT DO NOTHING;
+SELECT '2026 Semester 3', DATE '2026-05-18', DATE '2026-08-28', 'DRAFT'
+WHERE NOT EXISTS (
+  SELECT 1 FROM semesters s WHERE s.name = '2026 Semester 3'
+);

@@ -6,19 +6,30 @@
 import { Tabs } from 'expo-router';
 import { Text, type ColorValue } from 'react-native';
 
+import { ThemeToggle } from '@/components/theme-toggle';
 import { palette } from '@/theme/tokens';
+import { useThemeColors } from '@/theme/theme-context';
 
 function TabIcon({ glyph, color }: { glyph: string; color: ColorValue }) {
   return <Text style={{ color, fontSize: 18 }}>{glyph}</Text>;
 }
 
 export default function RequesterLayout() {
+  const colors = useThemeColors();
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: palette.primary,
-        tabBarInactiveTintColor: palette.muted,
-        headerTitleStyle: { color: palette.foreground },
+        tabBarInactiveTintColor: colors.mutedForeground,
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+        },
+        sceneStyle: { backgroundColor: colors.background },
+        headerStyle: { backgroundColor: colors.card },
+        headerTintColor: colors.foreground,
+        headerTitleStyle: { color: colors.foreground },
+        headerRight: () => <ThemeToggle />,
       }}
     >
       <Tabs.Screen

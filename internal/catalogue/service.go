@@ -205,6 +205,9 @@ func (s *Service) RoomEquipment(ctx context.Context, roomID uuid.UUID) ([]dbgen.
 // EquipmentLine is one entry in a room's equipment matrix.
 type EquipmentLine struct {
 	EquipmentID uuid.UUID `json:"equipment_id"`
+	Code        string    `json:"code,omitempty"`
+	Name        string    `json:"name,omitempty"`
+	ImageUrl    *string   `json:"image_url,omitempty"`
 	Quantity    int       `json:"quantity"`
 }
 

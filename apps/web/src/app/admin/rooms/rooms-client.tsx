@@ -1,13 +1,15 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element -- Room thumbnails are runtime catalogue upload URLs. */
 import * as React from "react";
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { DoorOpen, Eye, ImageIcon, Plus, Upload } from "lucide-react";
-import { ROOM_TYPE_LABELS, type Room } from "@cbs/schemas";
+import { DoorOpen, Eye, ImageIcon, Plus, Search, Upload } from "lucide-react";
+import { ROOM_TYPE_LABELS, RoomType, type Room } from "@cbs/schemas";
 import { Button } from "@cbs/ui/components/button";
 import { Badge } from "@cbs/ui/components/badge";
+import { Input } from "@cbs/ui/components/input";
 import { Skeleton } from "@cbs/ui/components/skeleton";
 import { useToast } from "@cbs/ui/components/toast";
 import { api, unwrap } from "@/lib/api/client";
@@ -15,10 +17,20 @@ import { qk } from "@/lib/query-keys";
 import { PageHeader } from "@/components/page-header";
 import { ProblemAlert } from "@/components/problem-alert";
 import { DataTable } from "@/components/data-table";
+import { Combobox } from "@/components/combobox";
 import { CatalogueImportDialog } from "@/components/catalogue-import-dialog";
 import { useBuildings } from "@/lib/hooks/reference";
 import { route } from "@/lib/route";
 import { RoomFormDialog } from "./room-form-dialog";
+
+const ALL = "ALL";
+
+const ROOM_STATUS_OPTIONS = [
+  { value: ALL, label: "All statuses" },
+  { value: "ACTIVE", label: "Active" },
+  { value: "INACTIVE", label: "Inactive" },
+  { value: "UNDER_MAINTENANCE", label: "Under maintenance" },
+];
 
 export function RoomsClient() {
   const queryClient = useQueryClient();
@@ -26,6 +38,9 @@ export function RoomsClient() {
   const [editing, setEditing] = React.useState<Room | null>(null);
   const [creating, setCreating] = React.useState(false);
   const [importOpen, setImportOpen] = React.useState(false);
+  const [search, setSearch] = React.useState("");
+  const [type, setType] = React.useState<string>(ALL);
+  const [status, setStatus] = React.useState<string>(ALL);
   const buildings = useBuildings();
 
   const query = useQuery({
@@ -141,6 +156,30 @@ export function RoomsClient() {
     [deactivate],
   );
 
+  const rooms = React.useMemo(() => query.data ?? [], [query.data]);
+
+  const filtered = React.useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return rooms.filter((r) => {
+      if (type !== ALL && r.room_type !== type) return false;
+      if (status !== ALL && r.status !== status) return false;
+      if (needle) {
+        const hay =
+          `${r.name} ${r.room_code} ${r.building_name ?? ""}`.toLowerCase();
+        if (!hay.includes(needle)) return false;
+      }
+      return true;
+    });
+  }, [rooms, search, type, status]);
+
+  const hasFilters = search.trim() !== "" || type !== ALL || status !== ALL;
+
+  function clearFilters() {
+    setSearch("");
+    setType(ALL);
+    setStatus(ALL);
+  }
+
   return (
     <>
       <PageHeader
@@ -164,11 +203,82 @@ export function RoomsClient() {
       ) : query.isError ? (
         <ProblemAlert error={query.error} />
       ) : (
-        <DataTable
-          columns={columns}
-          data={query.data ?? []}
-          caption="University rooms"
-        />
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 shadow-sm sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--color-muted-foreground)]"
+                aria-hidden="true"
+              />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name, code or building"
+                aria-label="Search rooms"
+                className="h-11 bg-[var(--color-card)] pl-9"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:flex sm:w-auto">
+              <Combobox
+                value={type}
+                onValueChange={setType}
+                placeholder="Room type"
+                searchPlaceholder="Search types…"
+                emptyText="No types found."
+                triggerClassName="h-11 w-full bg-[var(--color-card)] sm:w-44"
+                options={[
+                  { value: ALL, label: "All types" },
+                  ...RoomType.options.map((t) => ({
+                    value: t,
+                    label: ROOM_TYPE_LABELS[t],
+                  })),
+                ]}
+              />
+              <Combobox
+                value={status}
+                onValueChange={setStatus}
+                placeholder="Status"
+                searchPlaceholder="Search statuses…"
+                emptyText="No statuses found."
+                triggerClassName="h-11 w-full bg-[var(--color-card)] sm:w-44"
+                options={ROOM_STATUS_OPTIONS}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-[var(--color-muted-foreground)]">
+              {filtered.length === 0
+                ? "No rooms"
+                : `${filtered.length} room${filtered.length === 1 ? "" : "s"}`}
+              {hasFilters ? " match your filters" : ""}
+            </p>
+            {hasFilters ? (
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            ) : null}
+          </div>
+
+          <DataTable
+            columns={columns}
+            data={filtered}
+            caption="University rooms"
+            emptyTitle={hasFilters ? "No rooms match" : undefined}
+            emptyDescription={
+              hasFilters
+                ? "Try a different search term, room type, or status."
+                : undefined
+            }
+            emptyActions={
+              hasFilters ? (
+                <Button type="button" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              ) : undefined
+            }
+          />
+        </div>
       )}
 
       <RoomFormDialog

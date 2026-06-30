@@ -11,7 +11,7 @@ web app proxies `/api/v1/*` to the API, so auth cookies stay first‑party.
             https://aura-api.onrender.com             (Render — Go API)
                  │
                  ▼
-            aura-postgres                              (Render — Postgres, free)
+            aura-postgres                              (Render — managed Postgres)
 ```
 
 All secret values live in **`production.env`** (gitignored — never committed).
@@ -30,8 +30,8 @@ Copy from there into the Render / Vercel dashboards.
 ## Part A — Backend on Render (do this first; you need the API URL for Vercel)
 
 1. **New + → Blueprint**, pick the repo. Render reads [`render.yaml`](../render.yaml)
-   and proposes two free resources: `aura-postgres` (Postgres) and `aura-api`
-   (Docker web service).
+   and proposes `aura-postgres` (managed Postgres) and `aura-api` (Docker web
+   service).
 2. **Apply**. Then open **aura-api → Environment** and set the `sync: false`
    secrets from `production.env`:
    - `JWT_SIGNING_KEY`
@@ -50,8 +50,28 @@ Copy from there into the Render / Vercel dashboards.
 **Free‑tier caveats**
 - The service **spins down when idle** → the first request after a lull cold‑starts
   (~30–60 s). The folded sweep only runs while the service is awake.
-- Free **Postgres expires ~30 days** after creation (and is storage‑limited).
-  Upgrade the DB plan for anything beyond a demo.
+- Managed Postgres is configured on Render's smallest currently supported paid
+  plan in the Blueprint. To stay on a temporary free database for demos, follow
+  the note in `render.yaml` and wire `DATABASE_URL` manually.
+
+### Publish clean demo data
+
+The repo ships an **idempotent** demo seed ([`db/seed/seed.sql`](../db/seed/seed.sql)):
+the real Ashesi buildings/rooms, departments, equipment, a DRAFT semester, and four
+demo accounts (all share the password `Password123!` — **rotate for real production**).
+The API can load it on boot when `SEED_DATA=true`.
+
+1. In **aura-api → Environment**, set `SEED_DATA=true` (the blueprint default is
+   `false`).
+2. **Redeploy.** On boot the API migrates (`AUTO_MIGRATE`) **then** seeds — both
+   idempotently, so re‑running is safe and inserts nothing already present.
+3. **Confirm** the demo accounts work: sign in at the Vercel site with
+   `admin@cbs.example.edu` / `Password123!` (other roles:
+   `timetable@cbs.example.edu`, `officer@cbs.example.edu`, `lecturer@cbs.example.edu`),
+   and check the public room directory lists the real rooms (e.g. Nutor Hall 100).
+4. **Set `SEED_DATA` back to `false`** and redeploy (or just leave it until the next
+   deploy). The seed is best‑effort — a seed error is logged but never crashes the
+   API — but turning it off keeps boot lean and avoids re‑running it every deploy.
 
 ---
 

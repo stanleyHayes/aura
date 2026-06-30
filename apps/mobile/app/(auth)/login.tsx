@@ -12,7 +12,9 @@ import { z } from 'zod';
 
 import { ApiError } from '@/api/errors';
 import { Button, Field } from '@/components/ui';
+import { withAlpha } from '@/components/theme-toggle';
 import { useAuth } from '@/features/auth/auth-context';
+import { useThemeColors } from '@/theme/theme-context';
 
 const LoginFormSchema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -29,6 +31,7 @@ const AURA_CUES = [
 
 export default function LoginScreen() {
   const { login } = useAuth();
+  const colors = useThemeColors();
   const [formError, setFormError] = useState<string | null>(null);
   const [needsMfa, setNeedsMfa] = useState(false);
 
@@ -225,10 +228,18 @@ export default function LoginScreen() {
                 {formError ? (
                   <View
                     accessibilityRole="alert"
-                    className="rounded-lg border border-danger p-3"
-                    style={{ backgroundColor: '#FFF3F1' }}
+                    className="rounded-lg border p-3"
+                    style={{
+                      // Soft danger surface derived from the active theme so it
+                      // reads correctly in light AND every dark tint.
+                      backgroundColor: withAlpha(colors.danger, 0.12),
+                      borderColor: withAlpha(colors.danger, 0.4),
+                    }}
                   >
-                    <Text className="text-sm font-semibold text-danger">
+                    <Text
+                      className="text-sm font-semibold"
+                      style={{ color: colors.danger }}
+                    >
                       Sign-in problem
                     </Text>
                     <Text className="mt-1 text-sm text-foreground">{formError}</Text>

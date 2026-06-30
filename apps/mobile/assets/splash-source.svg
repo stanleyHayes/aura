@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1290 2796">
+  <rect width="1290" height="2796" fill="#FFF8F8"/>
+  <g opacity="0.06" fill="none" stroke="#7B1113" stroke-width="38" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M126 2200 645 686l519 1514"/>
+    <path d="M304 1712h682"/>
+  </g>
+  <rect x="465" y="1114" width="360" height="360" rx="108" fill="#7B1113"/>
+  <path d="M543 1388 645 1178l102 210" fill="none" stroke="#FFF8F8" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M589 1326h112" fill="none" stroke="#FFF8F8" stroke-width="34" stroke-linecap="round"/>
+  <path d="M645 1208c-29 0-52 22-52 49 0 36 52 84 52 84s52-48 52-84c0-27-23-49-52-49Z" fill="none" stroke="#FFF8F8" stroke-width="20" stroke-linejoin="round"/>
+  <circle cx="645" cy="1256" r="11" fill="#FFF8F8"/>
+  <text x="645" y="1627" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="108" font-weight="800" fill="#231F20" letter-spacing="0">AURA</text>
+  <text x="645" y="1704" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="700" fill="#70696A" letter-spacing="0">Smart Space Management</text>
+</svg>

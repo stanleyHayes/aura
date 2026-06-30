@@ -77,7 +77,7 @@ export function PageHeader({
       {actions ? (
         <div
           data-tour="primary-actions"
-          className="relative z-10 flex w-full shrink-0 items-center gap-2 lg:w-auto [&_.aura-button-shape]:h-12 [&_.aura-button-shape]:px-8 [&_.aura-button-shape]:text-base"
+          className="relative z-10 flex w-full shrink-0 flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:w-auto lg:justify-end [&>*]:w-full sm:[&>*]:w-auto [&_.aura-button-shape]:h-12 [&_.aura-button-shape]:justify-center [&_.aura-button-shape]:px-8 [&_.aura-button-shape]:text-base [&_a]:w-full [&_a]:justify-center sm:[&_a]:w-auto [&_button]:w-full [&_button]:justify-center sm:[&_button]:w-auto"
         >
           {actions}
         </div>

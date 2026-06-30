@@ -398,7 +398,13 @@ func (h *Handler) attachEquipment(r *http.Request, rooms []RoomDetail) {
 		}
 		lines := make([]EquipmentLine, len(eq))
 		for j, e := range eq {
-			lines[j] = EquipmentLine{EquipmentID: e.EquipmentID, Quantity: int(e.Quantity)}
+			lines[j] = EquipmentLine{
+				EquipmentID: e.EquipmentID,
+				Code:        e.Code,
+				Name:        e.Name,
+				ImageUrl:    e.ImageUrl,
+				Quantity:    int(e.Quantity),
+			}
 		}
 		rooms[i].Equipment = lines
 	}

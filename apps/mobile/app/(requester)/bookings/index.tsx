@@ -14,7 +14,7 @@ import {
   ScreenMessage,
   StatusBadge,
 } from '@/components/ui';
-import { formatDateTime } from '@/lib/datetime';
+import { formatDate, formatTime } from '@/lib/datetime';
 import type { BookingSummary } from '@/schemas';
 
 export default function MyBookingsScreen() {
@@ -38,7 +38,7 @@ export default function MyBookingsScreen() {
 
   return (
     <FlatList
-      className="flex-1 bg-surface"
+      className="flex-1 bg-background"
       contentContainerClassName="gap-3 p-4"
       data={data}
       keyExtractor={(b) => b.id}
@@ -50,7 +50,9 @@ export default function MyBookingsScreen() {
   );
 }
 
-function BookingRow({ booking }: { booking: BookingSummary }) {
+function BookingRow({ booking }: Readonly<{ booking: BookingSummary }>) {
+  const buildingLabel =
+    booking.room?.building?.name ?? booking.room?.buildingName ?? undefined;
   return (
     <Pressable
       accessibilityRole="button"
@@ -62,6 +64,9 @@ function BookingRow({ booking }: { booking: BookingSummary }) {
             <Text className="text-base font-semibold text-foreground">
               {booking.room?.name ?? booking.room?.roomCode ?? 'Room'}
             </Text>
+            {buildingLabel ? (
+              <Text className="text-xs text-muted">{buildingLabel}</Text>
+            ) : null}
             <Text className="text-sm text-muted" numberOfLines={1}>
               {booking.purpose}
             </Text>
@@ -69,7 +74,8 @@ function BookingRow({ booking }: { booking: BookingSummary }) {
           <StatusBadge status={booking.status} />
         </View>
         <Text className="text-xs text-muted">
-          {formatDateTime(booking.startsAt)} – {formatDateTime(booking.endsAt)}
+          {formatDate(booking.startsAt)} · {formatTime(booking.startsAt)}–
+          {formatTime(booking.endsAt)}
         </Text>
       </Card>
     </Pressable>

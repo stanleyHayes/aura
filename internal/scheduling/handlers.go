@@ -217,6 +217,9 @@ func (h *Handler) importTimetable(w http.ResponseWriter, r *http.Request) {
 	if mode != ModeReplace {
 		mode = ModeAppend
 	}
+	// Default OFF on the wire: the UI sends "true" explicitly when its (default-on)
+	// toggle is enabled, so the backend only provisions when asked.
+	createMissing := r.FormValue("create_missing") == "true"
 
 	name := strings.ToLower(header.Filename)
 	data, err := io.ReadAll(file) // bounded by MaxBytesReader above
@@ -261,7 +264,7 @@ func (h *Handler) importTimetable(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, r, h.log, err)
 		return
 	}
-	result, err := h.svc.ProcessImport(r.Context(), imp.ID, semID, rows, mode)
+	result, err := h.svc.ProcessImport(r.Context(), imp.ID, semID, rows, mode, createMissing)
 	if err != nil {
 		httpx.Error(w, r, h.log, err)
 		return

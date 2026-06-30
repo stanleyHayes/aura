@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Users } from "lucide-react";
@@ -69,6 +69,11 @@ export function UsersClient() {
   const form = useForm<Values>({
     resolver: zodResolver(Schema),
     defaultValues: { full_name: "", email: "", role: "REQUESTER", department_id: "" },
+  });
+  const selectedRole = useWatch({ control: form.control, name: "role" });
+  const selectedDepartmentId = useWatch({
+    control: form.control,
+    name: "department_id",
   });
 
   const create = useMutation({
@@ -248,7 +253,7 @@ export function UsersClient() {
               <Field id="u-role" label="Role">
                 {(p) => (
                   <Select
-                    value={form.watch("role")}
+                    value={selectedRole}
                     onValueChange={(v) => form.setValue("role", v as UserRole)}
                   >
                     <SelectTrigger id={p.id}>
@@ -268,7 +273,7 @@ export function UsersClient() {
                 {(p) => (
                   <Combobox
                     id={p.id}
-                    value={form.watch("department_id") || ""}
+                    value={selectedDepartmentId || ""}
                     onValueChange={(v) => form.setValue("department_id", v)}
                     placeholder="None"
                     searchPlaceholder="Search departments…"

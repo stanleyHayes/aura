@@ -15,7 +15,7 @@ const API_ORIGIN = process.env.API_ORIGIN ?? "http://localhost:8080";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  transpilePackages: ["@cbs/ui", "@cbs/schemas", "@cbs/api-client"],
+  transpilePackages: ["@cbs/ui", "@cbs/schemas", "@cbs/api-client", "@cbs/tokens"],
   // `typedRoutes` is stable in Next.js 16.
   typedRoutes: true,
   async rewrites() {

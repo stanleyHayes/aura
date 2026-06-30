@@ -174,6 +174,28 @@ func (q *Queries) GetBuilding(ctx context.Context, id uuid.UUID) (Building, erro
 	return i, err
 }
 
+const getBuildingByName = `-- name: GetBuildingByName :one
+SELECT id, code, name, campus, created_at, updated_at, image_url, image_public_id, gallery_urls, gallery_public_ids FROM buildings WHERE lower(name) = lower($1)
+`
+
+func (q *Queries) GetBuildingByName(ctx context.Context, lower string) (Building, error) {
+	row := q.db.QueryRow(ctx, getBuildingByName, lower)
+	var i Building
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.Name,
+		&i.Campus,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ImageUrl,
+		&i.ImagePublicID,
+		&i.GalleryUrls,
+		&i.GalleryPublicIds,
+	)
+	return i, err
+}
+
 const getEquipment = `-- name: GetEquipment :one
 SELECT id, code, name, image_url, image_public_id, gallery_urls, gallery_public_ids FROM equipment WHERE id = $1
 `
@@ -224,6 +246,31 @@ SELECT id, room_code, name, building_id, capacity, room_type, status, created_at
 
 func (q *Queries) GetRoomByCode(ctx context.Context, roomCode string) (Room, error) {
 	row := q.db.QueryRow(ctx, getRoomByCode, roomCode)
+	var i Room
+	err := row.Scan(
+		&i.ID,
+		&i.RoomCode,
+		&i.Name,
+		&i.BuildingID,
+		&i.Capacity,
+		&i.RoomType,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ImageUrl,
+		&i.ImagePublicID,
+		&i.GalleryUrls,
+		&i.GalleryPublicIds,
+	)
+	return i, err
+}
+
+const getRoomByName = `-- name: GetRoomByName :one
+SELECT id, room_code, name, building_id, capacity, room_type, status, created_at, updated_at, image_url, image_public_id, gallery_urls, gallery_public_ids FROM rooms WHERE lower(name) = lower($1)
+`
+
+func (q *Queries) GetRoomByName(ctx context.Context, lower string) (Room, error) {
+	row := q.db.QueryRow(ctx, getRoomByName, lower)
 	var i Room
 	err := row.Scan(
 		&i.ID,

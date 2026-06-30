@@ -75,7 +75,7 @@ export function EmptyState({
         </p>
       ) : null}
       {renderedActions ? (
-        <div className="relative mt-6 flex flex-wrap items-center justify-center gap-3">
+        <div className="relative mx-auto mt-6 flex w-full max-w-sm flex-col items-stretch justify-center gap-3 sm:max-w-none sm:flex-row sm:flex-wrap sm:items-center [&_a]:w-full [&_a]:justify-center sm:[&_a]:w-auto [&_button]:w-full [&_button]:justify-center sm:[&_button]:w-auto">
           {renderedActions}
         </div>
       ) : null}

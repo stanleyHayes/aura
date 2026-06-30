@@ -98,6 +98,15 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-dvh antialiased" suppressHydrationWarning>
+        {/* Apply the saved theme mode + dark tint before first paint so the
+            choice persists with no flash of the wrong theme (FOUC).
+            ThemePreferenceSync keeps it in sync after hydration. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var m=localStorage.getItem('aura-theme');var d=m==='dark'||(!m&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);var e=document.documentElement;e.classList.toggle('dark',!!d);e.style.colorScheme=d?'dark':'light';e.dataset.darkTint=localStorage.getItem('aura-dark-tint')||'ink';}catch(_){}})();",
+          }}
+        />
         <a href="#main" className="skip-link rounded-md bg-[var(--color-primary)] px-3 py-2 text-sm text-[var(--color-primary-foreground)]">
           Skip to main content
         </a>

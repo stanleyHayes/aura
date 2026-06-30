@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- Equipment imagery is served from runtime catalogue upload URLs. */
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -50,7 +51,7 @@ function equipmentLine(room: Room, equipment: Equipment) {
   return (room.equipment ?? []).find(
     (line) =>
       line.equipment_id === equipment.id ||
-      line.code.toLowerCase() === equipment.code.toLowerCase(),
+      (line.code ?? "").toLowerCase() === equipment.code.toLowerCase(),
   );
 }
 

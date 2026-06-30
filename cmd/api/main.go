@@ -22,6 +22,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	migrations "github.com/aura/cbs/db/migrations"
+	seeddata "github.com/aura/cbs/db/seed"
 	"github.com/aura/cbs/internal/availability"
 	"github.com/aura/cbs/internal/bookings"
 	"github.com/aura/cbs/internal/catalogue"
@@ -80,6 +81,15 @@ func run() error {
 		return err
 	}
 
+	// Load the idempotent demo seed on startup when asked (SEED_DATA). Runs after
+	// migrations and once the pool exists. Best-effort: the seed is idempotent, so
+	// a failure here is logged but never crashes the API.
+	if cfg.SeedData {
+		if err := runSeed(ctx, store, log); err != nil {
+			log.Error("seed failed (continuing; seed is best-effort and idempotent)", "err", err)
+		}
+	}
+
 	handler, err := buildRouter(cfg, store, loc, log)
 	if err != nil {
 		return err
@@ -132,6 +142,25 @@ func runMigrations(url string, log *slog.Logger) error {
 	}
 	log.Info("applying migrations")
 	return goose.Up(sqldb, ".")
+}
+
+// runSeed loads the embedded, idempotent demo seed (db/seed/seed.sql). The seed
+// is a single MULTI-STATEMENT script, so it must run under the pgx SIMPLE query
+// protocol: pool.Exec uses the extended protocol, which executes only the first
+// statement. We acquire a connection from the pool and call the underlying
+// pgconn Exec, which sends the whole script in one simple query.
+func runSeed(ctx context.Context, store *db.Store, log *slog.Logger) error {
+	conn, err := store.Pool.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("acquire conn for seed: %w", err)
+	}
+	defer conn.Release()
+	log.Info("seeding demo data")
+	if _, err := conn.Conn().PgConn().Exec(ctx, seeddata.SQL).ReadAll(); err != nil {
+		return fmt.Errorf("execute seed: %w", err)
+	}
+	log.Info("seed applied (idempotent)")
+	return nil
 }
 
 // runBackgroundJobs runs the periodic booking-expiry sweep (every minute) and

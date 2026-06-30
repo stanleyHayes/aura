@@ -125,14 +125,17 @@ against a real PostgreSQL 18 (they skip when `TEST_DATABASE_URL` is unset).
 
 ## Deploy to Render
 
-The repo ships a [`render.yaml`](render.yaml) Blueprint: managed Postgres, a Key
-Value (Redis) instance, the API (Docker, `/healthz` health check, migrations run as
-the pre-deploy step), the worker, and the Next.js web service.
+AURA deploys as a split stack: the Next.js web app runs on Vercel, while Render
+hosts the Go API and managed Postgres. The repo ships a backend-only
+[`render.yaml`](render.yaml) Blueprint for the API (Docker, `/healthz` health
+check) and database. On Render free web services there is no pre-deploy shell, so
+the API applies embedded goose migrations on boot when `AUTO_MIGRATE=true`.
 
 1. Push to a Git provider; in Render choose **New + → Blueprint** and select the repo.
 2. Set the secrets Render leaves blank: `MFA_ENCRYPTION_KEY` (`openssl rand -base64 32`),
-   `CORS_ALLOWED_ORIGINS`, and any `MAIL_*`.
-3. For uploads/exports, point `S3_*` at Cloudflare R2 / AWS S3 (Render has no S3).
+   `JWT_SIGNING_KEY`, `MAIL_PASSWORD`, and any `CLOUDINARY_*` values.
+3. Deploy the web app from `apps/web` on Vercel with `API_ORIGIN` pointing at the
+   Render API URL. Catalogue image uploads use Cloudinary.
 
 See [ADR-0007](docs/decisions/0007-render-deployment-and-postgres-portability.md).
 

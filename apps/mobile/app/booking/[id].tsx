@@ -11,6 +11,7 @@ import { Alert, ScrollView, Text, View } from 'react-native';
 
 import { messageFromError } from '@/api/errors';
 import { useBooking, useCancelBooking } from '@/api/hooks';
+import { RoomImage } from '@/components/booking-bits';
 import {
   Button,
   Card,
@@ -49,6 +50,8 @@ export default function BookingDetailScreen() {
   const canCancel =
     isOwner && (booking.status === 'PENDING' || booking.status === 'APPROVED');
   const canAddToCalendar = booking.status === 'APPROVED';
+  const buildingLabel =
+    booking.room?.building?.name ?? booking.room?.buildingName ?? undefined;
 
   function confirmCancel() {
     Alert.alert('Cancel booking', 'This cannot be undone. Continue?', [
@@ -93,23 +96,25 @@ export default function BookingDetailScreen() {
     <>
       <Stack.Screen options={{ title: booking.room?.roomCode ?? 'Booking' }} />
       <ScrollView
-        className="flex-1 bg-surface"
+        className="flex-1 bg-background"
         contentContainerClassName="gap-4 p-4"
       >
         <Card className="gap-2">
+          {booking.room?.imageUrl ? (
+            <RoomImage uri={booking.room.imageUrl} />
+          ) : null}
           <View className="flex-row items-start justify-between">
             <View className="flex-1 gap-0.5">
               <Text className="text-xl font-bold text-foreground">
                 {booking.room?.name ?? booking.room?.roomCode ?? 'Room'}
               </Text>
-              {booking.room?.building ? (
-                <Text className="text-sm text-muted">
-                  {booking.room.building.name}
-                </Text>
+              {buildingLabel ? (
+                <Text className="text-sm text-muted">{buildingLabel}</Text>
               ) : null}
             </View>
             <StatusBadge status={booking.status} />
           </View>
+          <Text className="text-sm text-muted">{booking.purpose}</Text>
         </Card>
 
         <Card className="gap-3">
@@ -123,6 +128,9 @@ export default function BookingDetailScreen() {
           {booking.requesterName ? (
             <DetailRow label="Requested by" value={booking.requesterName} />
           ) : null}
+          {booking.reviewerName ? (
+            <DetailRow label="Reviewed by" value={booking.reviewerName} />
+          ) : null}
         </Card>
 
         {/* Status timeline (Section 7.2). */}
@@ -132,7 +140,7 @@ export default function BookingDetailScreen() {
           </Text>
           <Timeline status={booking.status} />
           {booking.reviewNote ? (
-            <View className="rounded-md bg-surface p-3">
+            <View className="rounded-md border border-border bg-muted-bg p-3">
               <Text className="text-xs font-medium uppercase text-muted">
                 Officer note
               </Text>
@@ -168,7 +176,7 @@ export default function BookingDetailScreen() {
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
     <View className="gap-0.5">
       <Text className="text-xs font-medium uppercase text-muted">{label}</Text>
@@ -177,23 +185,25 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function terminalLabel(status: BookingStatus): string {
+  if (status === 'REJECTED') return 'Rejected';
+  if (status === 'CANCELLED') return 'Cancelled';
+  return 'Expired';
+}
+
 /**
  * Minimal status timeline. Terminal states (rejected/cancelled/expired) render
- * as a single resolved step; the happy path shows submitted → approved.
+ * as a resolved step in the danger tone (parity with the web timeline, which
+ * marks these with the rejected colour); the happy path shows submitted →
+ * approved.
  */
-function Timeline({ status }: { status: BookingStatus }) {
+function Timeline({ status }: Readonly<{ status: BookingStatus }>) {
   if (status === 'REJECTED' || status === 'CANCELLED' || status === 'EXPIRED') {
-    const label =
-      status === 'REJECTED'
-        ? 'Rejected'
-        : status === 'CANCELLED'
-          ? 'Cancelled'
-          : 'Expired';
     return (
       <View className="flex-row items-center gap-3">
         <Step done label="Submitted" />
         <Connector done />
-        <Step done label={label} tone="muted" />
+        <Step done label={terminalLabel(status)} tone="danger" />
       </View>
     );
   }
@@ -220,16 +230,13 @@ function Step({
   done,
   label,
   tone = 'primary',
-}: {
+}: Readonly<{
   done: boolean;
   label: string;
-  tone?: 'primary' | 'muted';
-}) {
-  const dot = done
-    ? tone === 'muted'
-      ? 'bg-slate-400'
-      : 'bg-primary'
-    : 'bg-border';
+  tone?: 'primary' | 'danger';
+}>) {
+  let dot = 'bg-border';
+  if (done) dot = tone === 'danger' ? 'bg-danger' : 'bg-primary';
   return (
     <View className="items-center gap-1">
       <View className={`h-3 w-3 rounded-full ${dot}`} />
@@ -240,6 +247,6 @@ function Step({
   );
 }
 
-function Connector({ done }: { done: boolean }) {
+function Connector({ done }: Readonly<{ done: boolean }>) {
   return <View className={`h-0.5 w-8 ${done ? 'bg-primary' : 'bg-border'}`} />;
 }

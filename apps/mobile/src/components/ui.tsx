@@ -14,7 +14,9 @@ import {
   type ViewProps,
 } from 'react-native';
 
+import { withAlpha } from '@/components/theme-toggle';
 import type { BookingStatus } from '@/schemas';
+import { useThemeColors } from '@/theme/theme-context';
 import { palette } from '@/theme/tokens';
 
 /* ------------------------------------------------------------------ Button */
@@ -113,19 +115,42 @@ export function Card({ className = '', children, ...rest }: ViewProps & { classN
 
 /* ------------------------------------------------------------ StatusBadge */
 
-const statusStyles: Record<BookingStatus, { bg: string; text: string; label: string }> = {
-  PENDING: { bg: 'bg-amber-100', text: 'text-amber-800', label: 'Pending' },
-  APPROVED: { bg: 'bg-green-100', text: 'text-green-800', label: 'Approved' },
-  REJECTED: { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
-  CANCELLED: { bg: 'bg-slate-200', text: 'text-slate-700', label: 'Cancelled' },
-  EXPIRED: { bg: 'bg-slate-200', text: 'text-slate-600', label: 'Expired' },
+/**
+ * Each status maps to a semantic theme role (resolved at runtime via
+ * `useThemeColors()`), not a fixed Tailwind chip. The chip background is a soft
+ * tint of that role and the text uses the role's full strength, so the badge
+ * keeps its meaning (approved=green, pending=amber, rejected/cancelled=red/grey)
+ * while reading correctly in light, dark, and every dark tint.
+ */
+type StatusRole = 'success' | 'warning' | 'danger' | 'muted';
+
+const statusRoles: Record<BookingStatus, { role: StatusRole; label: string }> = {
+  PENDING: { role: 'warning', label: 'Pending' },
+  APPROVED: { role: 'success', label: 'Approved' },
+  REJECTED: { role: 'danger', label: 'Rejected' },
+  CANCELLED: { role: 'danger', label: 'Cancelled' },
+  EXPIRED: { role: 'muted', label: 'Expired' },
 };
 
 export function StatusBadge({ status }: { status: BookingStatus }) {
-  const s = statusStyles[status];
+  const colors = useThemeColors();
+  const { role, label } = statusRoles[status];
+  const base =
+    role === 'success'
+      ? colors.success
+      : role === 'warning'
+        ? colors.warning
+        : role === 'danger'
+          ? colors.danger
+          : colors.mutedForeground;
   return (
-    <View className={`self-start rounded-full px-2.5 py-1 ${s.bg}`}>
-      <Text className={`text-xs font-semibold ${s.text}`}>{s.label}</Text>
+    <View
+      className="self-start rounded-full px-2.5 py-1"
+      style={{ backgroundColor: withAlpha(base, 0.15) }}
+    >
+      <Text className="text-xs font-semibold" style={{ color: base }}>
+        {label}
+      </Text>
     </View>
   );
 }

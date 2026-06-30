@@ -44,10 +44,70 @@ const SOURCE_CALENDAR: Record<CalendarBlock["source"], string> = {
   AVAILABLE: "available",
 };
 
+type DisplayCalendarBlock = CalendarBlock & {
+  displaySegment?: "hour";
+};
+
 // The engine emits an exclusive end of "24:00" for full-day blocks; Schedule-X
 // only accepts 00:00-23:59, so clamp it to the end of the day.
 function clampEnd(time: string): string {
   return time === "24:00" ? "23:59" : time;
+}
+
+function timeToMinutes(time: string): number | null {
+  const parts = time.split(":");
+  if (parts.length < 2) return null;
+  const hours = Number(parts[0]);
+  const minutes = Number(parts[1]);
+  if (
+    !Number.isInteger(hours) ||
+    !Number.isInteger(minutes) ||
+    hours < 0 ||
+    hours > 24 ||
+    minutes < 0 ||
+    minutes > 59
+  ) {
+    return null;
+  }
+  if (hours === 24 && minutes !== 0) return null;
+  return hours * 60 + minutes;
+}
+
+function minutesToTime(totalMinutes: number): string {
+  const clamped = Math.max(0, Math.min(totalMinutes, 23 * 60 + 59));
+  const hours = Math.floor(clamped / 60);
+  const minutes = clamped % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
+    2,
+    "0",
+  )}`;
+}
+
+function splitAvailableBlockForDisplay(
+  block: CalendarBlock,
+): DisplayCalendarBlock[] {
+  if (block.source !== "AVAILABLE") return [block];
+
+  const start = timeToMinutes(block.start);
+  const end = timeToMinutes(clampEnd(block.end));
+  if (start === null || end === null || end <= start || end - start <= 60) {
+    return [block];
+  }
+
+  const segments: DisplayCalendarBlock[] = [];
+  for (let cursor = start; cursor < end; ) {
+    const nextHourBoundary = Math.ceil((cursor + 1) / 60) * 60;
+    const next = Math.min(end, nextHourBoundary);
+    segments.push({
+      ...block,
+      start: minutesToTime(cursor),
+      end: minutesToTime(next),
+      displaySegment: "hour",
+    });
+    cursor = next;
+  }
+
+  return segments;
 }
 
 // Build a Temporal.ZonedDateTime from an institution-local date + HH:MM. The
@@ -92,6 +152,7 @@ export function CalendarView({ blocks }: { blocks: CalendarBlock[] }) {
   const events = React.useMemo(
     () =>
       blocks
+        .flatMap(splitAvailableBlockForDisplay)
         .map((b, i) => {
           const start = toZonedDateTime(b.date, b.start);
           const end = toZonedDateTime(b.date, clampEnd(b.end));
@@ -105,6 +166,15 @@ export function CalendarView({ blocks }: { blocks: CalendarBlock[] }) {
             start,
             end,
             calendarId: SOURCE_CALENDAR[b.source],
+            _options: {
+              disableDND: true,
+              disableResize: true,
+              additionalClasses: [
+                "aura-cal-event",
+                `aura-cal-event-${b.source.toLowerCase()}`,
+                b.displaySegment === "hour" ? "aura-cal-event-hourly" : "",
+              ].filter(Boolean),
+            },
           };
         })
         .filter((e): e is NonNullable<typeof e> => e !== null),
@@ -125,8 +195,8 @@ export function CalendarView({ blocks }: { blocks: CalendarBlock[] }) {
       },
       booking: {
         colorName: "booking",
-        lightColors: { main: "#0f766e", container: "#ccfbf1", onContainer: "#134e4a" },
-        darkColors: { main: "#5eead4", container: "#134e4a", onContainer: "#ccfbf1" },
+        lightColors: { main: "#b42318", container: "#fee4e2", onContainer: "#7a271a" },
+        darkColors: { main: "#f97066", container: "#55160c", onContainer: "#ffdad6" },
       },
       maintenance: {
         colorName: "maintenance",

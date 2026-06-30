@@ -13,6 +13,7 @@ import { ScrollView, Text, View } from 'react-native';
 
 import { useCreateBooking } from '@/api/hooks';
 import { ApiError } from '@/api/errors';
+import { RoomImage } from '@/components/booking-bits';
 import { Button, Card, Field } from '@/components/ui';
 import { BookingRequestSchema, type BookingRequest } from '@/schemas';
 
@@ -26,6 +27,7 @@ export default function RequestScreen() {
   const roomId = str(params.roomId);
   const roomName = str(params.roomName, 'Room');
   const roomCode = str(params.roomCode);
+  const imageUrl = str(params.imageUrl);
   const capacity = Number.parseInt(str(params.capacity, '0'), 10);
 
   const createBooking = useCreateBooking();
@@ -92,11 +94,12 @@ export default function RequestScreen() {
 
   return (
     <ScrollView
-      className="flex-1 bg-surface"
+      className="flex-1 bg-background"
       contentContainerClassName="gap-4 p-4"
       keyboardShouldPersistTaps="handled"
     >
-      <Card className="gap-1">
+      <Card className="gap-2">
+        {imageUrl ? <RoomImage uri={imageUrl} /> : null}
         <Text className="text-lg font-semibold text-foreground">{roomName}</Text>
         <Text className="text-sm text-muted">
           {roomCode}
@@ -193,7 +196,7 @@ export default function RequestScreen() {
       </Card>
 
       {conflict ? (
-        <Card className="border-danger bg-red-50">
+        <Card className="border-danger bg-danger/10">
           <Text className="text-sm font-medium text-danger">{conflict}</Text>
         </Card>
       ) : null}

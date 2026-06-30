@@ -35,3 +35,7 @@ credentials.txt
 
 # Local production env reference (real secrets) — never commit
 production.env
+
+# Shareable user guide (embeds demo logins) — keep out of version control
+USER_GUIDE.html
+USER_GUIDE.pdf

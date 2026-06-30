@@ -12,6 +12,7 @@
  * British English is used throughout user-facing copy ("authorise", "centre",
  * "cancelled", "utilisation").
  */
+/* eslint-disable @typescript-eslint/no-redeclare -- zod schemas intentionally export a runtime schema and matching inferred type with the same name. */
 import { z } from 'zod';
 
 /* ------------------------------------------------------------------ enums -- */
@@ -125,9 +126,15 @@ export const RoomSchema = z.object({
   name: z.string(),
   buildingId: uuid,
   building: BuildingSchema.optional(),
+  /** Flat building fields returned on the room list projection (parity with web). */
+  buildingCode: z.string().nullable().optional(),
+  buildingName: z.string().nullable().optional(),
   capacity: z.number().int().positive(),
   roomType: RoomType,
   status: RoomStatus,
+  /** Cover image + gallery (rooms now carry media — parity with web). */
+  imageUrl: z.string().nullable().optional(),
+  galleryUrls: z.array(z.string()).default([]),
   equipment: z.array(RoomEquipmentSchema).default([]),
 });
 export type Room = z.infer<typeof RoomSchema>;
@@ -167,6 +174,27 @@ export type AvailabilitySearch = z.infer<typeof AvailabilitySearchSchema>;
 
 /* -------------------------------------------------------------- bookings -- */
 
+/**
+ * A blocker explaining why a pending booking cannot be approved (parity with
+ * the web approvals queue / §11). Surfaced inline so officers can resolve a
+ * conflict without guessing.
+ */
+export const ApprovalBlockerSchema = z.object({
+  kind: z.enum([
+    'LECTURE',
+    'MAINTENANCE',
+    'APPROVED_BOOKING',
+    'COMPETING_PENDING',
+    'CAPACITY',
+    'IN_PAST',
+  ]),
+  message: z.string(),
+  startsAt: datetime.nullable().optional(),
+  endsAt: datetime.nullable().optional(),
+  reference: z.string().nullable().optional(),
+});
+export type ApprovalBlocker = z.infer<typeof ApprovalBlockerSchema>;
+
 export const BookingSummarySchema = z.object({
   id: uuid,
   roomId: uuid,
@@ -181,6 +209,15 @@ export const BookingSummarySchema = z.object({
   reviewNote: z.string().nullable().optional(),
   reviewedAt: datetime.nullable().optional(),
   createdAt: datetime,
+  /**
+   * Approvability info the pending (officer) scope may attach to each row. The
+   * mobile list endpoint returns plain rows today; these optional fields let the
+   * approvals screen render the web's "why" panel when the API enriches them and
+   * degrade gracefully when it does not.
+   */
+  canApprove: z.boolean().optional(),
+  blockers: z.array(ApprovalBlockerSchema).optional(),
+  competingPendingCount: z.number().int().optional(),
 });
 export type BookingSummary = z.infer<typeof BookingSummarySchema>;
 

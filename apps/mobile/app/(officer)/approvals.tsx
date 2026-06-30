@@ -26,7 +26,7 @@ import {
 } from '@/api/hooks';
 import { Button, Card, LoadingScreen, Pill, ScreenMessage } from '@/components/ui';
 import { formatDate, formatTime } from '@/lib/datetime';
-import { palette } from '@/theme/tokens';
+import { useThemeColors } from '@/theme/theme-context';
 import type { BookingSummary } from '@/schemas';
 
 export default function ApprovalsScreen() {
@@ -34,6 +34,7 @@ export default function ApprovalsScreen() {
     useBookings('pending');
   const approve = useApproveBooking();
   const reject = useRejectBooking();
+  const colors = useThemeColors();
 
   const [rejecting, setRejecting] = useState<BookingSummary | null>(null);
   const [rejectNote, setRejectNote] = useState('');
@@ -84,7 +85,7 @@ export default function ApprovalsScreen() {
   }
 
   return (
-    <View className="flex-1 bg-surface">
+    <View className="flex-1 bg-background">
       <FlatList
         contentContainerClassName="gap-3 p-4"
         data={data}
@@ -96,56 +97,16 @@ export default function ApprovalsScreen() {
           />
         }
         renderItem={({ item }) => (
-          <Card className="gap-3">
-            <Pressable
-              accessibilityRole="button"
-              onPress={() =>
-                router.push({ pathname: '/booking/[id]', params: { id: item.id } })
-              }
-            >
-              <View className="flex-row items-start justify-between">
-                <View className="flex-1 gap-0.5">
-                  <Text className="text-base font-semibold text-foreground">
-                    {item.room?.name ?? item.room?.roomCode ?? 'Room'}
-                  </Text>
-                  <Text className="text-sm text-muted" numberOfLines={2}>
-                    {item.purpose}
-                  </Text>
-                </View>
-                <Pill text={`${item.attendeeCount} ppl`} />
-              </View>
-              <Text className="mt-1 text-xs text-muted">
-                {formatDate(item.startsAt)} · {formatTime(item.startsAt)}–
-                {formatTime(item.endsAt)}
-              </Text>
-              {item.requesterName ? (
-                <Text className="text-xs text-muted">
-                  Requested by {item.requesterName}
-                </Text>
-              ) : null}
-            </Pressable>
-
-            <View className="flex-row gap-3">
-              <View className="flex-1">
-                <Button
-                  label="Approve"
-                  loading={approve.isPending && approve.variables?.id === item.id}
-                  onPress={() => onApprove(item)}
-                />
-              </View>
-              <View className="flex-1">
-                <Button
-                  label="Reject"
-                  variant="danger"
-                  onPress={() => {
-                    setRejecting(item);
-                    setRejectNote('');
-                    setRejectError(null);
-                  }}
-                />
-              </View>
-            </View>
-          </Card>
+          <ApprovalCard
+            booking={item}
+            approving={approve.isPending && approve.variables?.id === item.id}
+            onApprove={() => onApprove(item)}
+            onReject={() => {
+              setRejecting(item);
+              setRejectNote('');
+              setRejectError(null);
+            }}
+          />
         )}
       />
 
@@ -167,7 +128,7 @@ export default function ApprovalsScreen() {
               <TextInput
                 className="min-h-24 rounded-md border border-border bg-background p-3 text-base text-foreground"
                 placeholder="Reason for rejection…"
-                placeholderTextColor={palette.muted}
+                placeholderTextColor={colors.mutedForeground}
                 multiline
                 textAlignVertical="top"
                 value={rejectNote}
@@ -197,6 +158,127 @@ export default function ApprovalsScreen() {
           </SafeAreaView>
         </View>
       </Modal>
+    </View>
+  );
+}
+
+/**
+ * One pending request. Shows enough room + requester context to decide, plus a
+ * "why" panel mirroring the web approvals queue: when the API enriches the row
+ * with approvability info (`canApprove` / `blockers`), blocked requests list the
+ * blockers and the Approve action is disabled until they clear. When the row is
+ * a plain booking (no approvability attached) the request is treated as
+ * approvable and the panel is hidden — graceful degradation.
+ */
+function ApprovalCard({
+  booking,
+  approving,
+  onApprove,
+  onReject,
+}: Readonly<{
+  booking: BookingSummary;
+  approving: boolean;
+  onApprove: () => void;
+  onReject: () => void;
+}>) {
+  // Undefined approvability (plain row) means "no blockers known" → approvable.
+  const blocked = booking.canApprove === false;
+  const blockers = booking.blockers ?? [];
+  const competing = booking.competingPendingCount ?? 0;
+
+  return (
+    <Card className="gap-3">
+      <Pressable
+        accessibilityRole="button"
+        onPress={() =>
+          router.push({ pathname: '/booking/[id]', params: { id: booking.id } })
+        }
+      >
+        <View className="flex-row items-start justify-between gap-2">
+          <View className="flex-1 gap-0.5">
+            <Text className="text-base font-semibold text-foreground">
+              {booking.room?.name ?? booking.room?.roomCode ?? 'Room'}
+            </Text>
+            <Text className="text-sm text-muted" numberOfLines={2}>
+              {booking.purpose}
+            </Text>
+          </View>
+          <View className="items-end gap-1">
+            <ApprovabilityBadge blocked={blocked} />
+            <Pill text={`${booking.attendeeCount} ppl`} />
+          </View>
+        </View>
+        <Text className="mt-1 text-xs text-muted">
+          {formatDate(booking.startsAt)} · {formatTime(booking.startsAt)}–
+          {formatTime(booking.endsAt)}
+        </Text>
+        {booking.requesterName ? (
+          <Text className="text-xs text-muted">
+            Requested by {booking.requesterName}
+          </Text>
+        ) : null}
+      </Pressable>
+
+      {/* Why panel (parity with the web approvals queue). */}
+      {blocked ? (
+        <View className="gap-1.5 rounded-md border border-danger/40 bg-danger/10 p-3">
+          <Text className="text-xs font-semibold text-danger">
+            Needs attention before approval
+          </Text>
+          {blockers.length > 0 ? (
+            blockers.map((b, i) => (
+              <Text
+                key={`${b.kind}-${i}`}
+                className="text-xs text-foreground"
+              >
+                • {b.message}
+                {b.startsAt && b.endsAt
+                  ? ` (${formatTime(b.startsAt)}–${formatTime(b.endsAt)})`
+                  : ''}
+              </Text>
+            ))
+          ) : (
+            <Text className="text-xs text-foreground">
+              A conflict prevents approval. Open the request for details.
+            </Text>
+          )}
+        </View>
+      ) : competing > 0 ? (
+        <View className="rounded-md border border-border bg-muted-bg p-3">
+          <Text className="text-xs text-foreground">
+            {competing} other pending request{competing === 1 ? '' : 's'} compete
+            for this slot. Approving this one supersedes them.
+          </Text>
+        </View>
+      ) : null}
+
+      <View className="flex-row gap-3">
+        <View className="flex-1">
+          <Button
+            label="Approve"
+            disabled={blocked}
+            loading={approving}
+            onPress={onApprove}
+          />
+        </View>
+        <View className="flex-1">
+          <Button label="Reject" variant="danger" onPress={onReject} />
+        </View>
+      </View>
+    </Card>
+  );
+}
+
+function ApprovabilityBadge({ blocked }: Readonly<{ blocked: boolean }>) {
+  return (
+    <View
+      className={`self-end rounded-full px-2.5 py-1 ${blocked ? 'bg-danger/15' : 'bg-green-100'}`}
+    >
+      <Text
+        className={`text-xs font-semibold ${blocked ? 'text-danger' : 'text-green-800'}`}
+      >
+        {blocked ? 'Blocked' : 'Approvable'}
+      </Text>
     </View>
   );
 }

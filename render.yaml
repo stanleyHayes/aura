@@ -21,7 +21,12 @@ databases:
     user: aura
     # uuidv7() polyfill (migration 00001) lets the schema run on PG 16/17.
     postgresMajorVersion: "17"
-    plan: free
+    # NOTE: Render no longer allows free/legacy ('starter') Postgres in a Blueprint;
+    # basic-256mb is the cheapest currently-supported managed plan (~$6/mo).
+    # To stay FREE instead: delete this entire `databases:` block, create a free
+    # Postgres from the Render dashboard, and change the aura-api DATABASE_URL env
+    # below from `fromDatabase:` to `sync: false` (paste the DB's Internal URL).
+    plan: basic-256mb
     ipAllowList: []   # only Render services may connect
 
 services:
@@ -41,6 +46,10 @@ services:
       # Apply embedded migrations on startup (free tier has no pre-deploy/shell).
       - key: AUTO_MIGRATE
         value: "true"
+      # Load the idempotent demo seed on boot. set to true for ONE deploy to
+      # publish the clean demo data, then set back to false.
+      - key: SEED_DATA
+        value: "false"
       # Render terminates exactly one proxy hop; read the real client IP from that
       # position in X-Forwarded-For (MED-4).
       - key: TRUSTED_PROXY_COUNT

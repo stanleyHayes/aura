@@ -9,6 +9,7 @@ import { Alert, ScrollView, Switch, Text, View } from 'react-native';
 import { getApiBaseUrl } from '@/api/client';
 import { Button, Card } from '@/components/ui';
 import { useAuth } from '@/features/auth/auth-context';
+import { ThemeSettings } from '@/features/theme-settings';
 import {
   getBiometricPref,
   isBiometricHardwareAvailable,
@@ -104,6 +105,8 @@ export function SettingsScreen() {
           </Text>
         ) : null}
       </Card>
+
+      <ThemeSettings />
 
       <Card className="gap-1">
         <Text className="text-xs font-medium uppercase text-muted">About</Text>

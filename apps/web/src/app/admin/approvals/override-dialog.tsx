@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -43,6 +43,10 @@ export function OverrideDialog({
   const form = useForm<Values>({
     resolver: zodResolver(Schema),
     defaultValues: { note: "", cancel_conflicting: false },
+  });
+  const cancelConflicting = useWatch({
+    control: form.control,
+    name: "cancel_conflicting",
   });
 
   const override = useMutation({
@@ -113,7 +117,7 @@ export function OverrideDialog({
 
           <label className="flex items-start gap-2 text-sm">
             <Checkbox
-              checked={form.watch("cancel_conflicting")}
+              checked={cancelConflicting}
               onCheckedChange={(c) =>
                 form.setValue("cancel_conflicting", Boolean(c))
               }

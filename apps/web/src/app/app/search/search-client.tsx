@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarSearch, DoorClosed, SlidersHorizontal } from "lucide-react";
@@ -106,7 +106,18 @@ export function SearchClient() {
   }
 
   const results = query.data ?? [];
-  const selectedEquipment = form.watch("equipment") ?? [];
+  const selectedEquipment = useWatch({
+    control: form.control,
+    name: "equipment",
+  }) ?? [];
+  const selectedBuildingId = useWatch({
+    control: form.control,
+    name: "building_id",
+  });
+  const selectedRoomType = useWatch({
+    control: form.control,
+    name: "room_type",
+  });
 
   return (
     <>
@@ -143,7 +154,7 @@ export function SearchClient() {
                 {(p) => (
                   <Combobox
                     id={p.id}
-                    value={form.watch("building_id") || ""}
+                    value={selectedBuildingId || ""}
                     onValueChange={(v) => form.setValue("building_id", v)}
                     placeholder="Any building"
                     searchPlaceholder="Search buildings…"
@@ -166,7 +177,7 @@ export function SearchClient() {
                     onValueChange={(v) =>
                       form.setValue("room_type", v === "any" ? "" : (v as RoomType))
                     }
-                    value={form.watch("room_type") || "any"}
+                    value={selectedRoomType || "any"}
                   >
                     <SelectTrigger id={p.id}>
                       <SelectValue placeholder="Any type" />

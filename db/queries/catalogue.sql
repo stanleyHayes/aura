@@ -5,6 +5,9 @@ INSERT INTO buildings (code, name, campus) VALUES ($1, $2, $3) RETURNING *;
 -- name: GetBuilding :one
 SELECT * FROM buildings WHERE id = $1;
 
+-- name: GetBuildingByName :one
+SELECT * FROM buildings WHERE lower(name) = lower($1);
+
 -- name: ListBuildings :many
 SELECT * FROM buildings ORDER BY code;
 
@@ -58,6 +61,9 @@ SELECT * FROM rooms WHERE id = $1;
 
 -- name: GetRoomByCode :one
 SELECT * FROM rooms WHERE room_code = $1;
+
+-- name: GetRoomByName :one
+SELECT * FROM rooms WHERE lower(name) = lower($1);
 
 -- name: UpdateRoom :one
 UPDATE rooms SET room_code = $2, name = $3, building_id = $4, capacity = $5,

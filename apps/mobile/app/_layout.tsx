@@ -3,8 +3,16 @@
  * top-level auth gate that routes between the (auth) group and the
  * role-based app groups.
  */
+import {
+  Outfit_400Regular,
+  Outfit_500Medium,
+  Outfit_600SemiBold,
+  Outfit_700Bold,
+  useFonts,
+} from '@expo-google-fonts/outfit';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as Notifications from 'expo-notifications';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
@@ -17,11 +25,17 @@ import { LoadingScreen } from '@/components/ui';
 import { useAuth } from '@/features/auth/auth-context';
 import { bookingIdFromNotification } from '@/lib/push';
 import { Sentry, initSentry } from '@/lib/sentry';
+import { useTheme } from '@/theme/theme-context';
 
 initSentry();
 
+// Keep the native splash up until the Outfit typeface (BRAND.md) has loaded so
+// text never flashes in the system font first.
+void SplashScreen.preventAutoHideAsync();
+
 function RootNavigator() {
   const { status } = useAuth();
+  const { colors } = useTheme();
   const segments = useSegments();
   const router = useRouter();
 
@@ -61,23 +75,62 @@ function RootNavigator() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: colors.background },
+      }}
+    >
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(requester)" />
       <Stack.Screen name="(officer)" />
       <Stack.Screen
         name="booking/[id]"
-        options={{ headerShown: true, title: 'Booking', presentation: 'card' }}
+        options={{
+          headerShown: true,
+          title: 'Booking',
+          presentation: 'card',
+          headerStyle: { backgroundColor: colors.card },
+          headerTintColor: colors.foreground,
+          headerTitleStyle: { color: colors.foreground },
+        }}
       />
     </Stack>
   );
 }
 
+/** StatusBar that follows the active theme (light glyphs on dark screens). */
+function ThemedStatusBar() {
+  const { scheme } = useTheme();
+  return <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />;
+}
+
 function RootLayout() {
+  // Load the Outfit typeface (BRAND.md). `tailwind.config.js` sets these family
+  // names as the default `sans`, so existing text picks them up once loaded.
+  const [fontsLoaded, fontError] = useFonts({
+    Outfit_400Regular,
+    Outfit_500Medium,
+    Outfit_600SemiBold,
+    Outfit_700Bold,
+  });
+
+  // Reveal the app once fonts are ready (or if loading failed — never block the
+  // UI on a font, just fall back to the system face).
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      void SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
   return (
     <SafeAreaProvider>
       <Providers>
-        <StatusBar style="dark" />
+        <ThemedStatusBar />
         <RootNavigator />
       </Providers>
     </SafeAreaProvider>

@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- Catalogue detail imagery is served from runtime upload URLs. */
 import * as React from "react";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
@@ -5,7 +6,6 @@ import {
   ArrowLeft,
   DoorOpen,
   ImageIcon,
-  Images,
   Info,
   type LucideIcon as IconType,
 } from "lucide-react";
@@ -86,7 +86,7 @@ export function CatalogueDetailHero({
   stats: DetailStat[];
   children: React.ReactNode;
 }) {
-  const gallery = galleryUrls.filter(Boolean).slice(0, 6);
+  const gallery = galleryUrls.filter(Boolean);
 
   return (
     <section className="grid gap-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(22rem,0.95fr)]">
@@ -108,17 +108,12 @@ export function CatalogueDetailHero({
               <img
                 key={`${url}-${index}`}
                 src={url}
-                alt={`${imageAlt} gallery image ${index + 1}`}
+                alt={`${imageAlt} gallery ${index + 1}`}
                 className="aspect-[4/3] rounded-xl border border-[var(--color-border)] object-cover shadow-sm"
               />
             ))}
           </div>
-        ) : (
-          <div className="flex items-center gap-3 rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-card)] px-4 py-3 text-sm text-[var(--color-muted-foreground)]">
-            <Images className="size-4" aria-hidden="true" />
-            No gallery images have been added yet.
-          </div>
-        )}
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-5">
@@ -163,7 +158,7 @@ export function DetailStatGrid({ stats }: { stats: DetailStat[] }) {
                 </span>
               </div>
               <div>
-                <p className="mt-4 text-3xl font-semibold tabular-nums leading-none text-[var(--color-foreground)]">
+                <p className="mt-4 break-words text-3xl font-semibold leading-tight text-[var(--color-foreground)] [overflow-wrap:anywhere]">
                   {stat.value}
                 </p>
                 {stat.subtext ? (

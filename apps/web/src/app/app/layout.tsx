@@ -34,7 +34,7 @@ export default async function AppLayout({
   if (!session) redirect("/login?next=/app");
 
   return (
-    <AppShell sections={sections} title="AURA">
+    <AppShell sections={sections} title="AURA" session={session}>
       {children}
     </AppShell>
   );

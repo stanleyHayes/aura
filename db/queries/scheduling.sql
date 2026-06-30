@@ -49,8 +49,9 @@ WHERE id = $1 RETURNING *;
 -- ── Timetable events ──────────────────────────────────────────
 -- name: CreateTimetableEvent :one
 INSERT INTO timetable_events
-  (semester_id, import_id, room_id, course_code, course_title, lecturer_name, day, start_time, end_time)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+  (semester_id, import_id, room_id, course_code, course_title, lecturer_name, day, start_time, end_time,
+   section, program, department)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 RETURNING *;
 
 -- name: GetTimetableEvent :one
