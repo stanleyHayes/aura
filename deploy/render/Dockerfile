@@ -1,8 +1,9 @@
 # Single runtime image for Render holding all three binaries (api, worker,
-# migrate). The api service runs /api (default), the worker service overrides the
-# start command to /worker, and the pre-deploy step runs /migrate up. Distroless
-# static + nonroot (§14, §17).
-FROM golang:1.25.11-alpine AS build
+# migrate). The api service runs /api (default) and self-migrates on boot when
+# AUTO_MIGRATE=true (embedded goose); /worker and /migrate stay available for
+# paid tiers that prefer a separate worker / pre-deploy step. Distroless static
+# + nonroot (§14, §17).
+FROM golang:1.26.4-alpine AS build
 RUN apk add --no-cache git
 WORKDIR /src
 COPY go.mod go.sum* ./

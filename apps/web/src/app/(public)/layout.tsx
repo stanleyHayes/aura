@@ -1,14 +1,58 @@
 import Link from "next/link";
 import { Brand } from "@/components/brand";
 import { PublicHeader } from "@/components/public-header";
+import { env } from "@/lib/env";
 
 export default function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const siteUrl = env.siteUrl.replace(/\/$/, "");
+
+  // Site-wide structured data (§12.1) — scoped to the PUBLIC surface only (the
+  // app/admin layouts are noindex and deliberately omit this). Declares the
+  // organisation behind AURA and a WebSite entity whose SearchAction lets
+  // search engines deep-link directly into the facility directory.
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${siteUrl}/#organization`,
+        name: "Ashesi University",
+        alternateName: "AURA — Ashesi University Resource Allocation",
+        url: siteUrl,
+        logo: `${siteUrl}/icon.svg`,
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${siteUrl}/#website`,
+        name: "AURA — Ashesi University Resource Allocation",
+        url: siteUrl,
+        publisher: { "@id": `${siteUrl}/#organization` },
+        potentialAction: {
+          "@type": "SearchAction",
+          target: {
+            "@type": "EntryPoint",
+            urlTemplate: `${siteUrl}/rooms?q={search_term_string}`,
+          },
+          "query-input": "required name=search_term_string",
+        },
+      },
+    ],
+  };
+
   return (
     <div className="flex min-h-dvh flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          // Escape "<" so the JSON can't break out of the script tag, matching
+          // the room JSON-LD pattern elsewhere in the public surface.
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
       <PublicHeader />
 
       <main id="main" className="flex-1">

@@ -32,3 +32,6 @@ dist/
 
 # Local dev credentials (never commit)
 credentials.txt
+
+# Local production env reference (real secrets) — never commit
+production.env

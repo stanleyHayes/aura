@@ -20,6 +20,9 @@ type Config struct {
 	DatabaseURL        string `env:"DATABASE_URL,required"`
 	DatabaseReplicaURL string `env:"DATABASE_REPLICA_URL"`
 	RedisURL           string `env:"REDIS_URL"`
+	// AutoMigrate runs the embedded goose migrations on API startup — lets a
+	// shell-less, pre-deploy-less platform (e.g. Render's free tier) self-migrate.
+	AutoMigrate bool `env:"AUTO_MIGRATE"`
 
 	S3Endpoint  string `env:"S3_ENDPOINT"`
 	S3Bucket    string `env:"S3_BUCKET"`

@@ -14,12 +14,59 @@ export const metadata: Metadata = {
     "AURA is Ashesi University's resource-allocation and reservation platform — reserve classrooms and campus facilities with real-time availability, approvals, conflict detection and scheduling.",
   applicationName: "AURA",
   authors: [{ name: "Ashesi University" }],
+  creator: "Ashesi University",
+  publisher: "Ashesi University",
+  category: "education",
+  keywords: [
+    "AURA",
+    "Ashesi University",
+    "room booking",
+    "classroom reservation",
+    "facility booking",
+    "campus facilities",
+    "lecture hall booking",
+    "resource allocation",
+    "room availability",
+    "space management",
+    "Ghana university",
+  ],
+  formatDetection: {
+    telephone: false,
+    email: false,
+    address: false,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: ["/icon.svg"],
+    apple: [{ url: "/icon.svg" }],
+  },
+  manifest: "/manifest.webmanifest",
   openGraph: {
     type: "website",
     siteName: "AURA — Ashesi University Resource Allocation",
+    title: "AURA — Ashesi University Resource Allocation",
+    description:
+      "Reserve Ashesi classrooms and campus facilities with real-time availability, approvals and conflict detection.",
+    url: "/",
     locale: "en_GB",
   },
-  twitter: { card: "summary_large_image" },
+  twitter: {
+    card: "summary_large_image",
+    title: "AURA — Ashesi University Resource Allocation",
+    description:
+      "Reserve Ashesi classrooms and campus facilities with real-time availability, approvals and conflict detection.",
+  },
 };
 
 export const viewport: Viewport = {

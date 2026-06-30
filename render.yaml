@@ -1,77 +1,78 @@
-# Render Blueprint (Infrastructure as Code) for the Classroom Booking System.
-# Deploy: push to a Git repo, then "New + > Blueprint" in Render and point it here.
-# See docs/decisions/0007-render-deployment-and-postgres-portability.md.
+# Render Blueprint (Infrastructure as Code) — AURA BACKEND ONLY.
 #
-# Object storage: Render has no managed S3. Leave S3_* unset (uploads processed
-# in-memory) or point them at Cloudflare R2 / AWS S3.
+# The web frontend deploys to Vercel (apps/web); only the Go API and its Postgres
+# live on Render. Deploy: push to Git, then "New + > Blueprint" in Render → point
+# it here. Fill the `sync: false` secrets from production.env (gitignored).
+#
+# Free tier notes:
+#  • Free Postgres has limited storage and expires ~30 days after creation — fine
+#    for a demo; upgrade the plan for anything long-lived.
+#  • The free web service spins down after ~15 min idle (cold start on next hit).
+#  • No pre-deploy hook and no shell on free → the API self-migrates on boot via
+#    AUTO_MIGRATE (embedded goose migrations), and the booking-expiry/cleanup
+#    sweep is folded into the API, so no separate (paid) worker is needed.
+#  • Redis is omitted: rate-limiting and SSE fan-out run in-process (single
+#    instance). Add a keyvalue service + REDIS_URL only when scaling out.
+#  • Object storage: catalogue images use Cloudinary (CLOUDINARY_*); no S3 needed.
 
 databases:
-  - name: cbs-postgres
-    databaseName: cbs
-    user: cbs
-    # Render's managed Postgres; the uuidv7() polyfill (migration 00001) makes the
-    # schema run on PG 16/17. Use the highest version Render offers.
+  - name: aura-postgres
+    databaseName: aura
+    user: aura
+    # uuidv7() polyfill (migration 00001) lets the schema run on PG 16/17.
     postgresMajorVersion: "17"
-    plan: starter
+    plan: free
     ipAllowList: []   # only Render services may connect
 
 services:
-  # ── Redis / Valkey (cache, rate limit, SSE fan-out) ──────────────────────────
-  - type: keyvalue
-    name: cbs-redis
-    plan: starter
-    ipAllowList: []
-    maxmemoryPolicy: allkeys-lru
-
-  # ── API (HTTP) ───────────────────────────────────────────────────────────────
+  # ── Go API (HTTP) ────────────────────────────────────────────────────────────
   - type: web
-    name: cbs-api
+    name: aura-api
     runtime: docker
     dockerfilePath: ./deploy/render/Dockerfile
     dockerContext: .
-    plan: starter
+    plan: free
     healthCheckPath: /healthz
-    # Run migrations before each deploy (expand → migrate → contract, §6.10).
-    preDeployCommand: /migrate up
     envVars:
       - key: APP_ENV
         value: production
       - key: APP_INSTITUTION_TZ
         value: Africa/Accra
-      # Render terminates exactly one proxy hop in front of the service; read the
-      # real client IP from that position in X-Forwarded-For (MED-4).
+      # Apply embedded migrations on startup (free tier has no pre-deploy/shell).
+      - key: AUTO_MIGRATE
+        value: "true"
+      # Render terminates exactly one proxy hop; read the real client IP from that
+      # position in X-Forwarded-For (MED-4).
       - key: TRUSTED_PROXY_COUNT
         value: "1"
       - key: DATABASE_URL
-        fromDatabase: { name: cbs-postgres, property: connectionString }
-      - key: REDIS_URL
-        fromService: { type: keyvalue, name: cbs-redis, property: connectionString }
-      # JWT signing key (HMAC dev / set a real EdDSA key for prod). Random is fine
-      # for HMAC; rotate via JWT_KEY_ID.
+        fromDatabase: { name: aura-postgres, property: connectionString }
+      # Auth secrets — set from production.env (openssl-generated). JWT must be
+      # >=32 bytes; MFA exactly 32 bytes base64. Kept sync:false so they match the
+      # values in production.env rather than a fresh random one.
       - key: JWT_SIGNING_KEY
-        generateValue: true
+        sync: false
       - key: JWT_KEY_ID
-        value: render-key-1
-      # AES-256 key for MFA secrets — must be exactly 32 bytes, base64. Generate
-      # with: openssl rand -base64 32   (set in the dashboard; not auto-generated
-      # because length must be exact).
+        value: prod-key-1
       - key: MFA_ENCRYPTION_KEY
         sync: false
+      # Allowed browser origin(s) — the Vercel site. Comma-separate to add domains.
       - key: CORS_ALLOWED_ORIGINS
-        sync: false   # e.g. https://cbs-web.onrender.com
-      # Transactional email (Resend/Postmark/SES SMTP relay). Optional; without it
-      # the API logs emails instead of sending.
+        value: https://auragh.vercel.app
+      # Transactional email via Resend SMTP. Username is literally "resend"; the
+      # password is the Resend API key (set from production.env). MAIL_FROM uses
+      # Resend's shared default sender (no domain verification needed).
       - key: MAIL_HOST
-        sync: false
+        value: smtp.resend.com
       - key: MAIL_PORT
         value: "587"
-      - key: MAIL_FROM
-        value: no-reply@ashesi.edu
       - key: MAIL_USERNAME
-        sync: false
+        value: resend
       - key: MAIL_PASSWORD
         sync: false
-      # Cloudinary image uploads for catalogue buildings and rooms.
+      - key: MAIL_FROM
+        value: onboarding@resend.dev
+      # Cloudinary image uploads (optional; blank disables uploads).
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
@@ -80,34 +81,3 @@ services:
         sync: false
       - key: CLOUDINARY_UPLOAD_FOLDER
         value: aura/catalogue
-
-  # ── Background worker (expiry sweep, cleanup, async dispatch) ─────────────────
-  - type: worker
-    name: cbs-worker
-    runtime: docker
-    dockerfilePath: ./deploy/render/Dockerfile
-    dockerContext: .
-    plan: starter
-    dockerCommand: /worker
-    envVars:
-      - key: APP_INSTITUTION_TZ
-        value: Africa/Accra
-      - key: DATABASE_URL
-        fromDatabase: { name: cbs-postgres, property: connectionString }
-      - key: REDIS_URL
-        fromService: { type: keyvalue, name: cbs-redis, property: connectionString }
-
-  # ── Web (Next.js public + requester + admin) ─────────────────────────────────
-  # Adjust build/start to match apps/web once its package layout is finalised.
-  - type: web
-    name: cbs-web
-    runtime: node
-    plan: starter
-    rootDir: apps/web
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
-    startCommand: pnpm start
-    envVars:
-      - key: NODE_VERSION
-        value: "22"
-      - key: NEXT_PUBLIC_API_BASE_URL
-        fromService: { type: web, name: cbs-api, property: host }

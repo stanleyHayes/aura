@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -16,8 +17,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	migrations "github.com/aura/cbs/db/migrations"
 	"github.com/aura/cbs/internal/availability"
 	"github.com/aura/cbs/internal/bookings"
 	"github.com/aura/cbs/internal/catalogue"
@@ -52,6 +56,14 @@ func run() error {
 		level = slog.LevelDebug
 	}
 	log := logging.New(level)
+
+	// Self-migrate on startup when asked (AUTO_MIGRATE) — lets a platform with no
+	// pre-deploy hook or shell (e.g. Render's free tier) come up fully migrated.
+	if cfg.AutoMigrate {
+		if err := runMigrations(cfg.DatabaseURL, log); err != nil {
+			return fmt.Errorf("auto-migrate: %w", err)
+		}
+	}
 
 	loc, err := time.LoadLocation(cfg.InstitutionTZ)
 	if err != nil {
@@ -88,13 +100,73 @@ func run() error {
 		}
 	}()
 
+	// Background jobs (booking-expiry sweep + idempotency-key cleanup) folded in
+	// from the former worker, so a single service covers everything (no paid
+	// worker needed). Stops when jobsCtx is cancelled on shutdown.
+	jobsCtx, stopJobs := context.WithCancel(ctx)
+	defer stopJobs()
+	go runBackgroundJobs(jobsCtx, store, log)
+
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
 	log.Info("shutting down")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
+	stopJobs()
 	return srv.Shutdown(shutdownCtx)
+}
+
+// runMigrations applies the embedded goose migrations. Used on startup when
+// AUTO_MIGRATE is set, for platforms with no pre-deploy hook or shell (e.g.
+// Render's free tier); mirrors cmd/migrate so both paths stay identical.
+func runMigrations(url string, log *slog.Logger) error {
+	sqldb, err := sql.Open("pgx", url)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = sqldb.Close() }()
+	goose.SetBaseFS(migrations.FS)
+	if err := goose.SetDialect("postgres"); err != nil {
+		return err
+	}
+	log.Info("applying migrations")
+	return goose.Up(sqldb, ".")
+}
+
+// runBackgroundJobs runs the periodic booking-expiry sweep (every minute) and
+// idempotency-key cleanup (hourly) on tickers — folded in from the former
+// worker so one service covers everything. ExpireStalePending is idempotent.
+func runBackgroundJobs(ctx context.Context, store *db.Store, log *slog.Logger) {
+	expire := time.NewTicker(time.Minute)
+	cleanup := time.NewTicker(time.Hour)
+	defer expire.Stop()
+	defer cleanup.Stop()
+	sweepExpired(ctx, store, log) // immediate sweep on startup
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-expire.C:
+			sweepExpired(ctx, store, log)
+		case <-cleanup.C:
+			if err := store.DeleteExpiredIdempotencyKeys(ctx); err != nil {
+				log.Error("idempotency cleanup", "err", err)
+			}
+		}
+	}
+}
+
+// sweepExpired marks PENDING bookings whose start time has passed as EXPIRED (§7.2).
+func sweepExpired(ctx context.Context, store *db.Store, log *slog.Logger) {
+	n, err := store.ExpireStalePending(ctx)
+	if err != nil {
+		log.Error("expire sweep", "err", err)
+		return
+	}
+	if n > 0 {
+		log.Info("expired stale pending bookings", "count", n)
+	}
 }
 
 // buildRouter wires services and handlers into the HTTP router. Extracted so it
