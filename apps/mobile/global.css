@@ -1,8 +1,19 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /*
- * NativeWind reads colour/radius/spacing tokens from `tailwind.config.js`,
- * which mirrors `src/theme/tokens.ts` for native + web targets.
+ * Tailwind v4 entry for NativeWind v5.
+ *
+ * The granular imports (instead of `@import "tailwindcss"`) let NativeWind layer
+ * its native theme correctly; `nativewind/theme` supplies the RN-specific
+ * variants, elevation scale, and platform fonts that the old `nativewind/preset`
+ * provided in v4.
+ *
+ * `@config` reuses our existing token system in `tailwind.config.js` (semantic
+ * colours bound to runtime `--color-*` variables, Outfit fonts, spacing). The
+ * variables themselves are injected at runtime by `src/theme/theme-context.tsx`
+ * via NativeWind's <VariableContextProvider>.
  */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+@import "nativewind/theme";
+
+@config "./tailwind.config.js";

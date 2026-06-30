@@ -17,7 +17,11 @@
  *  - `useThemeColors()` exposes the resolved palette for the few places that
  *    cannot use classes (status bar, navigation tint, Reanimated inline styles).
  */
-import { colorScheme, vars } from 'nativewind';
+import { VariableContextProvider } from 'nativewind';
+// In NativeWind v5 `colorScheme` is no longer re-exported by `nativewind`; it
+// lives in the underlying `react-native-css` runtime. It keeps NativeWind's
+// light/dark variant in sync with the active scheme.
+import { colorScheme } from 'react-native-css';
 import {
   createContext,
   useCallback,
@@ -114,10 +118,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const scheme: 'light' | 'dark' =
     mode === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : mode;
 
-  // Keep NativeWind's own light/dark variant in sync with the chosen mode.
+  // Keep NativeWind's own light/dark variant in sync with the *resolved* scheme.
+  // v5's ColorSchemeName is 'light' | 'dark' | null (no 'system'), so we set the
+  // already-resolved scheme rather than the raw mode.
   useEffect(() => {
-    colorScheme.set(mode);
-  }, [mode]);
+    colorScheme.set(scheme);
+  }, [scheme]);
 
   const setMode = useCallback((next: ThemeMode) => {
     setModeState(next);
@@ -130,7 +136,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const colors = useMemo(() => resolveColors(scheme, tint), [scheme, tint]);
-  const themeVars = useMemo(() => vars(paletteToVars(colors)), [colors]);
+  const themeVars = useMemo(() => paletteToVars(colors), [colors]);
 
   const value = useMemo<ThemeContextValue>(
     () => ({ mode, tint, scheme, colors, loading, setMode, setTint }),
@@ -139,11 +145,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   return (
     <ThemeContext.Provider value={value}>
-      <View
-        style={[{ flex: 1, backgroundColor: colors.background }, themeVars]}
-      >
-        {children}
-      </View>
+      <VariableContextProvider value={themeVars}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+          {children}
+        </View>
+      </VariableContextProvider>
     </ThemeContext.Provider>
   );
 }

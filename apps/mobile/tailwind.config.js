@@ -41,7 +41,8 @@ const semantic = {
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./app/**/*.{ts,tsx}', './src/**/*.{ts,tsx}'],
-  presets: [require('nativewind/preset')],
+  // NativeWind v5 ships its RN preset as CSS (`@import "nativewind/theme"` in
+  // global.css), so the old `presets: [require('nativewind/preset')]` is gone.
   theme: {
     extend: {
       colors: {
