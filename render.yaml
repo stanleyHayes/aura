@@ -28,7 +28,12 @@ databases:
     # Blueprint-managed Postgres can't be free — basic-256mb is the cheapest plan
     # (~$6/mo). Bump it for production load.
     plan: basic-256mb
-    ipAllowList: []   # only Render services may connect
+    # External DB access (psql / GUI / local seed/migrate) from these sources.
+    # Render services always have internal access regardless of this list.
+    # Update the IP if yours changes, or add `- source: 0.0.0.0/0` to allow anywhere.
+    ipAllowList:
+      - source: 154.161.152.150/32
+        description: external access
 
 services:
   # ── Go API (HTTP) ────────────────────────────────────────────────────────────
