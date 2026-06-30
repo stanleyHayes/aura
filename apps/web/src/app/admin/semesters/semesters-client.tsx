@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarCog, Plus } from "lucide-react";
@@ -30,6 +30,7 @@ import { PageHeader } from "@/components/page-header";
 import { ProblemAlert } from "@/components/problem-alert";
 import { DataTable } from "@/components/data-table";
 import { Field } from "@/components/forms/field";
+import { DatePicker } from "@/components/date-picker";
 
 export function SemestersClient() {
   const queryClient = useQueryClient();
@@ -53,6 +54,8 @@ export function SemestersClient() {
     resolver: zodResolver(Schema),
     defaultValues: { name: "", start_date: "", end_date: "", status: "DRAFT" },
   });
+  const startDate = useWatch({ control: form.control, name: "start_date" });
+  const endDate = useWatch({ control: form.control, name: "end_date" });
 
   const create = useMutation({
     mutationFn: async (values: Values) =>
@@ -203,7 +206,18 @@ export function SemestersClient() {
                 error={form.formState.errors.start_date?.message}
                 required
               >
-                {(p) => <Input {...p} type="date" {...form.register("start_date")} />}
+                {(p) => (
+                  <DatePicker
+                    id={p.id}
+                    value={startDate}
+                    onChange={(v) =>
+                      form.setValue("start_date", v, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                    }
+                  />
+                )}
               </Field>
               <Field
                 id="s-end"
@@ -211,7 +225,20 @@ export function SemestersClient() {
                 error={form.formState.errors.end_date?.message}
                 required
               >
-                {(p) => <Input {...p} type="date" {...form.register("end_date")} />}
+                {(p) => (
+                  <DatePicker
+                    id={p.id}
+                    align="end"
+                    min={startDate || undefined}
+                    value={endDate}
+                    onChange={(v) =>
+                      form.setValue("end_date", v, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                    }
+                  />
+                )}
               </Field>
             </div>
             <DialogFooter>

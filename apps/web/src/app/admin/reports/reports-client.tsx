@@ -21,7 +21,6 @@ import type {
 } from "@cbs/schemas";
 import { Button } from "@cbs/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@cbs/ui/components/card";
-import { Input } from "@cbs/ui/components/input";
 import { Skeleton } from "@cbs/ui/components/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@cbs/ui/components/tabs";
 import { api, unwrap } from "@/lib/api/client";
@@ -31,6 +30,7 @@ import { PageHeader } from "@/components/page-header";
 import { ProblemAlert } from "@/components/problem-alert";
 import { DataTable } from "@/components/data-table";
 import { Field } from "@/components/forms/field";
+import { DatePicker } from "@/components/date-picker";
 import { MetricCard } from "@/components/metric-card";
 import { UtilisationChart, BookingsChart } from "./charts";
 
@@ -155,23 +155,19 @@ export function ReportsClient() {
 
       <Card className="mb-6">
         <CardContent className="flex flex-wrap items-end gap-4 p-4">
-          <Field id="r-from" label="From" className="w-40">
+          <Field id="r-from" label="From" className="w-44">
             {(p) => (
-              <Input
-                {...p}
-                type="date"
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-              />
+              <DatePicker id={p.id} value={from} onChange={setFrom} />
             )}
           </Field>
-          <Field id="r-to" label="To" className="w-40">
+          <Field id="r-to" label="To" className="w-44">
             {(p) => (
-              <Input
-                {...p}
-                type="date"
+              <DatePicker
+                id={p.id}
+                align="end"
+                min={from || undefined}
                 value={to}
-                onChange={(e) => setTo(e.target.value)}
+                onChange={setTo}
               />
             )}
           </Field>

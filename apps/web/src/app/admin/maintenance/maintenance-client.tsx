@@ -31,6 +31,8 @@ import { qk } from "@/lib/query-keys";
 import { localToRfc3339 } from "@/lib/intervals";
 import { env } from "@/lib/env";
 import { Combobox } from "@/components/combobox";
+import { DatePicker } from "@/components/date-picker";
+import { TimePicker } from "@/components/time-picker";
 import { PageHeader } from "@/components/page-header";
 import { ProblemAlert } from "@/components/problem-alert";
 import { DataTable } from "@/components/data-table";
@@ -116,6 +118,9 @@ export function MaintenanceClient() {
     control: form.control,
     name: "room_id",
   });
+  const dateValue = useWatch({ control: form.control, name: "date" });
+  const startValue = useWatch({ control: form.control, name: "start" });
+  const endValue = useWatch({ control: form.control, name: "end" });
 
   const create = useMutation({
     mutationFn: async (values: Values) =>
@@ -263,13 +268,48 @@ export function MaintenanceClient() {
             </Field>
             <div className="grid grid-cols-3 gap-3">
               <Field id="m-date" label="Date" error={form.formState.errors.date?.message}>
-                {(p) => <Input {...p} type="date" {...form.register("date")} />}
+                {(p) => (
+                  <DatePicker
+                    id={p.id}
+                    value={dateValue}
+                    onChange={(v) =>
+                      form.setValue("date", v, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                    }
+                  />
+                )}
               </Field>
               <Field id="m-start" label="From" error={form.formState.errors.start?.message}>
-                {(p) => <Input {...p} type="time" {...form.register("start")} />}
+                {(p) => (
+                  <TimePicker
+                    id={p.id}
+                    step={15}
+                    value={startValue}
+                    onChange={(v) =>
+                      form.setValue("start", v, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                    }
+                  />
+                )}
               </Field>
               <Field id="m-end" label="To" error={form.formState.errors.end?.message}>
-                {(p) => <Input {...p} type="time" {...form.register("end")} />}
+                {(p) => (
+                  <TimePicker
+                    id={p.id}
+                    step={15}
+                    value={endValue}
+                    onChange={(v) =>
+                      form.setValue("end", v, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                    }
+                  />
+                )}
               </Field>
             </div>
             <Field

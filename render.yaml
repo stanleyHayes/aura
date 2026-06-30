@@ -4,29 +4,31 @@
 # live on Render. Deploy: push to Git, then "New + > Blueprint" in Render → point
 # it here. Fill the `sync: false` secrets from production.env (gitignored).
 #
-# Free tier notes:
-#  • Free Postgres has limited storage and expires ~30 days after creation — fine
-#    for a demo; upgrade the plan for anything long-lived.
+# Notes:
+#  • This Blueprint provisions the WHOLE backend in one shot: a managed Postgres +
+#    the Go API. Render Blueprints can't use FREE Postgres, so the DB is on the
+#    cheapest paid plan (basic-256mb, ~$6/mo); the API web service stays free.
 #  • The free web service spins down after ~15 min idle (cold start on next hit).
-#  • No pre-deploy hook and no shell on free → the API self-migrates on boot via
-#    AUTO_MIGRATE (embedded goose migrations), and the booking-expiry/cleanup
-#    sweep is folded into the API, so no separate (paid) worker is needed.
+#  • No pre-deploy hook / no shell needed → the API self-migrates on boot via
+#    AUTO_MIGRATE (embedded goose migrations), and the booking-expiry/cleanup sweep
+#    is folded into the API, so no separate worker is needed.
 #  • Redis is omitted: rate-limiting and SSE fan-out run in-process (single
 #    instance). Add a keyvalue service + REDIS_URL only when scaling out.
 #  • Object storage: catalogue images use Cloudinary (CLOUDINARY_*); no S3 needed.
+#  • Want $0? Create a FREE Postgres in the dashboard instead, delete this
+#    `databases:` block, and set the aura-api DATABASE_URL to `sync: false`.
 
-# DATABASE — created in the Render dashboard, NOT managed by this Blueprint.
-# Render forbids free/legacy ('starter') Postgres in a Blueprint and now requires a
-# paid plan (e.g. basic-256mb) for Blueprint-managed databases. To keep AURA FREE,
-# create the database yourself:
-#   New + > Postgres → choose the FREE instance type + PostgreSQL 18 (the default),
-#   then copy its "Internal Database URL" into the aura-api DATABASE_URL env below.
-# The schema targets PG 18 (native uuidv7); migration 00001 polyfills older versions.
-# The API self-migrates on boot (AUTO_MIGRATE), so no pre-deploy step is needed.
-#
-# Prefer a Blueprint-managed DB instead? Add a `databases:` block here with
-# `plan: basic-256mb` + `postgresMajorVersion: "18"` and set DATABASE_URL below back
-# to `fromDatabase: { name: aura-postgres, property: connectionString }` (≈$6/mo).
+databases:
+  - name: aura-postgres
+    databaseName: aura
+    user: aura
+    # The schema targets PostgreSQL 18 (native uuidv7); migration 00001 falls back to
+    # a polyfill on older versions.
+    postgresMajorVersion: "18"
+    # Blueprint-managed Postgres can't be free — basic-256mb is the cheapest plan
+    # (~$6/mo). Bump it for production load.
+    plan: basic-256mb
+    ipAllowList: []   # only Render services may connect
 
 services:
   # ── Go API (HTTP) ────────────────────────────────────────────────────────────
@@ -53,10 +55,8 @@ services:
       # position in X-Forwarded-For (MED-4).
       - key: TRUSTED_PROXY_COUNT
         value: "1"
-      # Paste the Internal Database URL of the free Postgres you created in the
-      # Render dashboard (see the note at the top of this file).
       - key: DATABASE_URL
-        sync: false
+        fromDatabase: { name: aura-postgres, property: connectionString }
       # Auth secrets — set from production.env (openssl-generated). JWT must be
       # >=32 bytes; MFA exactly 32 bytes base64. Kept sync:false so they match the
       # values in production.env rather than a fresh random one.

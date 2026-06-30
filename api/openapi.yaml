@@ -321,7 +321,7 @@ paths:
         - { name: building_id, in: query, schema: { type: string, format: uuid } }
         - { name: min_capacity, in: query, schema: { type: integer } }
         - { name: room_type, in: query, schema: { $ref: "#/components/schemas/RoomType" } }
-        - { name: equipment, in: query, schema: { type: string }, description: Comma-separated equipment codes }
+        - { name: equipment, in: query, schema: { type: string }, description: Comma-separated equipment codes or names }
         - { name: q, in: query, schema: { type: string } }
       responses:
         "200":

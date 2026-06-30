@@ -261,12 +261,14 @@ func (s *Service) SearchRooms(ctx context.Context, f RoomFilter) ([]RoomDetail, 
 		sb.WriteString(" AND r.name ILIKE " + add("%"+f.NameQuery+"%"))
 	}
 	if len(f.EquipmentCodes) > 0 {
-		codesPH := add(f.EquipmentCodes)
-		countPH := add(int32(len(f.EquipmentCodes)))
-		sb.WriteString(` AND r.id IN (
-			SELECT re.room_id FROM room_equipment re JOIN equipment e ON e.id = re.equipment_id
-			WHERE e.code = ANY(` + codesPH + `) GROUP BY re.room_id
-			HAVING count(DISTINCT e.code) = ` + countPH + `)`)
+		for _, term := range f.EquipmentCodes {
+			termPH := add(strings.ToLower(strings.TrimSpace(term)))
+			sb.WriteString(` AND EXISTS (
+				SELECT 1 FROM room_equipment re JOIN equipment e ON e.id = re.equipment_id
+				WHERE re.room_id = r.id
+				AND (lower(e.code) = ` + termPH + ` OR lower(e.name) = ` + termPH + `)
+			)`)
+		}
 	}
 	if f.Cursor != nil {
 		sb.WriteString(" AND r.id > " + add(*f.Cursor))

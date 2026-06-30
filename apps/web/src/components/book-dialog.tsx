@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -26,6 +26,8 @@ import { api, unwrap } from "@/lib/api/client";
 import { localToRfc3339 } from "@/lib/intervals";
 import { env } from "@/lib/env";
 import { Field } from "@/components/forms/field";
+import { DatePicker } from "@/components/date-picker";
+import { TimePicker } from "@/components/time-picker";
 import { ProblemAlert } from "@/components/problem-alert";
 
 export interface BookDraft {
@@ -65,6 +67,10 @@ export function BookDialog({
         }
       : undefined,
   });
+
+  const dateValue = useWatch({ control: form.control, name: "date" });
+  const startValue = useWatch({ control: form.control, name: "start" });
+  const endValue = useWatch({ control: form.control, name: "end" });
 
   const onSubmit = form.handleSubmit(async (values) => {
     setSubmitError(null);
@@ -120,13 +126,48 @@ export function BookDialog({
 
           <div className="grid grid-cols-3 gap-3">
             <Field id="date" label="Date" error={form.formState.errors.date?.message}>
-              {(p) => <Input {...p} type="date" {...form.register("date")} />}
+              {(p) => (
+                <DatePicker
+                  id={p.id}
+                  value={dateValue}
+                  onChange={(v) =>
+                    form.setValue("date", v, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                />
+              )}
             </Field>
             <Field id="start" label="Start" error={form.formState.errors.start?.message}>
-              {(p) => <Input {...p} type="time" {...form.register("start")} />}
+              {(p) => (
+                <TimePicker
+                  id={p.id}
+                  step={15}
+                  value={startValue}
+                  onChange={(v) =>
+                    form.setValue("start", v, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                />
+              )}
             </Field>
             <Field id="end" label="End" error={form.formState.errors.end?.message}>
-              {(p) => <Input {...p} type="time" {...form.register("end")} />}
+              {(p) => (
+                <TimePicker
+                  id={p.id}
+                  step={15}
+                  value={endValue}
+                  onChange={(v) =>
+                    form.setValue("end", v, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                />
+              )}
             </Field>
           </div>
 

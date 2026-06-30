@@ -84,7 +84,7 @@ export const AvailabilitySearchForm = z
       .min(1, "Capacity must be at least one.")
       .optional(),
     room_type: RoomType.optional().or(z.literal("")),
-    equipment: z.array(Uuid).optional(),
+    equipment: z.array(z.string().min(1)).optional(),
   })
   .refine((v) => v.end > v.start, {
     message: "The end time must be after the start time.",
