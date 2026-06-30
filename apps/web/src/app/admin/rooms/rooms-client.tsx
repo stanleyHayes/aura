@@ -72,6 +72,25 @@ export function RoomsClient() {
       }),
   });
 
+  const activate = useMutation({
+    mutationFn: async (id: string) =>
+      unwrap(
+        await api.POST("/api/v1/rooms/{id}/activate", {
+          params: { path: { id } },
+        }),
+      ),
+    onSuccess: () => {
+      toast({ variant: "success", title: "Room activated" });
+      void queryClient.invalidateQueries({ queryKey: ["rooms"] });
+    },
+    onError: (err) =>
+      toast({
+        variant: "destructive",
+        title: "Couldn't activate",
+        description: err instanceof Error ? err.message : undefined,
+      }),
+  });
+
   const columns: ColumnDef<Room>[] = React.useMemo(
     () => [
       {
@@ -149,11 +168,20 @@ export function RoomsClient() {
                 Deactivate
               </Button>
             ) : null}
+            {row.original.status === "INACTIVE" ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => activate.mutate(row.original.id)}
+              >
+                Activate
+              </Button>
+            ) : null}
           </div>
         ),
       },
     ],
-    [deactivate],
+    [deactivate, activate],
   );
 
   const rooms = React.useMemo(() => query.data ?? [], [query.data]);

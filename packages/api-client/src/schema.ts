@@ -399,6 +399,7 @@ export interface paths {
     patch: JsonPost<S["Room"]>;
   };
   "/api/v1/rooms/{id}/deactivate": { post: JsonPost<S["Room"]> };
+  "/api/v1/rooms/{id}/activate": { post: JsonPost<S["Room"]> };
   "/api/v1/rooms/{id}/images": { post: MultipartPost<S["Room"]> };
   "/api/v1/rooms/{id}/equipment": {
     put: JsonPost<

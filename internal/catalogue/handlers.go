@@ -55,6 +55,7 @@ func (h *Handler) Mount(r chi.Router) {
 		r.With(manage).Patch("/{id}", h.updateRoom)
 		r.With(manage).Post("/{id}/images", h.uploadRoomImages)
 		r.With(manage).Post("/{id}/deactivate", h.deactivateRoom)
+		r.With(manage).Post("/{id}/activate", h.activateRoom)
 		r.With(manage).Put("/{id}/equipment", h.setRoomEquipment)
 	})
 }
@@ -343,6 +344,21 @@ func (h *Handler) deactivateRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.record(r, "UPDATE", "room.status", room.ID, "INACTIVE")
+	httpx.JSON(w, http.StatusOK, room)
+}
+
+func (h *Handler) activateRoom(w http.ResponseWriter, r *http.Request) {
+	id, err := httpx.PathUUID(r, "id")
+	if err != nil {
+		httpx.Error(w, r, h.log, err)
+		return
+	}
+	room, err := h.svc.SetRoomStatus(r.Context(), id, dbgen.RoomStatusACTIVE)
+	if err != nil {
+		httpx.Error(w, r, h.log, err)
+		return
+	}
+	h.record(r, "UPDATE", "room.status", room.ID, "ACTIVE")
 	httpx.JSON(w, http.StatusOK, room)
 }
 
