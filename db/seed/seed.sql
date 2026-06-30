@@ -89,14 +89,16 @@ WHERE lower(r.name) IN (lower('Nutor Hall 100'), lower('Jackson Hall 115'))
   AND e.code IN ('PROJECTOR', 'AUDIO_SYSTEM')
 ON CONFLICT DO NOTHING;
 
--- ── Demo users (password = "Password123!" — Argon2id; ROTATE FOR PRODUCTION) ──
+-- ── Demo users — distinct strong passwords (Argon2id). The plaintext lives only
+--    in the gitignored credentials.txt and is shared with operators out-of-band.
+--    Rotate or delete these accounts once real staff have onboarded. ──
 INSERT INTO users (email, password_hash, full_name, role, status, department_id)
 SELECT v.email, v.hash, v.full_name, v.role::user_role, 'ACTIVE', d.id
 FROM (VALUES
-  ('admin@cbs.example.edu',     '$argon2id$v=19$m=65536,t=3,p=2$zuGX5BP1ng00hcpl67NsGQ$U3e5r+04E+bcULh75MSFR3dFTfsKDUiRrKDzBibVbis', 'System Admin',    'SYSTEM_ADMIN',    'CSIS'),
-  ('timetable@cbs.example.edu', '$argon2id$v=19$m=65536,t=3,p=2$zuGX5BP1ng00hcpl67NsGQ$U3e5r+04E+bcULh75MSFR3dFTfsKDUiRrKDzBibVbis', 'Timetable Admin', 'TIMETABLE_ADMIN', 'CSIS'),
-  ('officer@cbs.example.edu',   '$argon2id$v=19$m=65536,t=3,p=2$zuGX5BP1ng00hcpl67NsGQ$U3e5r+04E+bcULh75MSFR3dFTfsKDUiRrKDzBibVbis', 'Booking Officer', 'BOOKING_OFFICER', 'BA'),
-  ('lecturer@cbs.example.edu',  '$argon2id$v=19$m=65536,t=3,p=2$zuGX5BP1ng00hcpl67NsGQ$U3e5r+04E+bcULh75MSFR3dFTfsKDUiRrKDzBibVbis', 'Jane Lecturer',   'REQUESTER',       'MATH')
+  ('aura.admin@ashesi.edu.gh',     '$argon2id$v=19$m=65536,t=3,p=2$vy/TlZIM17Lf0R9bX1W8tw$KJAnqsAkqcMMuLvSDpDRZKTcQ7hfrkejsIAFWjCWbQs', 'System Administrator',    'SYSTEM_ADMIN',    'CSIS'),
+  ('aura.timetable@ashesi.edu.gh', '$argon2id$v=19$m=65536,t=3,p=2$BMTmO4eIB3l+/CXGxTMIlA$Zz0ha6ZWOtBXZPMQU29iRcDMmUEXGuROhn3IvPGkzAo', 'Timetable Administrator', 'TIMETABLE_ADMIN', 'CSIS'),
+  ('aura.officer@ashesi.edu.gh',   '$argon2id$v=19$m=65536,t=3,p=2$Ud0zOCFezWef2CPLeTkpaw$PS2mau4NUdA38CPjHr+FzgSiSsO5c3OBPmCVK5s8CTM', 'Booking Officer', 'BOOKING_OFFICER', 'BA'),
+  ('aura.lecturer@ashesi.edu.gh',  '$argon2id$v=19$m=65536,t=3,p=2$/PeQjKP5PjGy+VdYw1pv5Q$aws0y1dXWwBRGBEqqlZdJIj+vZPnuW2aUK706UqTF9M', 'Demo Lecturer',   'REQUESTER',       'MATH')
 ) AS v(email, hash, full_name, role, dept)
 JOIN departments d ON d.code = v.dept
 ON CONFLICT (email) DO NOTHING;
