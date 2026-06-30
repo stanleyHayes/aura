@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AURA — Complete User Guide &amp; Manual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --maroon:#7B1113; --maroon-dark:#5E0D0F; --maroon-tint:#F3E1E1;
+    --ink:#23201F; --muted:#6B6360; --paper:#FBFBF9; --card:#fff; --border:#ECE7E3;
+    --admin:#7B1113; --officer:#1D4ED8; --timetable:#B45309; --requester:#15803D;
+    --tip:#15803D; --tip-bg:#ECFDF3; --tip-bd:#BBE7C7;
+    --warn:#B45309; --warn-bg:#FFF8EC; --warn-bd:#F2E2C2;
+    --note-bg:#EEF4FF; --note-bd:#CFE0FF; --note:#1D4ED8;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; font-family:"Outfit",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    color:var(--ink); background:var(--paper); line-height:1.62; -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--maroon)}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 22px 80px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.86em;
+    background:#F4EFEC; border:1px solid var(--border); border-radius:6px; padding:1px 6px; color:#4a3b39}
+
+  /* Hero */
+  .hero{
+    background:radial-gradient(120% 140% at 0% 0%, #9A1719 0%, var(--maroon) 42%, var(--maroon-dark) 100%);
+    color:#fff; padding:60px 22px 70px; position:relative; overflow:hidden;
+  }
+  .hero::after{content:""; position:absolute; right:-80px; top:-80px; width:360px; height:360px;
+    background:radial-gradient(circle, rgba(255,255,255,.16), transparent 70%); border-radius:50%}
+  .hero-inner{max-width:1080px; margin:0 auto; position:relative}
+  .brandrow{display:flex; align-items:center; gap:14px; margin-bottom:22px}
+  .logo{width:50px; height:50px; border-radius:15px; background:rgba(255,255,255,.14);
+    display:grid; place-items:center; font-weight:800; font-size:22px; border:1px solid rgba(255,255,255,.28)}
+  .kicker{letter-spacing:.18em; text-transform:uppercase; font-size:12px; font-weight:600; opacity:.85}
+  h1{font-size:clamp(32px,5vw,50px); line-height:1.08; margin:.1em 0 .25em; font-weight:800}
+  .tagline{font-size:18.5px; max-width:64ch; opacity:.95; margin:0}
+  .pills{display:flex; flex-wrap:wrap; gap:10px; margin-top:26px}
+  .pill{background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.22); border-radius:999px;
+    padding:7px 14px; font-size:13px; font-weight:500}
+  .herometa{margin-top:26px; font-size:13px; opacity:.8}
+
+  /* Layout: TOC + content */
+  .layout{display:block}
+  @media(min-width:980px){
+    .layout{display:grid; grid-template-columns:248px 1fr; gap:40px; align-items:start}
+  }
+  .toc{
+    position:static; background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:18px 18px 12px; margin-top:34px; box-shadow:0 1px 2px rgba(0,0,0,.03)
+  }
+  @media(min-width:980px){ .toc{position:sticky; top:18px; max-height:calc(100dvh - 36px); overflow:auto} }
+  .toc h4{margin:0 0 10px; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--maroon); font-weight:700}
+  .toc ol{list-style:none; margin:0; padding:0; counter-reset:toc; display:grid; gap:2px}
+  .toc a{display:block; text-decoration:none; color:var(--ink); font-size:13.6px; font-weight:500;
+    padding:6px 8px; border-radius:8px}
+  .toc a:hover{background:var(--maroon-tint); color:var(--maroon)}
+  .toc li.sub a{padding-left:20px; font-size:12.8px; color:var(--muted)}
+  .toc .grp{margin-top:8px}
+
+  .content{min-width:0}
+
+  /* Sections */
+  .section{margin-top:48px; scroll-margin-top:20px}
+  .eyebrow{display:flex; align-items:center; gap:10px; color:var(--maroon); font-weight:700;
+    text-transform:uppercase; letter-spacing:.12em; font-size:12.5px; margin-bottom:12px}
+  .eyebrow .dot{width:9px; height:9px; border-radius:50%; background:var(--maroon)}
+  h2{font-size:28px; margin:0 0 8px; font-weight:800; letter-spacing:-.01em}
+  h3{font-size:19px; margin:28px 0 8px; font-weight:700}
+  h4{font-size:15.5px; margin:18px 0 6px; font-weight:700}
+  .lead{color:var(--muted); margin:0 0 18px; max-width:72ch; font-size:16px}
+  p{max-width:74ch}
+
+  .card{background:var(--card); border:1px solid var(--border); border-radius:18px; padding:22px 24px;
+    box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .grid{display:grid; gap:18px}
+  @media(min-width:720px){.grid.two{grid-template-columns:1fr 1fr} .grid.three{grid-template-columns:repeat(3,1fr)}}
+
+  /* Sign-in box */
+  .signin{display:flex; flex-wrap:wrap; align-items:center; gap:18px; justify-content:space-between}
+  .urlbox{font-size:20px; font-weight:700; color:var(--maroon)}
+  .lab{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600}
+
+  /* Numbered steps */
+  .steps{counter-reset:s; list-style:none; padding:0; margin:14px 0 0; display:grid; gap:14px}
+  .steps li{position:relative; padding-left:46px; color:var(--ink)}
+  .steps li::before{counter-increment:s; content:counter(s); position:absolute; left:0; top:-3px;
+    width:30px; height:30px; border-radius:10px; background:var(--maroon-tint); color:var(--maroon);
+    font-weight:700; display:grid; place-items:center; font-size:14px}
+  .steps li b{color:var(--ink)}
+  .steps.officer li::before{background:#E4ECFF; color:var(--officer)}
+  .steps.timetable li::before{background:#FBEAD4; color:var(--timetable)}
+  .steps.requester li::before{background:#DEF5E6; color:var(--requester)}
+  .steps.admin li::before{background:var(--maroon-tint); color:var(--admin)}
+
+  /* Role cards */
+  .role{border-radius:18px; border:1px solid var(--border); background:#fff; overflow:hidden;
+    display:flex; flex-direction:column; box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .role .top{padding:18px 20px; color:#fff; display:flex; align-items:center; gap:12px}
+  .role .emoji{font-size:24px; filter:saturate(1.1)}
+  .role .rname{font-weight:700; font-size:17px; line-height:1.2}
+  .role .rsub{font-size:12.5px; opacity:.92}
+  .role .body{padding:18px 20px; display:flex; flex-direction:column; gap:14px; flex:1}
+  .cred{background:var(--paper); border:1px dashed var(--border); border-radius:12px; padding:12px 14px}
+  .cred code{font-size:13.5px; color:var(--ink); word-break:break-all; background:none; border:none; padding:0}
+  .can{margin:0; padding:0; list-style:none; display:grid; gap:7px}
+  .can li{position:relative; padding-left:22px; font-size:14px; color:var(--ink)}
+  .can li::before{content:"✓"; position:absolute; left:0; color:var(--maroon); font-weight:800}
+  .admin .top{background:linear-gradient(120deg,#9A1719,var(--admin))}
+  .officer .top{background:linear-gradient(120deg,#2563EB,var(--officer))}
+  .timetable .top{background:linear-gradient(120deg,#D97706,var(--timetable))}
+  .requester .top{background:linear-gradient(120deg,#16A34A,var(--requester))}
+  .admin .can li::before{color:var(--admin)} .officer .can li::before{color:var(--officer)}
+  .timetable .can li::before{color:var(--timetable)} .requester .can li::before{color:var(--requester)}
+
+  /* Callouts */
+  .callout{border-radius:14px; padding:15px 18px 15px 46px; position:relative; font-size:14.5px; margin:18px 0; max-width:74ch}
+  .callout::before{position:absolute; left:16px; top:14px; font-size:17px; line-height:1}
+  .callout b{font-weight:700}
+  .tip{background:var(--tip-bg); border:1px solid var(--tip-bd); color:#155f33}
+  .tip::before{content:"💡"}
+  .warn{background:var(--warn-bg); border:1px solid var(--warn-bd); color:#7a5b16}
+  .warn::before{content:"⚠️"}
+  .note{background:var(--note-bg); border:1px solid var(--note-bd); color:#16387d}
+  .note::before{content:"ℹ️"}
+
+  /* Tables */
+  table{border-collapse:collapse; width:100%; margin:14px 0; font-size:14px; background:#fff;
+    border:1px solid var(--border); border-radius:12px; overflow:hidden}
+  caption{caption-side:top; text-align:left; font-weight:600; color:var(--muted); font-size:13px; margin-bottom:8px}
+  th,td{text-align:left; padding:10px 13px; border-bottom:1px solid var(--border); vertical-align:top}
+  th{background:#FAF6F4; font-weight:700; font-size:12.5px; letter-spacing:.02em; color:#5a4a48}
+  tbody tr:last-child td{border-bottom:none}
+  td code{font-size:12.5px}
+  .req{color:var(--maroon); font-weight:700}
+  .badge{display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:700;
+    border:1px solid var(--border)}
+  .b-pending{background:#FBEAD4; color:#8a5a12; border-color:#EFD3A8}
+  .b-approved{background:#DEF5E6; color:#155f33; border-color:#BBE7C7}
+  .b-rejected{background:#FCE3E3; color:#8a1c1c; border-color:#F1C2C2}
+  .b-cancelled{background:#EEE; color:#555; border-color:#DDD}
+  .b-expired{background:#F0EAF7; color:#5a4080; border-color:#DCD0EC}
+
+  /* Screenshot-style mockups */
+  .shot{border:1px solid var(--border); border-radius:16px; overflow:hidden; box-shadow:0 8px 26px rgba(40,20,18,.08);
+    background:#fff; margin:18px 0 6px; max-width:760px}
+  .shot .chrome{display:flex; align-items:center; gap:8px; padding:10px 14px; background:#F4EFEC; border-bottom:1px solid var(--border)}
+  .shot .dot3{display:flex; gap:6px}
+  .shot .dot3 i{width:11px; height:11px; border-radius:50%; display:block}
+  .shot .dot3 i:nth-child(1){background:#E86C5D} .shot .dot3 i:nth-child(2){background:#F4BE4F} .shot .dot3 i:nth-child(3){background:#62C462}
+  .shot .addr{flex:1; background:#fff; border:1px solid var(--border); border-radius:7px; padding:4px 10px;
+    font-size:11.5px; color:var(--muted); font-family:ui-monospace,Menlo,monospace}
+  .shot .body{padding:16px}
+  .shotcap{font-size:12.5px; color:var(--muted); margin:0 0 22px; font-style:italic}
+
+  .mk-topbar{display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-bottom:1px solid var(--border); margin:-16px -16px 14px}
+  .mk-title{font-weight:700; font-size:15px}
+  .mk-actions{display:flex; gap:6px}
+  .mk-chip{border:1px solid var(--border); border-radius:8px; padding:5px 10px; font-size:12px; background:#FAF6F4; color:var(--ink)}
+  .mk-btn{border-radius:9px; padding:7px 14px; font-size:13px; font-weight:600; border:1px solid transparent; display:inline-flex; gap:6px; align-items:center}
+  .mk-primary{background:var(--maroon); color:#fff}
+  .mk-outline{background:#fff; border-color:var(--border); color:var(--ink)}
+  .mk-green{background:var(--requester); color:#fff}
+  .mk-blue{background:var(--officer); color:#fff}
+  .mk-red{background:#fff; border-color:#E5B4B4; color:#a32020}
+
+  .mk-filterbar{display:flex; flex-wrap:wrap; gap:8px; align-items:end; background:#FAF6F4; border:1px solid var(--border); border-radius:12px; padding:12px}
+  .mk-field{display:flex; flex-direction:column; gap:4px}
+  .mk-field label{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:700}
+  .mk-input{background:#fff; border:1px solid var(--border); border-radius:8px; padding:6px 9px; font-size:12.5px; color:var(--ink); min-width:84px}
+  .mk-input.wide{min-width:150px}
+  .mk-card{border:1px solid var(--border); border-radius:12px; padding:14px; margin-top:12px; background:#fff}
+  .mk-roomname{font-weight:700; font-size:15px}
+  .mk-roommeta{font-size:12px; color:var(--muted); margin-top:1px}
+  .mk-slots{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
+  .mk-slot{border:1px solid var(--requester); background:color-mix(in srgb,var(--requester) 14%,#fff); color:#155f33;
+    border-radius:8px; padding:6px 11px; font-size:12.5px; font-weight:600}
+  .mk-slot.busy{border-color:var(--border); background:#EEE9E6; color:#8a807c}
+  .mk-legend{display:flex; gap:16px; flex-wrap:wrap; font-size:11.5px; color:var(--muted); margin-top:12px}
+  .mk-legend span{display:inline-flex; align-items:center; gap:6px}
+  .sw{width:22px; height:11px; border-radius:3px; display:inline-block}
+  .mk-formrow{display:flex; flex-direction:column; gap:4px; margin-bottom:11px}
+  .mk-formrow label{font-size:12px; font-weight:700; color:var(--ink)}
+  .mk-formrow .reqd{color:var(--maroon)}
+  .mk-texty{background:#fff; border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:12.5px; color:var(--muted)}
+  .mk-hint{font-size:11px; color:var(--muted)}
+  .mk-grid2{display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px}
+  .mk-toggle{display:flex; align-items:flex-start; gap:9px; border:1px solid var(--border); border-radius:10px; padding:11px; background:#FAF6F4; margin:11px 0}
+  .mk-check{width:18px; height:18px; border-radius:5px; background:var(--maroon); color:#fff; display:grid; place-items:center; font-size:12px; flex:none; margin-top:1px}
+  .mk-statrow{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:4px}
+  .mk-stat{border:1px solid var(--border); border-radius:12px; padding:12px; background:#fff}
+  .mk-stat .v{font-size:24px; font-weight:800}
+  .mk-stat .l{font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin-bottom:3px}
+  .mk-why{border:1px solid #F1C2C2; background:#FCF2F2; border-radius:10px; padding:11px 13px; margin-top:11px; font-size:12.5px}
+  .mk-why .h{font-weight:700; color:#8a1c1c; margin-bottom:5px}
+  .mk-why ul{margin:0; padding-left:18px}
+  .mk-bar{height:9px; border-radius:999px; background:#EEE9E6; overflow:hidden; margin-top:8px}
+  .mk-bar i{display:block; height:100%; background:var(--maroon)}
+
+  /* How-to cards (overview) */
+  .howto{display:flex; gap:14px; align-items:flex-start}
+  .howto .num{flex:none; width:34px; height:34px; border-radius:11px; display:grid; place-items:center;
+    font-weight:800; color:#fff; background:var(--maroon)}
+  .howto h3{margin:2px 0 4px; font-size:16px}
+  .howto p{margin:0; color:var(--muted); font-size:14.5px}
+
+  .kbd{font-family:ui-monospace,Menlo,monospace; font-size:12px; background:#2a2422; color:#fff; border-radius:6px; padding:2px 7px}
+  .pwd{font-family:ui-monospace,Menlo,monospace; background:var(--maroon-tint); color:var(--maroon); padding:3px 10px; border-radius:8px; font-size:.86em; border:none}
+
+  .anchor-h{scroll-margin-top:18px}
+  .pathchip{font-family:ui-monospace,Menlo,monospace; font-size:12.5px; background:#F4EFEC; border:1px solid var(--border); border-radius:7px; padding:2px 8px; color:#5a4a48; white-space:nowrap}
+
+  footer{margin-top:60px; padding-top:24px; border-top:1px solid var(--border); color:var(--muted); font-size:13px;
+    display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between}
+
+  /* Glossary / FAQ */
+  dl.gloss{display:grid; gap:0; margin:10px 0}
+  dl.gloss dt{font-weight:700; margin-top:14px}
+  dl.gloss dd{margin:2px 0 0; color:var(--muted)}
+  details.faq{border:1px solid var(--border); border-radius:12px; padding:2px 16px; margin:10px 0; background:#fff}
+  details.faq summary{cursor:pointer; font-weight:600; padding:12px 0; list-style:none}
+  details.faq summary::-webkit-details-marker{display:none}
+  details.faq summary::before{content:"›"; display:inline-block; margin-right:10px; transition:transform .2s; color:var(--maroon); font-weight:800}
+  details.faq[open] summary::before{transform:rotate(90deg)}
+  details.faq p{margin:0 0 14px; color:var(--muted)}
+
+  @media print{
+    html{scroll-behavior:auto}
+    body{background:#fff; font-size:11.4px; line-height:1.5}
+    .hero{padding:28px 22px 30px}
+    .layout{display:block}
+    .toc{display:none}
+    .shot{box-shadow:none; break-inside:avoid}
+    .role,.card,.callout,table,.shot,.mk-card{break-inside:avoid}
+    .section{margin-top:26px}
+    a{color:inherit; text-decoration:none}
+    h2{font-size:20px} h1{font-size:30px}
+    details.faq{break-inside:avoid} details.faq[open] p{display:block}
+    details.faq:not([open]) > *:not(summary){display:block}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="brandrow">
+      <div class="logo">A</div>
+      <span class="kicker">Ashesi University Resource Allocation</span>
+    </div>
+    <h1>AURA — The Complete User Guide</h1>
+    <p class="tagline">Everything you need to find a room, request and approve bookings, manage the
+      catalogue, and import the semester timetable — written for everyday users, step by step.</p>
+    <div class="pills">
+      <span class="pill">🔎 Real-time availability</span>
+      <span class="pill">✅ Approvals &amp; conflict detection</span>
+      <span class="pill">🗓️ Timetable import</span>
+      <span class="pill">📊 Reports &amp; audit</span>
+      <span class="pill">📱 Web + Mobile</span>
+    </div>
+    <div class="herometa">Ashesi University · West Africa Time (Africa/Accra) · Print or save this guide as a PDF to share.</div>
+  </div>
+</header>
+
+<div class="wrap">
+<div class="layout">
+
+  <!-- ============ TABLE OF CONTENTS ============ -->
+  <nav class="toc" aria-label="Contents">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#intro">1. About AURA</a></li>
+      <li><a href="#start">2. Getting started</a></li>
+      <li class="sub"><a href="#signin">2.1 Where &amp; how to sign in</a></li>
+      <li class="sub"><a href="#layout">2.2 Tour of the screen</a></li>
+      <li class="sub"><a href="#theme">2.3 Light / dark &amp; colour tint</a></li>
+      <li class="sub"><a href="#signout">2.4 Signing out</a></li>
+      <li><a href="#roles">3. The four roles</a></li>
+      <li class="grp"><a href="#workflows">4. Step-by-step workflows</a></li>
+      <li class="sub"><a href="#wf-requester">4.1 Requester</a></li>
+      <li class="sub"><a href="#wf-officer">4.2 Booking Officer</a></li>
+      <li class="sub"><a href="#wf-timetable">4.3 Timetable Administrator</a></li>
+      <li class="sub"><a href="#wf-admin">4.4 System Administrator</a></li>
+      <li><a href="#imports">5. ⭐ Imports &amp; required columns</a></li>
+      <li class="sub"><a href="#imp-timetable">5.1 Timetable import</a></li>
+      <li class="sub"><a href="#imp-catalogue">5.2 Catalogue import</a></li>
+      <li class="sub"><a href="#imp-images">5.3 Image uploads</a></li>
+      <li><a href="#settings">6. Settings in depth</a></li>
+      <li><a href="#tips">7. Tips &amp; good-to-know</a></li>
+      <li class="sub"><a href="#glossary">7.1 Glossary</a></li>
+      <li class="sub"><a href="#faq">7.2 FAQ</a></li>
+    </ol>
+  </nav>
+
+  <main class="content">
+
+  <!-- ============ 1. INTRO ============ -->
+  <section class="section" id="intro">
+    <div class="eyebrow"><span class="dot"></span>Introduction</div>
+    <h2 class="anchor-h">1. What AURA is, and who it&rsquo;s for</h2>
+    <p class="lead"><b>AURA (Ashesi University Resource Allocation)</b> is Ashesi&rsquo;s space-management
+      platform. It brings the university&rsquo;s rooms, the live class timetable, maintenance windows
+      and ad-hoc booking requests into one place, so everyone is looking at the same source of truth.</p>
+    <p>AURA answers one question reliably: <b>&ldquo;Is this room actually free at this time?&rdquo;</b>
+      It does this by combining three things — the imported semester timetable (lectures), approved
+      bookings, and scheduled maintenance — and showing only the gaps that remain. Staff can request a
+      room in those gaps, a booking officer reviews the request with full conflict information in front
+      of them, and administrators keep the catalogue, semesters and users in order.</p>
+
+    <div class="grid two" style="margin-top:18px">
+      <div class="card">
+        <h4 style="margin-top:0">Who uses AURA</h4>
+        <ul class="can" style="gap:9px">
+          <li><b>Lecturers &amp; staff</b> who need a room for a class, seminar, club or event.</li>
+          <li><b>Booking officers</b> who review and decide on requests.</li>
+          <li><b>Timetable administrators</b> who load each semester&rsquo;s schedule.</li>
+          <li><b>System administrators</b> who run the whole platform.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4 style="margin-top:0">What it replaces</h4>
+        <ul class="can" style="gap:9px">
+          <li>Email chains and spreadsheets for &ldquo;who has the room?&rdquo;</li>
+          <li>Double bookings and clashes with lectures.</li>
+          <li>Guesswork about capacity and equipment.</li>
+          <li>Manual record-keeping — every change is logged.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="callout note">AURA runs on the <b>web</b> (any modern browser) and as a <b>mobile app</b>
+      with the same search, booking, approvals and reports. This guide focuses on the web app; the
+      mobile screens use the same labels.</p>
+  </section>
+
+  <!-- ============ 2. GETTING STARTED ============ -->
+  <section class="section" id="start">
+    <div class="eyebrow"><span class="dot"></span>Getting started</div>
+    <h2 class="anchor-h">2. Getting started</h2>
+
+    <h3 id="signin" class="anchor-h">2.1 Where and how to sign in</h3>
+    <div class="card">
+      <div class="signin">
+        <div>
+          <div class="lab">Live web address</div>
+          <div class="urlbox">https://auragh.vercel.app</div>
+        </div>
+        <div style="font-size:13px;color:var(--muted);max-width:48ch">
+          For a local demo on your own machine, AURA runs at
+          <code>http://localhost:3001</code> instead. Use the same accounts and steps either way.
+        </div>
+      </div>
+      <ol class="steps">
+        <li>Open the web address above in a browser (Chrome, Edge, Safari or Firefox), then choose <b>Sign in</b>.</li>
+        <li>Enter the <b>email</b> and <b>password</b> for the role you want to use (see <a href="#roles">Section&nbsp;3</a> for the demo accounts).</li>
+        <li>Select <b>Sign in</b>. You land on the dashboard (the <b>Overview</b> page) for your role.</li>
+        <li>The very first time, a short guided tour highlights the main areas. You can replay it any time from your account menu &rarr; <b>Replay tour</b>.</li>
+      </ol>
+    </div>
+    <p class="callout warn"><b>Demo accounts only exist where they&rsquo;ve been created.</b> The four
+      sample logins in this guide work on a fresh local demo, and on the live site only if that
+      environment has been seeded with them. If a demo login is rejected on the live site, ask your
+      administrator to create it (or use your own real account).</p>
+
+    <h3 id="layout" class="anchor-h">2.2 A tour of the screen</h3>
+    <p class="lead">Every signed-in page shares the same frame, so once you know it for one role you know it for all of them.</p>
+    <div class="shot">
+      <div class="chrome"><span class="dot3"><i></i><i></i><i></i></span><span class="addr">auragh.vercel.app/app</span></div>
+      <div class="body">
+        <div style="display:grid; grid-template-columns:150px 1fr; gap:12px">
+          <div style="border:1px solid var(--border); border-radius:12px; padding:10px; background:#FAF6F4">
+            <div style="font-weight:800; color:var(--maroon); font-size:13px; margin-bottom:8px">A &nbsp;AURA</div>
+            <div style="font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:700; margin:8px 0 4px">Workspace</div>
+            <div style="font-size:12.5px; display:grid; gap:5px">
+              <span style="background:var(--maroon-tint); color:var(--maroon); border-radius:7px; padding:4px 8px; font-weight:600">Overview</span>
+              <span style="padding:4px 8px">Find a room</span>
+              <span style="padding:4px 8px">My bookings</span>
+              <span style="padding:4px 8px">Calendar</span>
+              <span style="padding:4px 8px">Notifications</span>
+            </div>
+            <div style="font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:700; margin:10px 0 4px">Account</div>
+            <div style="font-size:12.5px; display:grid; gap:5px">
+              <span style="padding:4px 8px">User guide</span>
+              <span style="padding:4px 8px">Profile</span>
+              <span style="padding:4px 8px">Settings</span>
+            </div>
+          </div>
+          <div>
+            <div class="mk-topbar" style="margin:0 0 12px; padding-bottom:10px">
+              <span class="mk-title">Overview</span>
+              <span class="mk-actions">
+                <span class="mk-chip">🌙 Theme</span>
+                <span class="mk-chip">🔔</span>
+                <span class="mk-chip" style="border-radius:999px">LK</span>
+              </span>
+            </div>
+            <div style="border:1px dashed var(--border); border-radius:12px; padding:24px; text-align:center; color:var(--muted); font-size:12.5px">
+              Page content appears here — your dashboard, search results, the booking form, and so on.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="shotcap">Mockup of the AURA web layout. <b>Tip:</b> these illustrations approximate the real
+      screens — live screenshots from your environment can be dropped in to replace them.</p>
+
+    <table>
+      <caption>The five parts of every AURA screen</caption>
+      <thead><tr><th>Area</th><th>Where</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><b>Brand &amp; sidebar</b></td><td>Left edge</td><td>The <b>A AURA</b> logo plus your navigation, grouped into headed sections. Click the <b>&laquo;</b> arrow to collapse it to icons only.</td></tr>
+        <tr><td><b>Page title</b></td><td>Top bar, left</td><td>Shows the name of the page you&rsquo;re on (e.g. <b>Find a room</b>).</td></tr>
+        <tr><td><b>Theme button</b></td><td>Top bar, right</td><td>Switches light/dark. Its tooltip reads <i>&ldquo;Switch to dark theme&rdquo;</i> / <i>&ldquo;Switch to light theme&rdquo;</i>.</td></tr>
+        <tr><td><b>Notifications bell</b></td><td>Top bar, right</td><td>In-app alerts about your bookings and approvals.</td></tr>
+        <tr><td><b>Account menu</b></td><td>Top bar, far right</td><td>Your initials. Opens <b>Profile</b>, <b>Settings</b>, <b>User guide</b>, <b>Replay tour</b>, and <b>Sign out</b>.</td></tr>
+      </tbody>
+    </table>
+    <p class="callout tip"><b>On a phone or narrow window</b> the sidebar collapses behind the
+      <b>&#9776;</b> (menu) button in the top-left — tap it to open the navigation.</p>
+
+    <h3 id="theme" class="anchor-h">2.3 Switching light / dark, and choosing a colour tint</h3>
+    <p>AURA has two separate appearance controls:</p>
+    <ol class="steps">
+      <li><b>Light or dark mode</b> — use the <b>theme button</b> in the top bar (the sun/moon icon). It flips the whole interface between light and dark and remembers your choice on that device.</li>
+      <li><b>Dark screen tint</b> — go to <b>Settings &rarr; Preferences</b> and find the <b>Appearance</b> card. Under <b>&ldquo;Dark screen tint&rdquo;</b> pick one of nine colour casts for dark mode. The card notes: <i>&ldquo;Use the theme button in the top navigation to switch modes. These tints change the dark screen colour only.&rdquo;</i></li>
+    </ol>
+    <p class="callout note">The tint only changes how <b>dark</b> mode looks — light mode stays the same.
+      The nine tints are <b>Ink</b> (the default warm black), <b>Burgundy</b>, <b>Midnight</b>,
+      <b>Canopy</b>, <b>Slate</b>, <b>Ocean</b>, <b>Plum</b>, <b>Espresso</b> and <b>Rose</b>. Full list
+      in <a href="#settings">Section&nbsp;6</a>.</p>
+
+    <h3 id="signout" class="anchor-h">2.4 Signing out</h3>
+    <p>Open the <b>account menu</b> (your initials, top-right) and choose <b>Sign out</b> — described as
+      <i>&ldquo;End your session on this device.&rdquo;</i> You&rsquo;re returned to the sign-in page.
+      Always sign out on shared or public computers.</p>
+  </section>
+
+  <!-- ============ 3. ROLES ============ -->
+  <section class="section" id="roles">
+    <div class="eyebrow"><span class="dot"></span>Roles &amp; access</div>
+    <h2 class="anchor-h">3. The four roles &amp; what each can do</h2>
+    <p class="lead">AURA shows each person only the tools their role allows. Your role is set by a System
+      Administrator. Every demo account below shares one password:
+      <span class="pwd">provided on request</span></p>
+
+    <div class="grid two">
+
+      <article class="role admin">
+        <div class="top"><span class="emoji">🛡️</span><div><div class="rname">System Administrator</div><div class="rsub">Full control of the platform</div></div></div>
+        <div class="body">
+          <div class="cred"><div class="lab">Email</div><code>admin@cbs.example.edu</code></div>
+          <ul class="can">
+            <li>Manage users — invite, change role, suspend / reactivate</li>
+            <li>Manage the catalogue: rooms, buildings, equipment (with images)</li>
+            <li>Create &amp; activate semesters; import timetables</li>
+            <li>Approve, reject <b>or override</b> any booking</li>
+            <li>Schedule maintenance windows</li>
+            <li>View reports and the read-only audit log</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="role officer">
+        <div class="top"><span class="emoji">✅</span><div><div class="rname">Booking Officer</div><div class="rsub">Reviews &amp; approves requests</div></div></div>
+        <div class="body">
+          <div class="cred"><div class="lab">Email</div><code>officer@cbs.example.edu</code></div>
+          <ul class="can">
+            <li>Open the <b>Approvals queue</b></li>
+            <li>See exactly why a request is <b>Approvable</b> or <b>Blocked</b></li>
+            <li>Approve or reject (a reason is required to reject)</li>
+            <li>View utilisation, bookings &amp; conflict reports</li>
+            <li>Search and submit bookings too</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="role timetable">
+        <div class="top"><span class="emoji">🗓️</span><div><div class="rname">Timetable Administrator</div><div class="rsub">Owns the semester schedule</div></div></div>
+        <div class="body">
+          <div class="cred"><div class="lab">Email</div><code>timetable@cbs.example.edu</code></div>
+          <ul class="can">
+            <li>Upload the semester timetable (Excel or CSV)</li>
+            <li>Auto-create missing rooms &amp; buildings on import</li>
+            <li>Choose <b>Append</b> or <b>Replace</b> mode</li>
+            <li>Review the row-by-row import report</li>
+            <li>Search and submit bookings</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="role requester">
+        <div class="top"><span class="emoji">🙋</span><div><div class="rname">Requester (Lecturer / Staff)</div><div class="rsub">Books rooms for activities</div></div></div>
+        <div class="body">
+          <div class="cred"><div class="lab">Email</div><code>lecturer@cbs.example.edu</code></div>
+          <ul class="can">
+            <li><b>Find a room</b> by date, time, capacity, type, building &amp; equipment</li>
+            <li>See live availability before booking</li>
+            <li>Submit a booking request</li>
+            <li>Track and cancel their own bookings</li>
+          </ul>
+        </div>
+      </article>
+
+    </div>
+    <p class="callout tip">The sidebar adapts to your role: a Requester sees the <b>Workspace</b> menu
+      (Find a room, My bookings, Calendar, Notifications), while admin roles also get the
+      <b>Catalogue</b>, <b>Scheduling</b> and <b>Administration</b> menus — but only the items their
+      permissions allow.</p>
+  </section>
+
+  <!-- ============ 4. WORKFLOWS ============ -->
+  <section class="section" id="workflows">
+    <div class="eyebrow"><span class="dot"></span>Step-by-step</div>
+    <h2 class="anchor-h">4. Step-by-step workflows</h2>
+    <p class="lead">Each workflow below is numbered and paired with a screenshot-style mockup of the
+      real screen. Follow them in order the first time, then refer back as needed.</p>
+
+    <!-- 4.1 REQUESTER -->
+    <h3 id="wf-requester" class="anchor-h" style="color:var(--requester)">4.1 Requester &mdash; find &amp; book a room</h3>
+
+    <h4>Step A &mdash; Search for a free room</h4>
+    <p>From the sidebar choose <b>Find a room</b>. The page header reads <i>&ldquo;Search availability
+      derived from the live timetable, approved bookings and maintenance. All times are West Africa Time
+      (Africa/Accra).&rdquo;</i> Fill in the <b>Filters</b> panel:</p>
+    <table>
+      <caption>Find a room — every filter</caption>
+      <thead><tr><th>Filter</th><th>Required?</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><b>Date</b></td><td><span class="req">Yes</span></td><td>The day you want the room.</td></tr>
+        <tr><td><b>From</b></td><td><span class="req">Yes</span></td><td>Start of your time window.</td></tr>
+        <tr><td><b>To</b></td><td><span class="req">Yes</span></td><td>End of your time window. A room must be free for the <b>whole</b> window to appear.</td></tr>
+        <tr><td><b>Building</b></td><td>No</td><td>Limit to one building. Defaults to <b>Any building</b>; type to search.</td></tr>
+        <tr><td><b>Room type</b></td><td>No</td><td>Defaults to <b>Any type</b>. Choices: Lecture hall, Laboratory, Seminar room, Auditorium, Conference room.</td></tr>
+        <tr><td><b>Minimum capacity</b></td><td>No</td><td>Lowest number of seats you need (placeholder <b>Any</b>).</td></tr>
+        <tr><td><b>Required equipment</b></td><td>No</td><td>Tick items (e.g. Projector). Only shown when equipment exists.</td></tr>
+      </tbody>
+    </table>
+    <p>Select <b>Search availability</b>. Before you search you&rsquo;ll see <i>&ldquo;Search to see free
+      rooms.&rdquo;</i> Results show a count line such as <i>&ldquo;3 rooms free for the entire
+      window&rdquo;</i>. If nothing matches you&rsquo;ll see <i>&ldquo;No rooms free for that window&rdquo;</i>
+      — try a wider time window, a lower capacity, or fewer equipment requirements.</p>
+
+    <div class="shot">
+      <div class="chrome"><span class="dot3"><i></i><i></i><i></i></span><span class="addr">auragh.vercel.app/app/search</span></div>
+      <div class="body">
+        <div class="mk-topbar"><span class="mk-title">Find a room</span></div>
+        <div class="mk-filterbar">
+          <div class="mk-field"><label>Date</label><span class="mk-input">2026-07-02</span></div>
+          <div class="mk-field"><label>From</label><span class="mk-input">10:00</span></div>
+          <div class="mk-field"><label>To</label><span class="mk-input">12:00</span></div>
+          <div class="mk-field"><label>Building</label><span class="mk-input wide">Any building</span></div>
+          <div class="mk-field"><label>Room type</label><span class="mk-input wide">Any type</span></div>
+          <div class="mk-field"><label>Min capacity</label><span class="mk-input">40</span></div>
+          <div class="mk-field"><label>&nbsp;</label><span class="mk-btn mk-primary">🔎 Search availability</span></div>
+        </div>
+        <div class="mk-card">
+          <div class="mk-roomname">Nutor Hall 115</div>
+          <div class="mk-roommeta">NH-115 · Lecture hall · seats 40</div>
+          <div class="mk-slots">
+            <span class="mk-slot">10:00–12:00</span>
+            <span class="mk-slot busy">08:00–09:30</span>
+            <span class="mk-slot busy">13:00–14:30</span>
+          </div>
+          <div class="mk-legend">
+            <span><i class="sw" style="background:color-mix(in srgb,var(--requester) 20%,#fff); border:1px solid var(--requester)"></i> Free (click to book)</span>
+            <span><i class="sw" style="background:#EEE9E6; border:1px solid var(--border)"></i> Occupied</span>
+            <span><i class="sw" style="border-left:2px dashed #999; border-right:2px dashed #999"></i> Requested window</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="shotcap">Mockup: the Filters bar and one result card with its availability bands.</p>
+
+    <h4>Step B &mdash; Read the availability</h4>
+    <p>Each result shows the room name with a sub-line like <code>NH-115 · Lecture hall · seats 40</code>.
+      Free slots appear as green <b>Free (click to book)</b> bands labelled with the time range (e.g.
+      <b>10:00–12:00</b>); busy times show as grey <b>Occupied</b>. The legend also marks your
+      <b>Requested window</b>. Click a green band to open the booking form pre-filled for that slot.</p>
+
+    <h4>Step C &mdash; Submit the booking request</h4>
+    <p>The booking dialog is titled <b>Book {room name}</b> with the same room sub-line. Complete it:</p>
+    <table>
+      <caption>Booking form fields</caption>
+      <thead><tr><th>Field</th><th>Required?</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><b>Date</b></td><td><span class="req">Yes</span></td><td>Pre-filled from the slot you clicked.</td></tr>
+        <tr><td><b>Start</b></td><td><span class="req">Yes</span></td><td>Pre-filled; adjust if needed.</td></tr>
+        <tr><td><b>End</b></td><td><span class="req">Yes</span></td><td>Pre-filled; must be after Start.</td></tr>
+        <tr><td><b>Expected attendees</b></td><td><span class="req">Yes</span></td><td>1 up to the room&rsquo;s capacity. Helper text reads <i>&ldquo;Maximum {N} for this room.&rdquo;</i></td></tr>
+        <tr><td><b>Purpose</b></td><td><span class="req">Yes</span></td><td>Why you need the room — e.g. <i>&ldquo;Departmental seminar, makeup lecture, club meeting.&rdquo;</i> This is how your booking is identified.</td></tr>
+      </tbody>
+    </table>
+    <p>Select <b>Submit request</b> (it briefly reads <i>Submitting…</i>). A confirmation appears:
+      <b>&ldquo;Request submitted — You&rsquo;ll be notified once a booking officer reviews it.&rdquo;</b>
+      Your request starts as <span class="badge b-pending">Pending</span>.</p>
+
+    <div class="shot" style="max-width:560px">
+      <div class="chrome"><span class="dot3"><i></i><i></i><i></i></span><span class="addr">Book a room</span></div>
+      <div class="body">
+        <div style="font-weight:700; font-size:16px">Book Nutor Hall 115</div>
+        <div class="mk-roommeta" style="margin-bottom:12px">NH-115 · Lecture hall · seats 40</div>
+        <div class="mk-grid2">
+          <div class="mk-formrow"><label>Date <span class="reqd">*</span></label><span class="mk-texty">2026-07-02</span></div>
+          <div class="mk-formrow"><label>Start <span class="reqd">*</span></label><span class="mk-texty">10:00</span></div>
+          <div class="mk-formrow"><label>End <span class="reqd">*</span></label><span class="mk-texty">12:00</span></div>
+        </div>
+        <div class="mk-formrow"><label>Expected attendees <span class="reqd">*</span></label><span class="mk-texty">35</span><span class="mk-hint">Maximum 40 for this room.</span></div>
+        <div class="mk-formrow"><label>Purpose <span class="reqd">*</span></label><span class="mk-texty" style="min-height:38px">e.g. Departmental seminar, makeup lecture, club meeting</span></div>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:6px">
+          <span class="mk-btn mk-outline">Cancel</span>
+          <span class="mk-btn mk-green">Submit request</span>
+        </div>
+      </div>
+    </div>
+    <p class="shotcap">Mockup: the booking form. Fields marked <span class="reqd">*</span> are required.</p>
+
+    <h4>Step D &mdash; Track and cancel your bookings</h4>
+    <p>Open <b>My bookings</b> (<i>&ldquo;Track the status of every request you&rsquo;ve made.&rdquo;</i>).
+      Filter tabs across the top are <b>All</b>, <b>Pending</b>, <b>Approved</b>, <b>Rejected</b>,
+      <b>Cancelled</b> and <b>Expired</b>. Each card shows the room and purpose, then a line like
+      <i>&ldquo;2 Jul 2026 · 10:00–12:00 · 35 attendees&rdquo;</i> with a status badge. Click a card to
+      open its detail page with a <b>Status timeline</b> and <b>Details</b>.</p>
+    <div class="callout warn"><b>Cancelling is immediate — there is no &ldquo;are you sure?&rdquo; step.</b>
+      The <b>Cancel</b> button only appears on <span class="badge b-pending">Pending</span> and
+      <span class="badge b-approved">Approved</span> bookings, and only on the <b>My bookings</b> list
+      (the detail page has no Cancel button). Clicking it cancels right away and shows
+      <b>&ldquo;Booking cancelled&rdquo;</b>.</div>
+
+    <!-- 4.2 OFFICER -->
+    <h3 id="wf-officer" class="anchor-h" style="color:var(--officer)">4.2 Booking Officer &mdash; review &amp; decide</h3>
+
+    <h4>Step A &mdash; Open the approvals queue</h4>
+    <p>From the <b>Overview</b> menu choose <b>Approvals</b>. The page is the <b>Approvals queue</b>:
+      <i>&ldquo;Each request shows exactly why it can — or cannot — be approved, so you can resolve
+      conflicts without guessing.&rdquo;</i> Three stat cards at the top show <b>Pending requests</b>,
+      <b>Approved requests</b> and <b>Rejected requests</b>.</p>
+
+    <h4>Step B &mdash; Read why a request is approvable or blocked</h4>
+    <p>Each request card shows the room, the purpose, the requester (and department), and tiles for
+      <b>Date</b>, <b>Time</b>, <b>Attendees</b> and <b>Requested by</b>. A badge reads either
+      <b>Approvable</b> or <b>Blocked</b>:</p>
+    <ul class="can">
+      <li><b>Approvable</b> &rarr; a <b>Ready for approval</b> panel, e.g. <i>&ldquo;No lecture, maintenance, capacity, or booking conflicts were detected.&rdquo;</i></li>
+      <li><b>Blocked</b> &rarr; a <b>Needs attention before approval</b> panel listing the reasons. Each blocker is one of these:</li>
+    </ul>
+    <table>
+      <caption>Why a request can be blocked</caption>
+      <thead><tr><th>Blocker</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><b>Lecture clash</b></td><td>A timetabled lecture already uses the room then.</td></tr>
+        <tr><td><b>Maintenance</b></td><td>A maintenance window blocks the room.</td></tr>
+        <tr><td><b>Approved booking</b></td><td>Another approved booking overlaps.</td></tr>
+        <tr><td><b>Competing pending</b></td><td>Other pending requests want the same slot — approving this one supersedes them.</td></tr>
+        <tr><td><b>Capacity</b></td><td>Requested attendees exceed the room&rsquo;s seats.</td></tr>
+        <tr><td><b>In the past</b></td><td>The requested time has already passed.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="shot">
+      <div class="chrome"><span class="dot3"><i></i><i></i><i></i></span><span class="addr">auragh.vercel.app/admin/approvals</span></div>
+      <div class="body">
+        <div class="mk-topbar"><span class="mk-title">Approvals queue</span></div>
+        <div class="mk-statrow">
+          <div class="mk-stat"><div class="l">Pending requests</div><div class="v">7</div></div>
+          <div class="mk-stat"><div class="l">Approved requests</div><div class="v">52</div></div>
+          <div class="mk-stat"><div class="l">Rejected requests</div><div class="v">6</div></div>
+        </div>
+        <div class="mk-card">
+          <div style="display:flex; justify-content:space-between; align-items:start">
+            <div>
+              <div style="font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:700">Approval request</div>
+              <div class="mk-roomname">Nutor Hall 115</div>
+              <div class="mk-roommeta">Makeup lecture · Requested by Lecturer K. · Computer Science</div>
+            </div>
+            <span class="badge b-rejected">Blocked</span>
+          </div>
+          <div class="mk-why">
+            <div class="h">Needs attention before approval</div>
+            <ul>
+              <li>Lecture clash: CS101 occupies this room 10:00–11:30.</li>
+              <li>Capacity: 60 requested but the room seats 40.</li>
+            </ul>
+          </div>
+          <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px">
+            <span class="mk-btn mk-blue" style="opacity:.45">Approve</span>
+            <span class="mk-btn mk-red">Reject</span>
+            <span class="mk-btn mk-outline">Override</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="shotcap">Mockup: a blocked request with its reasons and the Approve / Reject / Override actions.</p>
+
+    <h4>Step C &mdash; Approve, reject, or override</h4>
+    <ol class="steps officer">
+      <li><b>Approve</b> &mdash; available only when the badge says <b>Approvable</b>. Click it; you&rsquo;ll see <b>&ldquo;Booking approved.&rdquo;</b></li>
+      <li><b>Reject</b> &mdash; opens the <b>Reject this request</b> dialog. A <b>Reason</b> is <span class="req">required</span> (<i>&ldquo;The requester will be notified with your reason&rdquo;</i>) — e.g. <i>&ldquo;The room is reserved for an examination that week.&rdquo;</i> Click <b>Reject request</b>.</li>
+      <li><b>Override</b> &mdash; only for System Admins with override rights, and only on blocked requests. The <b>Override and approve</b> dialog warns <i>&ldquo;This bypasses normal conflict checks&rdquo;</i> and requires a <b>Justification</b>. You can also tick <i>&ldquo;Cancel any conflicting approved bookings and notify those requesters.&rdquo;</i> The action is recorded in the audit log.</li>
+    </ol>
+
+    <h4>Step D &mdash; View utilisation &amp; booking reports</h4>
+    <p>Choose <b>Reports</b> (<i>&ldquo;Utilisation, bookings and conflicts. Export large datasets to CSV,
+      Excel or PDF.&rdquo;</i>). Set the <b>From</b> / <b>To</b> date range (defaults to the last 30
+      days), then use the three tabs:</p>
+    <ul class="can">
+      <li><b>Utilisation</b> &mdash; a <b>Room utilisation</b> bar chart plus a table (<b>Room</b>, <b>Capacity</b>, <b>Lecture h</b>, <b>Booked h</b>, <b>Utilisation</b>). <b>Export CSV</b> downloads it.</li>
+      <li><b>Bookings</b> &mdash; metric cards <b>Total requests</b>, <b>Approved</b>, <b>Rejected</b>, <b>Approval rate</b>, and a <b>Bookings by department</b> chart.</li>
+      <li><b>Conflicts</b> &mdash; metric cards <b>Rejected requests</b>, <b>Cancelled bookings</b>, <b>Expired requests</b>.</li>
+    </ul>
+
+    <!-- 4.3 TIMETABLE -->
+    <h3 id="wf-timetable" class="anchor-h" style="color:var(--timetable)">4.3 Timetable Administrator &mdash; import a semester timetable</h3>
+    <p>This is the most important admin workflow. The exact column rules live in
+      <a href="#imp-timetable">Section&nbsp;5.1</a>; this is the click-by-click procedure.</p>
+
+    <h4>Before you start</h4>
+    <p>Make sure the semester exists (a System Admin creates it under <b>Semesters</b>). Then choose
+      <b>Timetable</b> from the <b>Scheduling</b> menu. The page is <b>Timetable import</b>:
+      <i>&ldquo;Upload the semester schedule from Excel or CSV. Replacing a timetable never touches
+      existing bookings.&rdquo;</i></p>
+
+    <ol class="steps timetable">
+      <li><b>Pick the Semester</b> the file belongs to (a searchable list).</li>
+      <li>Choose the <b>Mode</b>: <b>Append</b> (add to what&rsquo;s there) or <b>Replace</b> (<i>&ldquo;clears existing lecture events for the semester first&rdquo;</i>). Either way, <b>existing bookings are never touched</b>.</li>
+      <li>Attach your <b>File (.xlsx or .csv)</b>. Not sure of the format? Click <b>Download CSV template</b> for a ready-made starter file (<code>aura-timetable-template.csv</code>).</li>
+      <li>Decide on <b>Create missing rooms &amp; buildings</b> (on by default). When on, a Location naming an unknown room is added automatically — see Section 5.1. Turn it off to reject unknown rooms as errors instead.</li>
+      <li>Click <b>Upload timetable</b>. The <b>Import progress</b> panel shows a live percentage and three counters: <b>Total rows</b>, <b>Imported</b>, and <b>Needs review</b>.</li>
+      <li>If any rows fail, read the <b>Row error report</b> (Row / Field / Message). Fix those rows in your source file and upload again. Imported rows are already live.</li>
+    </ol>
+
+    <div class="shot">
+      <div class="chrome"><span class="dot3"><i></i><i></i><i></i></span><span class="addr">auragh.vercel.app/admin/timetable</span></div>
+      <div class="body">
+        <div class="mk-topbar"><span class="mk-title">Timetable import</span></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px">
+          <div class="mk-card" style="margin-top:0">
+            <div class="mk-formrow"><label>Semester <span class="reqd">*</span></label><span class="mk-texty">2026/27 Semester 1</span></div>
+            <div class="mk-formrow"><label>Mode</label><span class="mk-texty">Append &#9662;</span></div>
+            <div class="mk-formrow"><label>File (.xlsx or .csv) <span class="reqd">*</span></label><span class="mk-texty">spring-timetable.xlsx</span></div>
+            <span class="mk-btn mk-outline" style="margin:2px 0 4px">⬇ Download CSV template</span>
+            <div class="mk-toggle">
+              <span class="mk-check">✓</span>
+              <div><div style="font-weight:700; font-size:12.5px">Create missing rooms &amp; buildings</div>
+              <div class="mk-hint">Adds unknown rooms (and buildings) automatically, seeding capacity from &ldquo;Number of Enrollments&rdquo;.</div></div>
+            </div>
+            <span class="mk-btn mk-primary" style="justify-content:center">⬆ Upload timetable</span>
+          </div>
+          <div class="mk-card" style="margin-top:0">
+            <div style="display:flex; justify-content:space-between; align-items:center">
+              <div style="font-weight:700; font-size:13px">Import progress</div>
+              <span class="badge b-approved">Completed</span>
+            </div>
+            <div class="mk-bar"><i style="width:100%"></i></div>
+            <div class="mk-statrow" style="margin-top:12px">
+              <div class="mk-stat"><div class="l">Total rows</div><div class="v">420</div></div>
+              <div class="mk-stat"><div class="l">Imported</div><div class="v" style="color:var(--requester)">416</div></div>
+              <div class="mk-stat"><div class="l">Needs review</div><div class="v" style="color:var(--timetable)">4</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="shotcap">Mockup: the import form (left) with the Create-missing toggle, and live progress (right).</p>
+
+    <!-- 4.4 ADMIN -->
+    <h3 id="wf-admin" class="anchor-h" style="color:var(--admin)">4.4 System Administrator &mdash; run the platform</h3>
+    <p>The System Administrator can reach everything below. Each item is its own sidebar entry.</p>
+
+    <h4>Manage users</h4>
+    <p>Open <b>Users</b> (<i>&ldquo;Manage accounts, roles and access across the system.&rdquo;</i>).</p>
+    <ol class="steps admin">
+      <li><b>Add a user</b> &mdash; click <b>Invite user</b>. Fill <b>Full name</b> and <b>Email</b> (both required), pick a <b>Role</b> (defaults to <b>Requester</b>), optionally set a <b>Department</b>, then <b>Invite user</b>.</li>
+      <li><b>Change a role</b> &mdash; on any row open the <b>Manage</b> menu &rarr; <b>Change role</b> &rarr; choose System administrator, Timetable administrator, Booking officer or Requester.</li>
+      <li><b>Suspend / reactivate</b> &mdash; from the same <b>Manage</b> menu, <b>Suspend account</b> (for active users) or <b>Reactivate account</b>. Status badges read <b>active</b>, <b>suspended</b> or <b>pending verification</b>.</li>
+    </ol>
+
+    <h4>Manage rooms, buildings &amp; equipment</h4>
+    <p>Under the <b>Catalogue</b> menu:</p>
+    <ul class="can">
+      <li><b>Rooms</b> &mdash; search by name, code or building; filter by <b>Room type</b> and <b>Status</b>. <b>New room</b> opens a form (<b>Room code</b>, <b>Capacity</b>, <b>Name</b>, <b>Building</b>, <b>Room type</b>) — save with <b>Save room</b>. Row actions: <b>View</b>, <b>Edit</b>, <b>Deactivate</b>.</li>
+      <li><b>Buildings</b> &mdash; fields <b>Code</b>, <b>Name</b>, optional <b>Campus</b>. <b>New building</b> / <b>Save</b>.</li>
+      <li><b>Equipment</b> &mdash; fields <b>Code</b> (e.g. <code>PROJECTOR</code>) and <b>Name</b> (e.g. Projector). <b>New equipment</b> / <b>Save</b>.</li>
+    </ul>
+    <p>On any item&rsquo;s detail page, <b>Add images</b> opens an uploader with a <b>Main image</b> and a
+      <b>Gallery</b> — see <a href="#imp-images">Section&nbsp;5.3</a>. Each catalogue screen also has an
+      <b>Import</b> button for bulk CSV/TSV/JSON — see <a href="#imp-catalogue">Section&nbsp;5.2</a>.</p>
+
+    <h4>Create &amp; activate semesters</h4>
+    <p>Open <b>Semesters</b> (<i>&ldquo;Only the active semester affects availability.&rdquo;</i>). Click
+      <b>New semester</b>, enter <b>Name</b> (e.g. <code>2026/27 Semester 1</code>), <b>Start date</b>
+      and <b>End date</b>, then <b>Create</b>. New semesters are <b>draft</b>. Use the row buttons
+      <b>Activate</b> (makes it the live semester) and <b>Archive</b>.</p>
+
+    <h4>Schedule maintenance windows</h4>
+    <p>Open <b>Maintenance</b> (<i>&ldquo;Blocked periods never appear as available and cannot be
+      booked.&rdquo;</i>). Click <b>New window</b>, choose the <b>Room</b> (required), set <b>Date</b>,
+      <b>From</b>, <b>To</b>, and a <b>Reason</b> (required, e.g. <i>Projector replacement</i>), then
+      <b>Create</b>. Remove a window with its <b>Remove</b> button.</p>
+
+    <h4>Override bookings, reports &amp; the audit log</h4>
+    <ul class="can">
+      <li><b>Override bookings</b> &mdash; on the <b>Approvals</b> queue, blocked requests show an <b>Override</b> button (Section 4.2, Step C).</li>
+      <li><b>Reports</b> &mdash; same Utilisation / Bookings / Conflicts tabs and CSV/Excel/PDF export as the officer (Section 4.2, Step D).</li>
+      <li><b>Audit log</b> &mdash; <i>&ldquo;An append-only record of every state change. Read-only.&rdquo;</i> Columns: <b>When</b>, <b>Actor</b>, <b>Action</b>, <b>Entity</b>, <b>IP</b>. Filter with <i>&ldquo;Filter by entity type (e.g. booking).&rdquo;</i></li>
+    </ul>
+    <div class="shot">
+      <div class="chrome"><span class="dot3"><i></i><i></i><i></i></span><span class="addr">auragh.vercel.app/admin/reports</span></div>
+      <div class="body">
+        <div class="mk-topbar"><span class="mk-title">Reports</span><span class="mk-actions"><span class="mk-chip">Utilisation</span><span class="mk-chip">Bookings</span><span class="mk-chip">Conflicts</span></span></div>
+        <div class="mk-statrow">
+          <div class="mk-stat"><div class="l">Total requests</div><div class="v">64</div></div>
+          <div class="mk-stat"><div class="l">Approved</div><div class="v" style="color:var(--requester)">52</div></div>
+          <div class="mk-stat"><div class="l">Approval rate</div><div class="v">81%</div></div>
+        </div>
+      </div>
+    </div>
+    <p class="shotcap">Mockup: a stat/reports row (Bookings tab).</p>
+  </section>
+
+  <!-- ============ 5. IMPORTS ============ -->
+  <section class="section" id="imports">
+    <div class="eyebrow"><span class="dot"></span>Data imports</div>
+    <h2 class="anchor-h">5. ⭐ Imports &amp; required columns</h2>
+    <p class="lead">AURA accepts uploaded files in three places. This section documents every one of them
+      so your files import cleanly the first time.</p>
+    <table>
+      <caption>The three upload points in AURA</caption>
+      <thead><tr><th>Importer</th><th>Where</th><th>Accepts</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><b>Timetable import</b> <span style="color:var(--timetable)">(main)</span></td><td>Scheduling &rarr; Timetable</td><td><code>.xlsx</code>, <code>.csv</code></td><td>Load a semester&rsquo;s lectures.</td></tr>
+        <tr><td><b>Catalogue import</b></td><td>Rooms / Buildings / Equipment &rarr; <b>Import</b></td><td><code>.csv</code>, <code>.tsv</code>, <code>.json</code></td><td>Bulk-add or update catalogue items.</td></tr>
+        <tr><td><b>Image uploads</b></td><td>Catalogue detail &rarr; <b>Add images</b></td><td>JPEG, PNG, WebP, GIF</td><td>Photos for rooms/buildings/equipment.</td></tr>
+      </tbody>
+    </table>
+
+    <!-- 5.1 TIMETABLE IMPORT -->
+    <h3 id="imp-timetable" class="anchor-h" style="color:var(--timetable)">5.1 Timetable import (the main one)</h3>
+    <p>This is the importer that powers availability — its lecture rows are what AURA treats as
+      &ldquo;the room is in use&rdquo;. Document it carefully.</p>
+
+    <h4>Accepted files &amp; limits</h4>
+    <ul class="can">
+      <li>An <b><code>.xlsx</code></b> Excel workbook (only the <b>first worksheet</b> is read) or a <b><code>.csv</code></b> file.</li>
+      <li>Up to <b>20,000 rows</b>. Header matching is <b>case-insensitive</b>, and surrounding spaces are ignored.</li>
+      <li>Blank rows are skipped. Columns AURA doesn&rsquo;t recognise are simply ignored.</li>
+    </ul>
+
+    <h4>Required columns (any one accepted name per column)</h4>
+    <table>
+      <caption>Timetable — required columns</caption>
+      <thead><tr><th>Column</th><th>Accepted header names</th><th>Format / rule</th></tr></thead>
+      <tbody>
+        <tr><td><span class="req">Course Code</span></td><td><code>Course Code</code></td><td>Any text, e.g. <code>CS101</code>. Cannot be blank.</td></tr>
+        <tr><td><span class="req">Course Title</span></td><td><code>Course Title</code> · <code>Course Name</code></td><td>Any text.</td></tr>
+        <tr><td><span class="req">Lecturer</span></td><td><code>Lecturer</code> · <code>Lecturer Name</code> · <code>Staff Name</code></td><td>Any text.</td></tr>
+        <tr><td><span class="req">Room</span></td><td><code>Room</code> · <code>Location</code></td><td>Must identify a room (see &ldquo;How a room is matched&rdquo; below).</td></tr>
+        <tr><td><span class="req">Day</span></td><td><code>Day</code></td><td><code>Mon</code> or <code>Monday</code> (Mon–Sun).</td></tr>
+        <tr><td><span class="req">Start Time</span></td><td><code>Start Time</code> · <code>From Time</code></td><td>24-hour <code>HH:MM</code> (e.g. <code>08:00</code>) or <code>h:mm AM/PM</code>.</td></tr>
+        <tr><td><span class="req">End Time</span></td><td><code>End Time</code> · <code>To Time</code></td><td>Same time formats; <b>must be after</b> Start Time.</td></tr>
+      </tbody>
+    </table>
+    <p class="callout warn">If <b>any</b> required column is missing entirely, the whole upload is
+      rejected before processing with a message naming the missing column and the names it accepts.</p>
+
+    <h4>Optional columns (captured when present)</h4>
+    <table>
+      <caption>Timetable — optional columns</caption>
+      <thead><tr><th>Column</th><th>Accepted names</th><th>What it&rsquo;s used for</th></tr></thead>
+      <tbody>
+        <tr><td>Section</td><td><code>Section</code></td><td>Stored on the lecture event.</td></tr>
+        <tr><td>Program</td><td><code>Program</code></td><td>Stored on the lecture event.</td></tr>
+        <tr><td>Department</td><td><code>Department</code></td><td>Stored on the lecture event.</td></tr>
+        <tr><td>Number of Enrollments</td><td><code>Number of Enrollments</code> · <code>Enrollments</code></td><td>Seeds the capacity of any new room AURA creates for this row.</td></tr>
+      </tbody>
+    </table>
+
+    <h4>How a room is matched (and the &ldquo;Create missing&rdquo; toggle)</h4>
+    <p>For each row, AURA finds the room by trying, in order: (a) an exact <b>room code</b>, then (b) an
+      exact <b>room name</b>. If neither matches:</p>
+    <ul class="can">
+      <li><b>&ldquo;Create missing rooms &amp; buildings&rdquo; ON</b> (the default) &mdash; AURA splits the Location into a building and a room number and creates them. The <b>last word</b> is the room number; the rest is the building. So <code>Nutor Hall 115</code> &rarr; building <b>Nutor Hall</b> + room <b>115</b>. New rooms are created as Lecture halls, with capacity taken from <b>Number of Enrollments</b> (or 30 if absent).</li>
+      <li><b>Toggle OFF</b> &mdash; an unknown room becomes a <b>row error</b> (<i>&ldquo;unknown room&rdquo;</i>); that row is skipped, the rest still import.</li>
+    </ul>
+
+    <h4>Append vs Replace</h4>
+    <table>
+      <thead><tr><th>Mode</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td><b>Append</b></td><td>Adds the file&rsquo;s rows to the chosen semester&rsquo;s existing lecture events.</td></tr>
+        <tr><td><b>Replace</b></td><td>Clears that semester&rsquo;s lecture events first, then imports the file.</td></tr>
+      </tbody>
+    </table>
+    <p class="callout note"><b>Bookings are never touched</b> by either mode — Replace only clears
+      timetabled <b>lecture events</b>, not approved bookings or maintenance. This is a core safety rule
+      of AURA.</p>
+
+    <h4>Other per-row rules</h4>
+    <ul class="can">
+      <li>End time must be after start time, or the row errors out.</li>
+      <li>Two rows describing the same room + day + exact times are flagged as a <i>&ldquo;duplicate of an earlier row in this upload.&rdquo;</i></li>
+      <li>An import finishes as <b>Completed</b> (all rows in), <b>Partially completed</b> (some row errors), or <b>Failed</b> (nothing imported).</li>
+    </ul>
+
+    <h4>Ready-to-copy example file</h4>
+    <p>This is exactly what the in-app <b>Download CSV template</b> button produces — paste it into a text
+      file saved as <code>.csv</code>, or recreate it as the first sheet of an <code>.xlsx</code>:</p>
+    <table>
+      <caption>Header row + two sample data rows</caption>
+      <thead>
+        <tr><th>Course Code</th><th>Course Title</th><th>Lecturer</th><th>Room</th><th>Day</th><th>Start Time</th><th>End Time</th><th>Section</th><th>Program</th><th>Department</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>CS101</td><td>Introduction to Computing</td><td>Jane Doe</td><td>Nutor Hall 115</td><td>Monday</td><td>08:00</td><td>09:30</td><td>Section A</td><td>BSc-CS</td><td>CSIS</td></tr>
+        <tr><td>CS101</td><td>Introduction to Computing</td><td>Jane Doe</td><td>Nutor Hall 115</td><td>Wednesday</td><td>08:00</td><td>09:30</td><td>Section A</td><td>BSc-CS</td><td>CSIS</td></tr>
+      </tbody>
+    </table>
+    <p>As a single CSV line for the header:</p>
+    <p><code>Course Code,Course Title,Lecturer,Room,Day,Start Time,End Time,Section,Program,Department</code></p>
+
+    <!-- 5.2 CATALOGUE IMPORT -->
+    <h3 id="imp-catalogue" class="anchor-h">5.2 Catalogue import (rooms, buildings &amp; equipment)</h3>
+    <p>Each catalogue screen (<b>Rooms</b>, <b>Buildings</b>, <b>Equipment</b>) has an <b>Import</b>
+      button that opens a bulk importer. The dialog says <i>&ldquo;CSV, TSV or JSON. Expected columns:
+      …&rdquo;</i> and lists the columns for that type. It matches existing items by <b>code</b> and
+      <b>updates</b> them, or <b>creates</b> them if new. Column names are case-insensitive and spaces or
+      hyphens are treated as underscores.</p>
+    <table>
+      <caption>Catalogue import — required &amp; accepted columns</caption>
+      <thead><tr><th>Importing</th><th>Required columns</th><th>Also accepted / optional</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>Buildings</b></td>
+          <td><span class="req">code</span>, <span class="req">name</span></td>
+          <td><code>campus</code> (optional). Aliases: <code>building_code</code>, <code>building_name</code>.</td>
+        </tr>
+        <tr>
+          <td><b>Equipment</b></td>
+          <td><span class="req">code</span>, <span class="req">name</span></td>
+          <td>Aliases: <code>equipment_code</code>, <code>equipment_name</code>.</td>
+        </tr>
+        <tr>
+          <td><b>Rooms</b></td>
+          <td><span class="req">room_code</span>, <span class="req">name</span>, <span class="req">building_code</span>, <span class="req">capacity</span>, <span class="req">room_type</span>, <span class="req">status</span></td>
+          <td>Aliases: <code>code</code>, <code>room_name</code>, <code>building</code> / <code>building_name</code> / <code>building_id</code>, <code>seats</code>, <code>type</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Rules for the <b>Rooms</b> import specifically:</p>
+    <ul class="can">
+      <li><b>Building</b> must match an existing building&rsquo;s code, name or id (rooms aren&rsquo;t auto-created here — create the building first).</li>
+      <li><b>Capacity</b> must be a whole number of at least 1.</li>
+      <li><b>room_type</b> is one of <code>LECTURE_HALL</code>, <code>LAB</code>, <code>SEMINAR_ROOM</code>, <code>AUDITORIUM</code>, <code>CONFERENCE_ROOM</code> (defaults to <code>LECTURE_HALL</code> if blank).</li>
+      <li><b>status</b> is one of <code>ACTIVE</code>, <code>INACTIVE</code>, <code>UNDER_MAINTENANCE</code> (defaults to <code>ACTIVE</code> if blank).</li>
+    </ul>
+    <p>After running, a summary shows <b>{n} imported</b>, <b>{n} errors</b> and <b>{n} rows read</b>, with
+      a <b>Rows that need attention</b> list naming each bad row and why. <b>Row numbers start at 2</b>
+      (row 1 is the header).</p>
+    <p class="callout tip">Quick CSV examples:<br>
+      Buildings &rarr; <code>code,name,campus</code><br>
+      Equipment &rarr; <code>code,name</code><br>
+      Rooms &rarr; <code>room_code,name,building_code,capacity,room_type,status</code></p>
+
+    <!-- 5.3 IMAGES -->
+    <h3 id="imp-images" class="anchor-h">5.3 Image uploads (rooms, buildings &amp; equipment photos)</h3>
+    <p>On a room, building or equipment detail page, click <b>Add images</b>. The picker offers a single
+      <b>Main image</b> and a multi-image <b>Gallery</b> (<i>&ldquo;Main image and gallery are uploaded
+      from this device&rdquo;</i>). Choose your files, then <b>Upload images</b>.</p>
+    <ul class="can">
+      <li>Accepted types: <b>JPEG, PNG, WebP or GIF</b> only.</li>
+      <li>Up to <b>12 gallery images</b> per upload, plus the one main image.</li>
+      <li>Each upload is capped at 40&nbsp;MB total.</li>
+    </ul>
+    <p class="callout note">This is a media upload, not a data import — there are no &ldquo;columns.&rdquo;
+      It&rsquo;s listed here so the picture is complete: <b>aside from images, the timetable and catalogue
+      importers above are the only file imports in AURA.</b></p>
+  </section>
+
+  <!-- ============ 6. SETTINGS ============ -->
+  <section class="section" id="settings">
+    <div class="eyebrow"><span class="dot"></span>Personalise</div>
+    <h2 class="anchor-h">6. Settings in depth</h2>
+    <p class="lead">Open <b>Settings</b> from the sidebar or the account menu
+      (<i>&ldquo;Manage your profile, security, notifications and preferences.&rdquo;</i>). It has four
+      tabs: <b>Profile</b>, <b>Security</b>, <b>Notifications</b>, <b>Preferences</b>.</p>
+
+    <h3>Profile</h3>
+    <p>The <b>Edit profile</b> card lets you keep your details current: <b>Full name</b> (required),
+      a read-only <b>Email</b> (<i>&ldquo;managed by your administrator&rdquo;</i>), and an optional
+      <b>Department</b>. Save with <b>Save profile</b>. The right-hand panel summarises your identity,
+      account status, MFA state, department and last sign-in.</p>
+
+    <h3>Security &mdash; change password</h3>
+    <p>The <b>Password</b> card asks for your <b>Current password</b>, a <b>New password</b> and
+      <b>Confirm password</b>, then <b>Update password</b>.</p>
+
+    <h3>Security &mdash; enable two-factor authentication (MFA)</h3>
+    <p>The <b>Multi-factor authentication</b> card (<i>&ldquo;Protect sign-in with a six-digit
+      authenticator code&rdquo;</i>) shows your status as <b>Enabled</b> or <b>Not enabled</b>. To turn it on:</p>
+    <ol class="steps">
+      <li>Click <b>Enable MFA</b>. AURA shows a QR code and the heading <b>&ldquo;Add AURA to an authenticator app.&rdquo;</b></li>
+      <li><b>Scan the QR code</b> with Google Authenticator, Microsoft Authenticator, 1Password, or another TOTP app. (If you can&rsquo;t scan, use <b>Open authenticator setup</b>, or copy the <b>Manual setup secret</b> with the <b>Copy</b> button.)</li>
+      <li>Enter the <b>six-digit code</b> from the app into the <b>&ldquo;Enter six-digit code&rdquo;</b> box and click <b>Verify and enable</b>.</li>
+      <li>You&rsquo;re done — <i>&ldquo;Your next sign-in will ask for an authenticator code.&rdquo;</i></li>
+    </ol>
+
+    <h3>Notifications</h3>
+    <p>The <b>Notifications</b> card (<i>&ldquo;Choose how AURA alerts you in this browser&rdquo;</i>) has
+      an <b>In-app alerts</b> toggle (<i>&ldquo;Show booking and approval alerts in the top
+      navigation&rdquo;</i>). Click <b>Save notifications</b> to keep your choice.</p>
+
+    <h3>Preferences &mdash; appearance &amp; theme</h3>
+    <p>The <b>Preferences</b> card offers <b>Spoken guide</b> and <b>Compact tables</b> toggles
+      (<b>Save preferences</b>). Below it, the <b>Appearance</b> card sets your <b>Dark screen tint</b>.
+      Remember: the light/dark switch itself is the theme button in the top bar; these tints only recolour
+      <b>dark</b> mode.</p>
+    <table>
+      <caption>The nine dark-screen tints</caption>
+      <thead><tr><th>Tint</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><b>Ink</b> (default)</td><td>The current warm black AURA screen.</td></tr>
+        <tr><td><b>Burgundy</b></td><td>A deeper maroon cast for night work.</td></tr>
+        <tr><td><b>Midnight</b></td><td>Cooler charcoal with a quiet blue undertone.</td></tr>
+        <tr><td><b>Canopy</b></td><td>A calm green-black tint for low glare.</td></tr>
+        <tr><td><b>Slate</b></td><td>A neutral cool-grey screen with very little colour.</td></tr>
+        <tr><td><b>Ocean</b></td><td>A deep blue-teal cast for focused evenings.</td></tr>
+        <tr><td><b>Plum</b></td><td>A soft violet-black for a warmer night mood.</td></tr>
+        <tr><td><b>Espresso</b></td><td>A warm brown-black, easy on the eyes at night.</td></tr>
+        <tr><td><b>Rose</b></td><td>A muted dusky-rose tint, softer than burgundy.</td></tr>
+      </tbody>
+    </table>
+    <p class="callout note">All Settings choices in this section are saved <b>per browser/device</b>, so
+      you can have a different look on your laptop and phone.</p>
+  </section>
+
+  <!-- ============ 7. TIPS, GLOSSARY, FAQ ============ -->
+  <section class="section" id="tips">
+    <div class="eyebrow"><span class="dot"></span>Good to know</div>
+    <h2 class="anchor-h">7. Tips &amp; good-to-know</h2>
+    <div class="grid two">
+      <div class="callout tip" style="margin:0"><b>Times are local.</b> Every date and time in AURA is <b>West Africa Time (Africa/Accra)</b>. You don&rsquo;t need to convert anything.</div>
+      <div class="callout note" style="margin:0"><b>There&rsquo;s a mobile app.</b> Search, book, approvals and reports work on mobile too, with the same light/dark themes and labels.</div>
+      <div class="callout warn" style="margin:0"><b>Only the active semester counts.</b> Availability is driven by the one <b>Active</b> semester&rsquo;s timetable — so activate the right semester before people start searching.</div>
+      <div class="callout tip" style="margin:0"><b>A room must be free for the whole window.</b> If a room only shows part of your time as free, narrow your <b>From / To</b> to that gap.</div>
+      <div class="callout note" style="margin:0"><b>Replace is safe.</b> Re-importing a timetable in <b>Replace</b> mode never deletes anyone&rsquo;s bookings — it only refreshes the lecture rows.</div>
+      <div class="callout warn" style="margin:0"><b>Cancel is instant.</b> There&rsquo;s no confirmation prompt when you cancel a booking — double-check before clicking.</div>
+    </div>
+
+    <h3 id="glossary" class="anchor-h">7.1 Glossary</h3>
+    <dl class="gloss">
+      <dt>Requester</dt><dd>Anyone who searches for and requests a room (typically a lecturer or staff member).</dd>
+      <dt>Booking Officer</dt><dd>Reviews pending requests and approves or rejects them.</dd>
+      <dt>Timetable Administrator</dt><dd>Imports each semester&rsquo;s class schedule.</dd>
+      <dt>System Administrator</dt><dd>Runs the platform — users, catalogue, semesters, maintenance, overrides, reports, audit.</dd>
+      <dt>Semester</dt><dd>A teaching period with a name and dates. Status is <b>Draft</b>, <b>Active</b> or <b>Archived</b>; only the <b>Active</b> one drives availability.</dd>
+      <dt>Booking states</dt><dd>
+        <span class="badge b-pending">Pending</span> awaiting a decision ·
+        <span class="badge b-approved">Approved</span> confirmed ·
+        <span class="badge b-rejected">Rejected</span> declined ·
+        <span class="badge b-cancelled">Cancelled</span> withdrawn ·
+        <span class="badge b-expired">Expired</span> aged out before a decision.
+      </dd>
+      <dt>Room types</dt><dd>Lecture hall, Laboratory, Seminar room, Auditorium, Conference room.</dd>
+      <dt>Maintenance window</dt><dd>A blocked period when a room cannot be booked.</dd>
+      <dt>Override</dt><dd>An admin forcing a booking through despite conflicts — always logged in the audit trail.</dd>
+      <dt>Audit log</dt><dd>An append-only, read-only history of every change in AURA.</dd>
+    </dl>
+
+    <h3 id="faq" class="anchor-h">7.2 Frequently asked questions</h3>
+    <details class="faq"><summary>I searched but no rooms appeared — why?</summary>
+      <p>Usually the rooms are occupied for part of your window (a room must be free for the entire From&ndash;To range), or your capacity / equipment filters are too strict. Widen the window, lower the minimum capacity, or remove some equipment requirements. Also confirm a semester is <b>Active</b>.</p></details>
+    <details class="faq"><summary>How long until my request is approved?</summary>
+      <p>A booking officer reviews requests in the Approvals queue. You&rsquo;ll get an in-app notification when a decision is made; track it under <b>My bookings</b>.</p></details>
+    <details class="faq"><summary>Can I undo a cancellation?</summary>
+      <p>No. Cancelling is immediate and there&rsquo;s no confirmation step, so check the details first. If you still need the room, submit a fresh request.</p></details>
+    <details class="faq"><summary>My timetable upload says &ldquo;Partially completed.&rdquo;</summary>
+      <p>Some rows passed and some failed. Open the <b>Row error report</b> (Row / Field / Message), fix only those rows in your source file, and upload again. Imported rows are already live.</p></details>
+    <details class="faq"><summary>The importer can&rsquo;t find my room.</summary>
+      <p>Either the Location doesn&rsquo;t match an existing room code/name and <b>Create missing rooms &amp; buildings</b> is off, or the spelling differs. Turn the toggle on to auto-create it, or correct the Location to match the catalogue.</p></details>
+    <details class="faq"><summary>How do I change someone&rsquo;s role or disable an account?</summary>
+      <p>A System Administrator opens <b>Users</b>, uses the row <b>Manage</b> menu to <b>Change role</b>, and <b>Suspend account</b> / <b>Reactivate account</b> as needed.</p></details>
+    <details class="faq"><summary>I forgot my password.</summary>
+      <p>For demo accounts the shared password is <span class="pwd">provided on request</span>. For a real account, change it under <b>Settings &rarr; Security</b>, or ask an administrator to reset it.</p></details>
+  </section>
+
+  <footer>
+    <span>© Ashesi University · AURA — Ashesi University Resource Allocation</span>
+    <span>To share this guide, open it in a browser and use <b>Print &rarr; Save as PDF</b>.</span>
+  </footer>
+
+  </main>
+</div>
+</div>
+</body>
+</html>

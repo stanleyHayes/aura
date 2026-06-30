@@ -37,5 +37,5 @@ credentials.txt
 production.env
 
 # Shareable user guide (embeds demo logins) — keep out of version control
-USER_GUIDE.html
-USER_GUIDE.pdf
+/USER_GUIDE.html
+/USER_GUIDE.pdf
