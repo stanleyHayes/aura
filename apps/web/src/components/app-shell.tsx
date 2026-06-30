@@ -376,7 +376,10 @@ export function AppShell({
                     <Brand />
                   </SheetHeader>
                 </div>
-                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 [scrollbar-gutter:stable]">
+                <div
+                  data-testid="app-mobile-nav-scroll"
+                  className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 [scrollbar-gutter:stable]"
+                >
                   <NavList
                     sections={sections}
                     pathname={pathname}

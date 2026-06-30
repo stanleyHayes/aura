@@ -3,6 +3,9 @@
 *.test
 *.out
 coverage.*
+playwright-report/
+blob-report/
+test-results/
 
 # Env / secrets
 .env

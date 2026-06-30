@@ -117,7 +117,10 @@ export function PublicHeader() {
                 </SheetHeader>
               </div>
 
-              <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-5 py-5 [scrollbar-gutter:stable]">
+              <div
+                data-testid="public-mobile-nav-scroll"
+                className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-5 py-5 [scrollbar-gutter:stable]"
+              >
                 <nav aria-label="Mobile primary" className="flex flex-col gap-2">
                   {publicNavItems.map(({ href, title, description, icon: Icon, cta }) => (
                     <SheetClose key={href} asChild>
