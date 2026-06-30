@@ -205,32 +205,32 @@ export function SearchClient() {
         description="Search availability derived from the live timetable, approved bookings and maintenance. All times are West Africa Time (Africa/Accra)."
       />
 
-      <div className="grid gap-6 lg:grid-cols-[20rem_1fr]">
-        {/* Filters */}
+      <div className="flex flex-col gap-6">
+        {/* Filters (full-width bar on top) */}
         <Card className="h-fit">
           <CardContent className="p-5">
-            <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+            <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
               <div className="flex items-center gap-2 text-sm font-medium">
                 <SlidersHorizontal className="size-4" aria-hidden="true" />
                 Filters
               </div>
 
-              <Field id="date" label="Date" error={form.formState.errors.date?.message}>
-                {(p) => (
-                  <DatePicker
-                    id={p.id}
-                    value={dateValue}
-                    onChange={(v) =>
-                      form.setValue("date", v, {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                      })
-                    }
-                  />
-                )}
-              </Field>
+              <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+                <Field id="date" label="Date" error={form.formState.errors.date?.message}>
+                  {(p) => (
+                    <DatePicker
+                      id={p.id}
+                      value={dateValue}
+                      onChange={(v) =>
+                        form.setValue("date", v, {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        })
+                      }
+                    />
+                  )}
+                </Field>
 
-              <div className="grid grid-cols-2 gap-3">
                 <Field id="start" label="From" error={form.formState.errors.start?.message}>
                   {(p) => (
                     <TimePicker
@@ -246,6 +246,7 @@ export function SearchClient() {
                     />
                   )}
                 </Field>
+
                 <Field id="end" label="To" error={form.formState.errors.end?.message}>
                   {(p) => (
                     <TimePicker
@@ -261,67 +262,67 @@ export function SearchClient() {
                     />
                   )}
                 </Field>
+
+                <Field id="building_id" label="Building">
+                  {(p) => (
+                    <Combobox
+                      id={p.id}
+                      value={selectedBuildingId || ""}
+                      onValueChange={(v) => form.setValue("building_id", v)}
+                      placeholder="Any building"
+                      searchPlaceholder="Search buildings…"
+                      emptyText="No buildings found."
+                      options={[
+                        { value: "", label: "Any building" },
+                        ...(buildings.data ?? []).map((b) => ({
+                          value: b.id,
+                          label: b.name,
+                          description: b.code,
+                        })),
+                      ]}
+                    />
+                  )}
+                </Field>
+
+                <Field id="room_type" label="Room type">
+                  {(p) => (
+                    <Select
+                      onValueChange={(v) =>
+                        form.setValue("room_type", v === "any" ? "" : (v as RoomType))
+                      }
+                      value={selectedRoomType || "any"}
+                    >
+                      <SelectTrigger id={p.id}>
+                        <SelectValue placeholder="Any type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="any">Any type</SelectItem>
+                        {roomTypes.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {ROOM_TYPE_LABELS[t]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </Field>
+
+                <Field
+                  id="min_capacity"
+                  label="Minimum capacity"
+                  error={form.formState.errors.min_capacity?.message}
+                >
+                  {(p) => (
+                    <Input
+                      {...p}
+                      type="number"
+                      min={1}
+                      placeholder="Any"
+                      {...form.register("min_capacity", { valueAsNumber: true })}
+                    />
+                  )}
+                </Field>
               </div>
-
-              <Field id="building_id" label="Building">
-                {(p) => (
-                  <Combobox
-                    id={p.id}
-                    value={selectedBuildingId || ""}
-                    onValueChange={(v) => form.setValue("building_id", v)}
-                    placeholder="Any building"
-                    searchPlaceholder="Search buildings…"
-                    emptyText="No buildings found."
-                    options={[
-                      { value: "", label: "Any building" },
-                      ...(buildings.data ?? []).map((b) => ({
-                        value: b.id,
-                        label: b.name,
-                        description: b.code,
-                      })),
-                    ]}
-                  />
-                )}
-              </Field>
-
-              <Field id="room_type" label="Room type">
-                {(p) => (
-                  <Select
-                    onValueChange={(v) =>
-                      form.setValue("room_type", v === "any" ? "" : (v as RoomType))
-                    }
-                    value={selectedRoomType || "any"}
-                  >
-                    <SelectTrigger id={p.id}>
-                      <SelectValue placeholder="Any type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">Any type</SelectItem>
-                      {roomTypes.map((t) => (
-                        <SelectItem key={t} value={t}>
-                          {ROOM_TYPE_LABELS[t]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </Field>
-
-              <Field
-                id="min_capacity"
-                label="Minimum capacity"
-                error={form.formState.errors.min_capacity?.message}
-              >
-                {(p) => (
-                  <Input
-                    {...p}
-                    type="number"
-                    min={1}
-                    placeholder="Any"
-                    {...form.register("min_capacity", { valueAsNumber: true })}
-                  />
-                )}
-              </Field>
 
               {equipmentOptions.length > 0 ? (
                 <fieldset className="flex flex-col gap-3">
@@ -351,9 +352,11 @@ export function SearchClient() {
                 </fieldset>
               ) : null}
 
-              <Button type="submit" className="mt-2">
-                <CalendarSearch className="size-4" /> Search availability
-              </Button>
+              <div className="flex justify-end">
+                <Button type="submit" className="w-full px-6 sm:w-auto">
+                  <CalendarSearch className="size-4" /> Search availability
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
