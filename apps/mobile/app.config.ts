@@ -78,13 +78,14 @@ const API_BASE_URL =
 // Ashesi maroon — see BRAND.md.
 const ASHESI_MAROON = '#7B1113';
 
-// EAS project id — replace with the real id from `eas init` (left as an env so
-// CI can inject it without committing the value).
+// EAS project id from `eas init`. Project ids are not secret and are safe to
+// commit (Expo recommends it); the env override lets CI point at a different
+// project without code changes.
+const DEFAULT_EAS_PROJECT_ID = '65cdd520-1672-49b4-aef0-3f1418c94768';
+
 const EAS_PROJECT_ID = IS_RELEASE
-  ? assertRealEasProjectId(
-      requiredEnv('EAS_PROJECT_ID', process.env.EAS_PROJECT_ID),
-    )
-  : process.env.EAS_PROJECT_ID;
+  ? assertRealEasProjectId(process.env.EAS_PROJECT_ID ?? DEFAULT_EAS_PROJECT_ID)
+  : (process.env.EAS_PROJECT_ID ?? DEFAULT_EAS_PROJECT_ID);
 
 function name(): string {
   if (IS_DEV) return 'AURA (Dev)';
@@ -102,6 +103,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: name(),
   slug: 'aura-mobile',
+  // EAS account that owns the @vladislaus/aura-mobile project (from `eas init`).
+  owner: 'vladislaus',
   scheme: 'aura',
   version: '0.1.0',
   orientation: 'portrait',
