@@ -366,16 +366,23 @@ export function AppShell({
                   <Menu className="size-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-72">
-                <SheetHeader className="mb-6">
-                  <SheetTitle className="sr-only">Navigation</SheetTitle>
-                  <Brand />
-                </SheetHeader>
-                <NavList
-                  sections={sections}
-                  pathname={pathname}
-                  onNavigate={() => setMobileOpen(false)}
-                />
+              <SheetContent
+                side="left"
+                className="flex h-dvh max-h-dvh w-72 flex-col gap-0 overflow-hidden p-0"
+              >
+                <div className="shrink-0 border-b border-[var(--color-border)] px-5 py-4 pr-12">
+                  <SheetHeader>
+                    <SheetTitle className="sr-only">Navigation</SheetTitle>
+                    <Brand />
+                  </SheetHeader>
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 [scrollbar-gutter:stable]">
+                  <NavList
+                    sections={sections}
+                    pathname={pathname}
+                    onNavigate={() => setMobileOpen(false)}
+                  />
+                </div>
               </SheetContent>
             </Sheet>
             <span className="font-serif text-lg font-semibold tracking-tight">

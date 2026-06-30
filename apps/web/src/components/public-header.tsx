@@ -95,7 +95,7 @@ export function PublicHeader() {
             </SheetTrigger>
             <SheetContent
               side="right"
-              className="flex w-[88vw] max-w-sm flex-col gap-0 overflow-hidden bg-[var(--color-card)] p-0"
+              className="flex h-dvh max-h-dvh w-[88vw] max-w-sm flex-col gap-0 overflow-hidden bg-[var(--color-card)] p-0"
             >
               <div className="border-b border-[var(--color-border)] bg-[var(--color-maroon)] px-5 py-6 text-[var(--color-paper-50)]">
                 <SheetHeader className="gap-3 text-left">
@@ -117,7 +117,7 @@ export function PublicHeader() {
                 </SheetHeader>
               </div>
 
-              <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
+              <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-5 py-5 [scrollbar-gutter:stable]">
                 <nav aria-label="Mobile primary" className="flex flex-col gap-2">
                   {publicNavItems.map(({ href, title, description, icon: Icon, cta }) => (
                     <SheetClose key={href} asChild>
