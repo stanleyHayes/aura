@@ -143,6 +143,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     'expo-router',
+    '@sentry/react-native',
     [
       'expo-splash-screen',
       {
