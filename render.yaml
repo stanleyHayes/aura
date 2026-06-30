@@ -15,19 +15,18 @@
 #    instance). Add a keyvalue service + REDIS_URL only when scaling out.
 #  • Object storage: catalogue images use Cloudinary (CLOUDINARY_*); no S3 needed.
 
-databases:
-  - name: aura-postgres
-    databaseName: aura
-    user: aura
-    # uuidv7() polyfill (migration 00001) lets the schema run on PG 16/17.
-    postgresMajorVersion: "17"
-    # NOTE: Render no longer allows free/legacy ('starter') Postgres in a Blueprint;
-    # basic-256mb is the cheapest currently-supported managed plan (~$6/mo).
-    # To stay FREE instead: delete this entire `databases:` block, create a free
-    # Postgres from the Render dashboard, and change the aura-api DATABASE_URL env
-    # below from `fromDatabase:` to `sync: false` (paste the DB's Internal URL).
-    plan: basic-256mb
-    ipAllowList: []   # only Render services may connect
+# DATABASE — created in the Render dashboard, NOT managed by this Blueprint.
+# Render forbids free/legacy ('starter') Postgres in a Blueprint and now requires a
+# paid plan (e.g. basic-256mb) for Blueprint-managed databases. To keep AURA FREE,
+# create the database yourself:
+#   New + > Postgres → choose the FREE instance type + PostgreSQL 18 (the default),
+#   then copy its "Internal Database URL" into the aura-api DATABASE_URL env below.
+# The schema targets PG 18 (native uuidv7); migration 00001 polyfills older versions.
+# The API self-migrates on boot (AUTO_MIGRATE), so no pre-deploy step is needed.
+#
+# Prefer a Blueprint-managed DB instead? Add a `databases:` block here with
+# `plan: basic-256mb` + `postgresMajorVersion: "18"` and set DATABASE_URL below back
+# to `fromDatabase: { name: aura-postgres, property: connectionString }` (≈$6/mo).
 
 services:
   # ── Go API (HTTP) ────────────────────────────────────────────────────────────
@@ -54,8 +53,10 @@ services:
       # position in X-Forwarded-For (MED-4).
       - key: TRUSTED_PROXY_COUNT
         value: "1"
+      # Paste the Internal Database URL of the free Postgres you created in the
+      # Render dashboard (see the note at the top of this file).
       - key: DATABASE_URL
-        fromDatabase: { name: aura-postgres, property: connectionString }
+        sync: false
       # Auth secrets — set from production.env (openssl-generated). JWT must be
       # >=32 bytes; MFA exactly 32 bytes base64. Kept sync:false so they match the
       # values in production.env rather than a fresh random one.

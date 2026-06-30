@@ -29,17 +29,23 @@ Copy from there into the Render / Vercel dashboards.
 
 ## Part A — Backend on Render (do this first; you need the API URL for Vercel)
 
-1. **New + → Blueprint**, pick the repo. Render reads [`render.yaml`](../render.yaml)
-   and proposes `aura-postgres` (managed Postgres) and `aura-api` (Docker web
-   service).
-2. **Apply**. Then open **aura-api → Environment** and set the `sync: false`
-   secrets from `production.env`:
+1. **Create the database first** — Render Blueprints can't provision *free* Postgres,
+   so make it in the dashboard: **New + → Postgres** → name it, choose the **Free**
+   instance type and **PostgreSQL 18** (the default), create it, then copy its
+   **Internal Database URL**.
+2. **New + → Blueprint**, pick the repo. Render reads [`render.yaml`](../render.yaml)
+   and creates the **`aura-api`** Docker web service. **Apply**, then open
+   **aura-api → Environment** and set the `sync: false` secrets from `production.env`:
+   - `DATABASE_URL`  ← paste the **Internal Database URL** from step 1
    - `JWT_SIGNING_KEY`
    - `MFA_ENCRYPTION_KEY`
    - `MAIL_PASSWORD`  (your Resend API key, `re_…`)
    - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
-   (`DATABASE_URL` is wired automatically; `CORS_ALLOWED_ORIGINS`, the Resend
-   host/port/user, and `MAIL_FROM=onboarding@resend.dev` are already in the blueprint.)
+   (`CORS_ALLOWED_ORIGINS`, the Resend host/port/user, and `MAIL_FROM=onboarding@resend.dev`
+   are already in the blueprint.)
+   > Prefer Render to manage the DB? Add a `databases:` block (`plan: basic-256mb`,
+   > `postgresMajorVersion: "18"`) to `render.yaml` and set `DATABASE_URL` back to
+   > `fromDatabase:` — that's ~$6/mo (Blueprint DBs can't be free).
 3. **Deploy.** On boot the API **self‑migrates** (`AUTO_MIGRATE=true`, embedded
    goose migrations) and starts the folded‑in background sweep
    (booking‑expiry + idempotency cleanup) — no separate worker, no pre‑deploy step.
