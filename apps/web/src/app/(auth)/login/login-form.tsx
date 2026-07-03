@@ -12,7 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "@cbs/ui/components/alert";
 import { Button } from "@cbs/ui/components/button";
 import { Input } from "@cbs/ui/components/input";
 import { api, unwrap } from "@/lib/api/client";
-import { defaultLandingPath } from "@/lib/auth";
+import { defaultLandingPath, safeRedirectPath } from "@/lib/auth";
 import { route } from "@/lib/route";
 import { AuthHeader } from "@/components/auth-header";
 import { Field } from "@/components/forms/field";
@@ -46,7 +46,7 @@ export function LoginForm({ next }: { next?: string }) {
           },
         }),
       );
-      const target = next || defaultLandingPath(session.user.role);
+      const target = safeRedirectPath(next, defaultLandingPath(session.user.role));
       router.replace(route(target));
       router.refresh();
     } catch (err) {

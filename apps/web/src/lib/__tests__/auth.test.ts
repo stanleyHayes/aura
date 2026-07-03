@@ -4,6 +4,7 @@ import {
   defaultLandingPath,
   hasPermission,
   permissionsForRole,
+  safeRedirectPath,
 } from "@/lib/auth";
 
 /**
@@ -58,5 +59,26 @@ describe("defaultLandingPath", () => {
   it("sends requesters to /app and staff to /admin", () => {
     expect(defaultLandingPath("REQUESTER")).toBe("/app");
     expect(defaultLandingPath("SYSTEM_ADMIN")).toBe("/admin");
+  });
+});
+
+describe("safeRedirectPath", () => {
+  it("keeps same-origin paths with search and hash", () => {
+    expect(safeRedirectPath("/app/search?room=123#results", "/app")).toBe(
+      "/app/search?room=123#results",
+    );
+  });
+
+  it("falls back for external or protocol-relative destinations", () => {
+    expect(safeRedirectPath("https://example.com", "/app")).toBe("/app");
+    expect(safeRedirectPath("//example.com/login", "/app")).toBe("/app");
+    expect(safeRedirectPath("/%2F%2Fexample.com", "/app")).toBe("/app");
+  });
+
+  it("falls back for malformed or backslash destinations", () => {
+    expect(safeRedirectPath("%", "/admin")).toBe("/admin");
+    expect(safeRedirectPath("/\\example.com", "/admin")).toBe("/admin");
+    expect(safeRedirectPath("/app\n/admin", "/admin")).toBe("/admin");
+    expect(safeRedirectPath("/app%0A/admin", "/admin")).toBe("/admin");
   });
 });

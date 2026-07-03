@@ -58,3 +58,39 @@ export function canAccessAdmin(role: UserRole): boolean {
 export function defaultLandingPath(role: UserRole): string {
   return canAccessAdmin(role) ? "/admin" : "/app";
 }
+
+/** Keep login `next` redirects same-origin even when the query is hand-edited. */
+export function safeRedirectPath(
+  candidate: string | undefined,
+  fallback: string,
+): string {
+  const value = candidate?.trim();
+  if (!value) return fallback;
+  if (value.length > 2048) return fallback;
+  if (/[\u0000-\u001F\u007F]/.test(value)) return fallback;
+  if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\")) {
+    return fallback;
+  }
+
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(value);
+  } catch {
+    return fallback;
+  }
+  if (
+    /[\u0000-\u001F\u007F]/.test(decoded) ||
+    decoded.startsWith("//") ||
+    decoded.includes("\\")
+  ) {
+    return fallback;
+  }
+
+  try {
+    const url = new URL(value, "https://aura.local");
+    if (url.origin !== "https://aura.local") return fallback;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return fallback;
+  }
+}

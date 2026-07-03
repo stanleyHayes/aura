@@ -33,12 +33,23 @@ export function RejectDialog({
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [error, setError] = React.useState<unknown>(null);
+  const [errorState, setErrorState] = React.useState<{
+    bookingId: string | null;
+    error: unknown;
+  }>({ bookingId: null, error: null });
+  const error =
+    errorState.bookingId === bookingId ? errorState.error : null;
 
   const form = useForm<Values>({
     resolver: zodResolver(Schema),
     defaultValues: { note: "" },
   });
+
+  // The dialog is permanently mounted (only `open` toggles), so reset the note
+  // whenever it targets a different booking; errors are keyed by booking below.
+  React.useEffect(() => {
+    form.reset();
+  }, [bookingId, form]);
 
   const reject = useMutation({
     mutationFn: async (values: Values) =>
@@ -56,7 +67,7 @@ export function RejectDialog({
       form.reset();
       onOpenChange(false);
     },
-    onError: (err) => setError(err),
+    onError: (err) => setErrorState({ bookingId, error: err }),
   });
 
   return (
@@ -70,7 +81,7 @@ export function RejectDialog({
         </DialogHeader>
         <form
           onSubmit={form.handleSubmit((v) => {
-            setError(null);
+            setErrorState({ bookingId, error: null });
             reject.mutate(v);
           })}
           className="flex flex-col gap-4"
