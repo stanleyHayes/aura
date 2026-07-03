@@ -790,7 +790,7 @@ export interface paths {
                     building_id?: string;
                     min_capacity?: number;
                     room_type?: components["schemas"]["RoomType"];
-                    /** @description Comma-separated equipment codes */
+                    /** @description Comma-separated equipment codes or names */
                     equipment?: string;
                     q?: string;
                 };
@@ -1289,7 +1289,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Admin override (BR6) — force approve, cancelling conflicts */
+        /** Admin override (BR6) — force approve, optionally cancelling conflicts */
         post: {
             parameters: {
                 query?: never;
@@ -1299,7 +1299,14 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    "application/json": {
+                        note: string;
+                        cancel_conflicting: boolean;
+                    };
+                };
+            };
             responses: {
                 /** @description Overridden */
                 200: {

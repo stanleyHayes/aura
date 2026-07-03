@@ -167,52 +167,76 @@ func (s *Service) Approve(ctx context.Context, bookingID, officerID uuid.UUID, n
 	return view, nil
 }
 
-// Reject transitions PENDING→REJECTED with a required note.
+// Reject transitions PENDING→REJECTED with a required note. Locks the row
+// (FOR UPDATE) so a concurrent Approve cannot be clobbered into an illegal
+// APPROVED→REJECTED transition (§7.2 TOCTOU).
 func (s *Service) Reject(ctx context.Context, bookingID, officerID uuid.UUID, note string) (BookingView, error) {
-	b, err := s.getStatus(ctx, bookingID)
+	var view BookingView
+	err := s.store.WithinTxDefault(ctx, func(q *dbgen.Queries, _ pgx.Tx) error {
+		b, err := q.GetBookingForUpdate(ctx, bookingID)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return apperr.ErrNotFound
+			}
+			return err
+		}
+		if !CanTransition(b.Status, dbgen.BookingStatusREJECTED) {
+			return apperr.ErrInvalidTransition.WithDetail("cannot reject a %s booking", b.Status)
+		}
+		row, err := q.SetBookingStatus(ctx, dbgen.SetBookingStatusParams{
+			ID: bookingID, Status: dbgen.BookingStatusREJECTED, ReviewedBy: &officerID, ReviewNote: &note,
+		})
+		if err != nil {
+			return db.MapError(err)
+		}
+		view = viewFromStatus(row)
+		return nil
+	})
 	if err != nil {
 		return BookingView{}, err
 	}
-	if !CanTransition(b, dbgen.BookingStatusREJECTED) {
-		return BookingView{}, apperr.ErrInvalidTransition.WithDetail("cannot reject a %s booking", b)
-	}
-	row, err := s.store.SetBookingStatus(ctx, dbgen.SetBookingStatusParams{
-		ID: bookingID, Status: dbgen.BookingStatusREJECTED, ReviewedBy: &officerID, ReviewNote: &note,
-	})
-	if err != nil {
-		return BookingView{}, db.MapError(err)
-	}
-	view := viewFromStatus(row)
 	metrics.BookingRejected()
 	s.notifier.BookingEvent("BOOKING_REJECTED", view)
 	return view, nil
 }
 
 // Cancel transitions PENDING/APPROVED→CANCELLED. Ownership is checked by caller.
+// Locks the row (FOR UPDATE) to avoid the same TOCTOU race as Reject.
 func (s *Service) Cancel(ctx context.Context, bookingID, actorID uuid.UUID) (BookingView, error) {
-	b, err := s.getStatus(ctx, bookingID)
+	var view BookingView
+	err := s.store.WithinTxDefault(ctx, func(q *dbgen.Queries, _ pgx.Tx) error {
+		b, err := q.GetBookingForUpdate(ctx, bookingID)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return apperr.ErrNotFound
+			}
+			return err
+		}
+		if !CanTransition(b.Status, dbgen.BookingStatusCANCELLED) {
+			return apperr.ErrInvalidTransition.WithDetail("cannot cancel a %s booking", b.Status)
+		}
+		row, err := q.SetBookingStatus(ctx, dbgen.SetBookingStatusParams{
+			ID: bookingID, Status: dbgen.BookingStatusCANCELLED, ReviewedBy: &actorID,
+		})
+		if err != nil {
+			return db.MapError(err)
+		}
+		view = viewFromStatus(row)
+		return nil
+	})
 	if err != nil {
 		return BookingView{}, err
 	}
-	if !CanTransition(b, dbgen.BookingStatusCANCELLED) {
-		return BookingView{}, apperr.ErrInvalidTransition.WithDetail("cannot cancel a %s booking", b)
-	}
-	row, err := s.store.SetBookingStatus(ctx, dbgen.SetBookingStatusParams{
-		ID: bookingID, Status: dbgen.BookingStatusCANCELLED, ReviewedBy: &actorID,
-	})
-	if err != nil {
-		return BookingView{}, db.MapError(err)
-	}
-	view := viewFromStatus(row)
 	metrics.BookingCancelled()
 	s.notifier.BookingEvent("BOOKING_CANCELLED", view)
 	return view, nil
 }
 
-// Override forces a booking through (BR6), cancelling any conflicting APPROVED
-// bookings in the same transaction. Lectures still take precedence (BR1): if the
-// slot is owned by a lecture, the validation trigger rejects the override.
-func (s *Service) Override(ctx context.Context, bookingID, adminID uuid.UUID, note *string) (BookingView, []BookingView, error) {
+// Override forces a booking through (BR6). When cancelConflict is true it first
+// cancels conflicting APPROVED bookings in the same transaction. Lectures still
+// take precedence (BR1): if the slot is owned by a lecture, the validation
+// trigger rejects the override.
+func (s *Service) Override(ctx context.Context, bookingID, adminID uuid.UUID, note *string, cancelConflict bool) (BookingView, []BookingView, error) {
 	var approved BookingView
 	var cancelled []BookingView
 	err := s.store.WithinTxDefault(ctx, func(q *dbgen.Queries, tx pgx.Tx) error {
@@ -223,12 +247,23 @@ func (s *Service) Override(ctx context.Context, bookingID, adminID uuid.UUID, no
 			}
 			return err
 		}
+		// Enforce the §7.2 state machine like Approve/Reject/Cancel do — an
+		// override must not resurrect a terminal (REJECTED/CANCELLED/EXPIRED)
+		// booking to APPROVED.
+		if !CanTransition(b.Status, dbgen.BookingStatusAPPROVED) {
+			return apperr.ErrInvalidTransition.WithDetail("cannot override a %s booking", b.Status)
+		}
 		if err := db.AdvisoryXactLock(ctx, tx, b.RoomID.String()); err != nil {
 			return err
 		}
-		cancelled, err = cancelConflicting(ctx, q, b.RoomID, bookingID, b.StartsAt, b.EndsAt, adminID)
-		if err != nil {
-			return err
+		// Only supersede conflicting APPROVED bookings when the admin opted in.
+		// If they did not and a conflict exists, the EXCLUDE constraint below
+		// makes the approve fail with a conflict error (the correct outcome).
+		if cancelConflict {
+			cancelled, err = cancelConflicting(ctx, q, b.RoomID, bookingID, b.StartsAt, b.EndsAt, adminID)
+			if err != nil {
+				return err
+			}
 		}
 		row, err := q.SetBookingStatus(ctx, dbgen.SetBookingStatusParams{
 			ID: bookingID, Status: dbgen.BookingStatusAPPROVED, ReviewedBy: &adminID, ReviewNote: note,
@@ -244,7 +279,9 @@ func (s *Service) Override(ctx context.Context, bookingID, adminID uuid.UUID, no
 	}
 	for _, c := range cancelled {
 		s.notifier.BookingEvent("BOOKING_CANCELLED", c)
+		metrics.BookingCancelled()
 	}
+	metrics.BookingApproved()
 	s.notifier.BookingEvent("BOOKING_APPROVED", approved)
 	return approved, cancelled, nil
 }
@@ -422,17 +459,6 @@ func (s *Service) overlapBlockers(ctx context.Context, row dbgen.ListPendingForA
 		})
 	}
 	return blockers, nil
-}
-
-func (s *Service) getStatus(ctx context.Context, id uuid.UUID) (dbgen.BookingStatus, error) {
-	b, err := s.store.GetBooking(ctx, id)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return "", apperr.ErrNotFound
-		}
-		return "", err
-	}
-	return b.Status, nil
 }
 
 // cancelConflicting cancels the approved bookings overlapping the window for a

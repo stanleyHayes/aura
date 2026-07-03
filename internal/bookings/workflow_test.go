@@ -29,7 +29,7 @@ func TestOverrideCancelsConflicting(t *testing.T) {
 	require.NoError(t, err)
 
 	// Admin override on B → B approved, A cancelled.
-	approved, cancelled, err := svc.Override(ctx, b.Booking.ID, f.officer, nil)
+	approved, cancelled, err := svc.Override(ctx, b.Booking.ID, f.officer, nil, true)
 	require.NoError(t, err)
 	require.Equal(t, "APPROVED", approved.Status)
 	require.Len(t, cancelled, 1)
@@ -41,6 +41,38 @@ func TestOverrideCancelsConflicting(t *testing.T) {
 	require.NoError(t, f.store.Pool.QueryRow(ctx,
 		"SELECT count(*) FROM bookings WHERE room_id=$1 AND status='APPROVED'", f.roomID).Scan(&n))
 	require.Equal(t, 1, n)
+}
+
+func TestOverrideWithoutCancelConflictingPreservesExistingApproval(t *testing.T) {
+	f := newFixture(t, 50)
+	svc := bookings.NewService(f.store, f.loc, nil)
+	ctx := context.Background()
+	start, end := f.tomorrowWindow(9, 11)
+
+	a, err := svc.Create(ctx, bookings.CreateInput{RoomID: f.roomID, RequestedBy: f.requester, Purpose: "A", AttendeeCount: 10, StartsAt: start, EndsAt: end})
+	require.NoError(t, err)
+	_, err = svc.Approve(ctx, a.Booking.ID, f.officer, nil)
+	require.NoError(t, err)
+
+	b, err := svc.Create(ctx, bookings.CreateInput{RoomID: f.roomID, RequestedBy: f.requester, Purpose: "B", AttendeeCount: 10, StartsAt: start, EndsAt: end})
+	require.NoError(t, err)
+
+	_, cancelled, err := svc.Override(ctx, b.Booking.ID, f.officer, nil, false)
+	require.Empty(t, cancelled)
+	ae, ok := apperr.As(err)
+	require.True(t, ok)
+	require.Equal(t, "SLOT_NO_LONGER_AVAILABLE", ae.Code)
+
+	var approved, pending, cancelledCount int
+	require.NoError(t, f.store.Pool.QueryRow(ctx,
+		"SELECT count(*) FROM bookings WHERE id=$1 AND status='APPROVED'", a.Booking.ID).Scan(&approved))
+	require.NoError(t, f.store.Pool.QueryRow(ctx,
+		"SELECT count(*) FROM bookings WHERE id=$1 AND status='PENDING'", b.Booking.ID).Scan(&pending))
+	require.NoError(t, f.store.Pool.QueryRow(ctx,
+		"SELECT count(*) FROM bookings WHERE status='CANCELLED'").Scan(&cancelledCount))
+	require.Equal(t, 1, approved)
+	require.Equal(t, 1, pending)
+	require.Equal(t, 0, cancelledCount)
 }
 
 func TestCancelTransitions(t *testing.T) {

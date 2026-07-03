@@ -524,8 +524,18 @@ paths:
   /api/v1/bookings/{id}/override:
     post:
       tags: [Bookings]
-      summary: Admin override (BR6) — force approve, cancelling conflicts
+      summary: Admin override (BR6) — force approve, optionally cancelling conflicts
       parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [note, cancel_conflicting]
+              properties:
+                note: { type: string, minLength: 3, maxLength: 500 }
+                cancel_conflicting: { type: boolean }
       responses: { "200": { description: Overridden } }
 
   /api/v1/semesters/{id}/timetable/import:

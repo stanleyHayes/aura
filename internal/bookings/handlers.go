@@ -317,8 +317,19 @@ func (h *Handler) override(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, r, h.log, err)
 		return
 	}
-	note := optionalNote(r)
-	approved, cancelled, err := h.svc.Override(r.Context(), bookingID, id.UserID, note)
+	var body struct {
+		Note              string `json:"note"`
+		CancelConflicting bool   `json:"cancel_conflicting"`
+	}
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.Error(w, r, h.log, err)
+		return
+	}
+	var note *string
+	if body.Note != "" {
+		note = &body.Note
+	}
+	approved, cancelled, err := h.svc.Override(r.Context(), bookingID, id.UserID, note, body.CancelConflicting)
 	if err != nil {
 		httpx.Error(w, r, h.log, err)
 		return
