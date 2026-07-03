@@ -54,7 +54,11 @@ import { MetricCard, type MetricTone } from "@/components/metric-card";
 type ImportErrorRow = NonNullable<TimetableImport["error_report"]>[number];
 
 function readCsrf(): string | undefined {
-  const m = document.cookie.match(/(?:^|; )(?:cbs_csrf|cbs-csrf)=([^;]*)/);
+  // `__Host-csrf` is the production (secure) cookie name; `cbs_csrf` is dev.
+  // Omitting `__Host-csrf` here 403s the timetable import in production.
+  const m = document.cookie.match(
+    /(?:^|; )(?:__Host-csrf|cbs_csrf|cbs-csrf)=([^;]*)/,
+  );
   return m ? decodeURIComponent(m[1]!) : undefined;
 }
 

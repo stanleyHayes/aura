@@ -13,8 +13,13 @@ import { apiOrigin } from "@/lib/env";
 export async function serverApi() {
   const cookieStore = await cookies();
   const cookieHeader = cookieStore.toString();
+  // Production uses the `__Host-csrf` cookie (secure); dev uses `cbs_csrf`.
+  // Check the production name FIRST or server-side writes (e.g. logout) omit the
+  // double-submit header and the API rejects them with 403.
   const csrf =
-    cookieStore.get("cbs_csrf")?.value ?? cookieStore.get("cbs-csrf")?.value;
+    cookieStore.get("__Host-csrf")?.value ??
+    cookieStore.get("cbs_csrf")?.value ??
+    cookieStore.get("cbs-csrf")?.value;
 
   const fwdHeaders: Record<string, string> = {};
   if (cookieHeader) fwdHeaders["cookie"] = cookieHeader;
