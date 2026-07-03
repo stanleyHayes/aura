@@ -18,6 +18,13 @@ By default, Playwright builds the web app, starts `next start` on
 `http://127.0.0.1:3100`, and uses `API_ORIGIN=http://127.0.0.1:8080`.
 Use `pnpm e2e:smoke` for the faster Chromium-only slice.
 
+The default web-server startup timeout is 7 minutes because the production
+build can take a few minutes on local machines. Override it when needed:
+
+```bash
+E2E_WEB_SERVER_TIMEOUT=600000 pnpm e2e
+```
+
 To point at an already-running web server:
 
 ```bash

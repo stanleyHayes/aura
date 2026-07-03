@@ -6,6 +6,7 @@ const appDir = dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.E2E_PORT ?? 3100);
 const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${port}`;
 const isCI = Boolean(process.env.CI);
+const webServerTimeout = Number(process.env.E2E_WEB_SERVER_TIMEOUT ?? 420_000);
 
 export default defineConfig({
   testDir: "./e2e",
@@ -13,7 +14,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,
-  workers: isCI ? 2 : undefined,
+  workers: isCI ? 2 : 1,
   timeout: 30_000,
   expect: { timeout: 8_000 },
   reporter: [
@@ -38,7 +39,7 @@ export default defineConfig({
         cwd: appDir,
         url: baseURL,
         reuseExistingServer: !isCI,
-        timeout: 180_000,
+        timeout: webServerTimeout,
         env: {
           ...process.env,
           API_ORIGIN: process.env.API_ORIGIN ?? "http://127.0.0.1:8080",
