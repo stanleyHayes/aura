@@ -3,8 +3,9 @@
 import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { LucideIcon } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  CalendarDays,
   CheckCircle2,
   ClipboardList,
   Download,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import {
   type Semester,
+  type TimetableEvent,
   type TimetableImport,
 } from "@cbs/schemas";
 import { Button } from "@cbs/ui/components/button";
@@ -306,6 +308,7 @@ function ImportChecklist() {
 
 export function TimetableClient() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [semesterId, setSemesterId] = React.useState("");
   const [mode, setMode] = React.useState<"append" | "replace">("append");
   const [createMissing, setCreateMissing] = React.useState(true);
@@ -344,6 +347,44 @@ export function TimetableClient() {
       ),
   });
 
+  // Default to the active semester (or the first) so the page shows the current
+  // timetable immediately instead of an empty uploader.
+  React.useEffect(() => {
+    if (semesterId || !semesters.data?.length) return;
+    const active = semesters.data.find((s) => s.status === "ACTIVE");
+    setSemesterId(active?.id ?? semesters.data[0]!.id);
+  }, [semesterId, semesters.data]);
+
+  // The timetable already imported for the selected semester.
+  const events = useQuery({
+    queryKey: qk.timetableEvents({ semester_id: semesterId }),
+    enabled: semesterId !== "",
+    queryFn: async (): Promise<TimetableEvent[]> => {
+      const body = unwrap(
+        await api.GET("/api/v1/timetable/events", {
+          params: { query: { semester_id: semesterId } },
+        }),
+      );
+      return body.data as TimetableEvent[];
+    },
+  });
+
+  // Room id -> name, so the timetable table reads as rooms rather than UUIDs.
+  const rooms = useQuery({
+    queryKey: qk.rooms({ scope: "timetable" }),
+    queryFn: async (): Promise<Array<{ id: string; name: string }>> => {
+      const page = unwrap(
+        await api.GET("/api/v1/rooms", { params: { query: { limit: 500 } } }),
+      );
+      return page.data as Array<{ id: string; name: string }>;
+    },
+  });
+  const roomName = React.useMemo(() => {
+    const m = new Map<string, string>();
+    for (const r of rooms.data ?? []) m.set(r.id, r.name);
+    return m;
+  }, [rooms.data]);
+
   async function onUpload(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -375,6 +416,11 @@ export function TimetableClient() {
       }
       const created = (await res.json()) as TimetableImport;
       setImportId(created.id);
+      // The importer runs synchronously, so the events exist now — refresh the
+      // "Current timetable" table below.
+      void queryClient.invalidateQueries({
+        queryKey: qk.timetableEvents({ semester_id: semesterId }),
+      });
       toast({ variant: "success", title: "Upload received", description: "Processing…" });
     } catch (err) {
       setError(err);
@@ -412,6 +458,54 @@ export function TimetableClient() {
       },
     ],
     [],
+  );
+
+  const eventColumns = React.useMemo<ColumnDef<TimetableEvent>[]>(
+    () => [
+      {
+        accessorKey: "day",
+        header: "Day",
+        cell: ({ row }) => (
+          <span className="font-medium text-[var(--color-foreground)]">
+            {row.original.day}
+          </span>
+        ),
+      },
+      {
+        id: "time",
+        header: "Time",
+        cell: ({ row }) => (
+          <span className="tabular-nums">
+            {row.original.start_time}–{row.original.end_time}
+          </span>
+        ),
+      },
+      {
+        id: "course",
+        header: "Course",
+        cell: ({ row }) => (
+          <div className="min-w-0">
+            <div className="font-medium text-[var(--color-foreground)]">
+              {row.original.course_code}
+            </div>
+            <div className="truncate text-sm text-[var(--color-muted-foreground)]">
+              {row.original.course_title}
+            </div>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "lecturer_name",
+        header: "Lecturer",
+        cell: ({ row }) => row.original.lecturer_name || "—",
+      },
+      {
+        id: "room",
+        header: "Room",
+        cell: ({ row }) => roomName.get(row.original.room_id) ?? "—",
+      },
+    ],
+    [roomName],
   );
 
   return (
@@ -677,6 +771,64 @@ export function TimetableClient() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[color-mix(in_oklch,var(--color-maroon)_10%,var(--color-card))] text-[var(--color-maroon)] shadow-sm">
+                <CalendarDays className="size-5" aria-hidden="true" />
+              </span>
+              <div>
+                <CardTitle>Current timetable</CardTitle>
+                <CardDescription>
+                  {semesterId
+                    ? "The lecture schedule already imported for the selected semester."
+                    : "Select a semester above to view its imported timetable."}
+                </CardDescription>
+              </div>
+            </div>
+            {(events.data?.length ?? 0) > 0 ? (
+              <span className="inline-flex items-center gap-2 self-start rounded-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
+                {events.data!.length} event{events.data!.length === 1 ? "" : "s"}
+              </span>
+            ) : null}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!semesterId ? (
+            <EmptyState
+              icon={CalendarDays}
+              title="No semester selected"
+              description="Choose a semester to see the timetable that's been imported for it."
+            />
+          ) : events.isLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-40 w-full" />
+            </div>
+          ) : events.isError ? (
+            <ProblemAlert error={events.error} />
+          ) : (events.data?.length ?? 0) === 0 ? (
+            <EmptyState
+              icon={CalendarDays}
+              title="No timetable imported yet"
+              description="Nothing has been imported for this semester. Upload a file above and it will appear here."
+            />
+          ) : (
+            <DataTable
+              columns={eventColumns}
+              data={events.data!}
+              caption="Current timetable"
+              initialPageSize={10}
+              pageSizeOptions={[10, 25, 50]}
+              emptyIcon={CalendarDays}
+              emptyTitle="No events"
+              emptyDescription="This semester has no timetable events."
+            />
+          )}
+        </CardContent>
+      </Card>
     </>
   );
 }
