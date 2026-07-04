@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { LoginForm as LoginSchema, type LoginForm as LoginValues } from "@cbs/schemas";
 import { ApiError } from "@cbs/api-client";
 import { ERROR_CODES } from "@cbs/schemas";
@@ -14,6 +15,7 @@ import { Input } from "@cbs/ui/components/input";
 import { api, unwrap } from "@/lib/api/client";
 import { defaultLandingPath, safeRedirectPath } from "@/lib/auth";
 import { route } from "@/lib/route";
+import { qk } from "@/lib/query-keys";
 import { AuthHeader } from "@/components/auth-header";
 import { Field } from "@/components/forms/field";
 import { PasswordInput } from "@/components/password-input";
@@ -21,6 +23,7 @@ import { ProblemAlert } from "@/components/problem-alert";
 
 export function LoginForm({ next }: { next?: string }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [submitError, setSubmitError] = React.useState<unknown>(null);
   const [mfaRequired, setMfaRequired] = React.useState(false);
 
@@ -47,6 +50,11 @@ export function LoginForm({ next }: { next?: string }) {
         }),
       );
       const target = safeRedirectPath(next, defaultLandingPath(session.user.role));
+      // Refetch the persistent client session cache from /auth/me so a re-login
+      // right after an auto-logout takes effect without a hard page reload. The
+      // login response is a TokenResponse (no permission set), so we invalidate
+      // and let the session query repopulate rather than priming it directly.
+      await queryClient.invalidateQueries({ queryKey: qk.session });
       router.replace(route(target));
       router.refresh();
     } catch (err) {
