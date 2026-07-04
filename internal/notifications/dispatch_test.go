@@ -103,7 +103,7 @@ func TestDispatchSubmittedNotifiesOfficers(t *testing.T) {
 	suffix := uuid.NewString()[:8]
 	officer, err := store.CreateUser(ctx, dbgen.CreateUserParams{
 		Email: "noff-" + suffix + "@x.edu", PasswordHash: "x", FullName: "Off",
-		Role: dbgen.UserRoleBOOKINGOFFICER, Status: dbgen.UserStatusACTIVE,
+		Role: dbgen.UserRoleADMIN, Status: dbgen.UserStatusACTIVE,
 	})
 	require.NoError(t, err)
 

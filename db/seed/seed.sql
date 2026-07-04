@@ -95,9 +95,9 @@ ON CONFLICT DO NOTHING;
 INSERT INTO users (email, password_hash, full_name, role, status, department_id)
 SELECT v.email, v.hash, v.full_name, v.role::user_role, 'ACTIVE', d.id
 FROM (VALUES
-  ('aura.admin@ashesi.edu.gh',     '$argon2id$v=19$m=65536,t=3,p=2$vy/TlZIM17Lf0R9bX1W8tw$KJAnqsAkqcMMuLvSDpDRZKTcQ7hfrkejsIAFWjCWbQs', 'System Administrator',    'SYSTEM_ADMIN',    'CSIS'),
-  ('aura.timetable@ashesi.edu.gh', '$argon2id$v=19$m=65536,t=3,p=2$BMTmO4eIB3l+/CXGxTMIlA$Zz0ha6ZWOtBXZPMQU29iRcDMmUEXGuROhn3IvPGkzAo', 'Timetable Administrator', 'TIMETABLE_ADMIN', 'CSIS'),
-  ('aura.officer@ashesi.edu.gh',   '$argon2id$v=19$m=65536,t=3,p=2$Ud0zOCFezWef2CPLeTkpaw$PS2mau4NUdA38CPjHr+FzgSiSsO5c3OBPmCVK5s8CTM', 'Booking Officer', 'BOOKING_OFFICER', 'BA'),
+  ('aura.admin@ashesi.edu.gh',     '$argon2id$v=19$m=65536,t=3,p=2$vy/TlZIM17Lf0R9bX1W8tw$KJAnqsAkqcMMuLvSDpDRZKTcQ7hfrkejsIAFWjCWbQs', 'System Administrator',    'SUPER_ADMIN',    'CSIS'),
+  ('aura.timetable@ashesi.edu.gh', '$argon2id$v=19$m=65536,t=3,p=2$BMTmO4eIB3l+/CXGxTMIlA$Zz0ha6ZWOtBXZPMQU29iRcDMmUEXGuROhn3IvPGkzAo', 'Timetable Administrator', 'ADMIN', 'CSIS'),
+  ('aura.officer@ashesi.edu.gh',   '$argon2id$v=19$m=65536,t=3,p=2$Ud0zOCFezWef2CPLeTkpaw$PS2mau4NUdA38CPjHr+FzgSiSsO5c3OBPmCVK5s8CTM', 'Booking Officer', 'ADMIN', 'BA'),
   ('aura.lecturer@ashesi.edu.gh',  '$argon2id$v=19$m=65536,t=3,p=2$/PeQjKP5PjGy+VdYw1pv5Q$aws0y1dXWwBRGBEqqlZdJIj+vZPnuW2aUK706UqTF9M', 'Demo Lecturer',   'REQUESTER',       'MATH')
 ) AS v(email, hash, full_name, role, dept)
 JOIN departments d ON d.code = v.dept

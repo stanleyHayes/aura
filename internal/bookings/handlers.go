@@ -47,7 +47,7 @@ func (h *Handler) Routes() chi.Router {
 	return r
 }
 
-// MaintenanceRoutes mounts /maintenance-windows/* (SYSTEM_ADMIN; §8.3).
+// MaintenanceRoutes mounts /maintenance-windows/* (SUPER_ADMIN; §8.3).
 func (h *Handler) MaintenanceRoutes() chi.Router {
 	r := chi.NewRouter()
 	r.Use(httpx.RequirePermission(rbac.MaintenanceManage, h.log))

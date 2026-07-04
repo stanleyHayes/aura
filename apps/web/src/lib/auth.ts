@@ -7,21 +7,16 @@ import type { Permission, UserRole } from "@cbs/schemas";
  */
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   REQUESTER: ["booking.create", "booking.read.own", "availability.search"],
-  BOOKING_OFFICER: [
+  ADMIN: [
     "booking.create",
     "booking.read.own",
     "booking.read.any",
     "booking.approve",
     "report.view",
-    "availability.search",
-  ],
-  TIMETABLE_ADMIN: [
-    "booking.create",
-    "booking.read.own",
     "timetable.manage",
     "availability.search",
   ],
-  SYSTEM_ADMIN: [
+  SUPER_ADMIN: [
     "user.manage",
     "room.manage",
     "semester.manage",

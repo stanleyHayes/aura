@@ -149,7 +149,7 @@ paths:
   /api/v1/users:
     get:
       tags: [Users]
-      summary: List users (SYSTEM_ADMIN)
+      summary: List users (SUPER_ADMIN)
       parameters:
         - { $ref: "#/components/parameters/Limit" }
         - { $ref: "#/components/parameters/Cursor" }
@@ -158,7 +158,7 @@ paths:
       responses: { "200": { description: OK }, "403": { $ref: "#/components/responses/Problem" } }
     post:
       tags: [Users]
-      summary: Create a user (SYSTEM_ADMIN)
+      summary: Create a user (SUPER_ADMIN)
       requestBody:
         required: true
         content:
@@ -497,13 +497,13 @@ paths:
   /api/v1/bookings/{id}:
     get:
       tags: [Bookings]
-      summary: Booking detail (owner or BOOKING_OFFICER)
+      summary: Booking detail (owner or ADMIN)
       parameters: [ { $ref: "#/components/parameters/Id" } ]
       responses: { "200": { description: OK }, "403": { $ref: "#/components/responses/Problem" } }
   /api/v1/bookings/{id}/approve:
     post:
       tags: [Bookings]
-      summary: Approve (BOOKING_OFFICER) — atomic, concurrency-safe (§7.3)
+      summary: Approve (ADMIN) — atomic, concurrency-safe (§7.3)
       parameters: [ { $ref: "#/components/parameters/Id" } ]
       responses:
         "200": { description: Approved }
@@ -511,14 +511,14 @@ paths:
   /api/v1/bookings/{id}/reject:
     post:
       tags: [Bookings]
-      summary: Reject with a required note (BOOKING_OFFICER)
+      summary: Reject with a required note (ADMIN)
       parameters: [ { $ref: "#/components/parameters/Id" } ]
       requestBody: { content: { application/json: { schema: { type: object, required: [note], properties: { note: { type: string } } } } } }
       responses: { "200": { description: Rejected } }
   /api/v1/bookings/{id}/cancel:
     post:
       tags: [Bookings]
-      summary: Cancel (owner or BOOKING_OFFICER)
+      summary: Cancel (owner or ADMIN)
       parameters: [ { $ref: "#/components/parameters/Id" } ]
       responses: { "200": { description: Cancelled } }
   /api/v1/bookings/{id}/override:
@@ -621,7 +621,7 @@ components:
         errors:
           type: array
           items: { type: object, properties: { field: { type: string }, message: { type: string } } }
-    Role: { type: string, enum: [SYSTEM_ADMIN, TIMETABLE_ADMIN, BOOKING_OFFICER, REQUESTER] }
+    Role: { type: string, enum: [SUPER_ADMIN, ADMIN, REQUESTER] }
     RoomType: { type: string, enum: [LECTURE_HALL, LAB, SEMINAR_ROOM, AUDITORIUM, CONFERENCE_ROOM] }
     BookingStatus: { type: string, enum: [PENDING, APPROVED, REJECTED, CANCELLED, EXPIRED] }
     TokenResponse:

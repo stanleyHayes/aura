@@ -66,7 +66,7 @@ func newFixture(t *testing.T, capacity int) fixture {
 	require.NoError(t, err)
 	off, err := store.CreateUser(ctx, dbgen.CreateUserParams{
 		Email: "off-" + suffix + "@x.edu", PasswordHash: "x", FullName: "Officer",
-		Role: dbgen.UserRoleBOOKINGOFFICER, Status: dbgen.UserStatusACTIVE,
+		Role: dbgen.UserRoleADMIN, Status: dbgen.UserStatusACTIVE,
 	})
 	require.NoError(t, err)
 

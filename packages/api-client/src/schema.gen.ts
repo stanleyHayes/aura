@@ -404,7 +404,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List users (SYSTEM_ADMIN) */
+        /** List users (SUPER_ADMIN) */
         get: {
             parameters: {
                 query?: {
@@ -430,7 +430,7 @@ export interface paths {
             };
         };
         put?: never;
-        /** Create a user (SYSTEM_ADMIN) */
+        /** Create a user (SUPER_ADMIN) */
         post: {
             parameters: {
                 query?: never;
@@ -1134,7 +1134,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Booking detail (owner or BOOKING_OFFICER) */
+        /** Booking detail (owner or ADMIN) */
         get: {
             parameters: {
                 query?: never;
@@ -1173,7 +1173,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Approve (BOOKING_OFFICER) — atomic, concurrency-safe (§7.3) */
+        /** Approve (ADMIN) — atomic, concurrency-safe (§7.3) */
         post: {
             parameters: {
                 query?: never;
@@ -1211,7 +1211,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Reject with a required note (BOOKING_OFFICER) */
+        /** Reject with a required note (ADMIN) */
         post: {
             parameters: {
                 query?: never;
@@ -1253,7 +1253,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Cancel (owner or BOOKING_OFFICER) */
+        /** Cancel (owner or ADMIN) */
         post: {
             parameters: {
                 query?: never;
@@ -1637,7 +1637,7 @@ export interface components {
             }[];
         };
         /** @enum {string} */
-        Role: "SYSTEM_ADMIN" | "TIMETABLE_ADMIN" | "BOOKING_OFFICER" | "REQUESTER";
+        Role: "SUPER_ADMIN" | "ADMIN" | "REQUESTER";
         /** @enum {string} */
         RoomType: "LECTURE_HALL" | "LAB" | "SEMINAR_ROOM" | "AUDITORIUM" | "CONFERENCE_ROOM";
         /** @enum {string} */

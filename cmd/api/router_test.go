@@ -64,7 +64,7 @@ func TestEndToEndHTTP(t *testing.T) {
 	offEmail := "e2e-off-" + suffix + "@x.edu"
 	_, err = store.CreateUser(ctx, dbgen.CreateUserParams{Email: reqEmail, PasswordHash: hash, FullName: "Req", Role: dbgen.UserRoleREQUESTER, Status: dbgen.UserStatusACTIVE})
 	require.NoError(t, err)
-	_, err = store.CreateUser(ctx, dbgen.CreateUserParams{Email: offEmail, PasswordHash: hash, FullName: "Off", Role: dbgen.UserRoleBOOKINGOFFICER, Status: dbgen.UserStatusACTIVE})
+	_, err = store.CreateUser(ctx, dbgen.CreateUserParams{Email: offEmail, PasswordHash: hash, FullName: "Off", Role: dbgen.UserRoleADMIN, Status: dbgen.UserStatusACTIVE})
 	require.NoError(t, err)
 
 	c := &apiClient{t: t, base: srv.URL}

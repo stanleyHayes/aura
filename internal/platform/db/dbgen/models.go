@@ -369,10 +369,9 @@ func (ns NullSemesterStatus) Value() (driver.Value, error) {
 type UserRole string
 
 const (
-	UserRoleSYSTEMADMIN    UserRole = "SYSTEM_ADMIN"
-	UserRoleTIMETABLEADMIN UserRole = "TIMETABLE_ADMIN"
-	UserRoleBOOKINGOFFICER UserRole = "BOOKING_OFFICER"
-	UserRoleREQUESTER      UserRole = "REQUESTER"
+	UserRoleSUPERADMIN UserRole = "SUPER_ADMIN"
+	UserRoleADMIN      UserRole = "ADMIN"
+	UserRoleREQUESTER  UserRole = "REQUESTER"
 )
 
 func (e *UserRole) Scan(src interface{}) error {

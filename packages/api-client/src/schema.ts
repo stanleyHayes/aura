@@ -27,7 +27,7 @@ export interface components {
       id: string;
       email: string;
       full_name: string;
-      role: "SYSTEM_ADMIN" | "TIMETABLE_ADMIN" | "BOOKING_OFFICER" | "REQUESTER";
+      role: "SUPER_ADMIN" | "ADMIN" | "REQUESTER";
       status: "ACTIVE" | "SUSPENDED" | "PENDING_VERIFICATION";
       department_id?: string | null;
       department?: components["schemas"]["Department"] | null;

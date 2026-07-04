@@ -22,21 +22,25 @@ describe("permissionsForRole", () => {
     ]);
   });
 
-  it("gives a system admin the override + user-management permissions", () => {
-    const perms = permissionsForRole("SYSTEM_ADMIN");
+  it("gives a super admin the override + user-management permissions", () => {
+    const perms = permissionsForRole("SUPER_ADMIN");
     expect(perms).toContain("user.manage");
     expect(perms).toContain("booking.override");
     expect(perms).toContain("room.manage");
   });
 
-  it("does not grant a booking officer the override permission", () => {
-    expect(permissionsForRole("BOOKING_OFFICER")).not.toContain("booking.override");
+  it("gives an admin approvals + timetable but not super-admin powers", () => {
+    const perms = permissionsForRole("ADMIN");
+    expect(perms).toContain("booking.approve");
+    expect(perms).toContain("timetable.manage");
+    expect(perms).not.toContain("booking.override");
+    expect(perms).not.toContain("user.manage");
   });
 });
 
 describe("hasPermission", () => {
   it("returns true only when the permission is present", () => {
-    const perms = permissionsForRole("BOOKING_OFFICER");
+    const perms = permissionsForRole("ADMIN");
     expect(hasPermission(perms, "booking.approve")).toBe(true);
     expect(hasPermission(perms, "booking.override")).toBe(false);
   });
@@ -49,16 +53,15 @@ describe("hasPermission", () => {
 describe("canAccessAdmin", () => {
   it("excludes requesters and admits every other role", () => {
     expect(canAccessAdmin("REQUESTER")).toBe(false);
-    expect(canAccessAdmin("BOOKING_OFFICER")).toBe(true);
-    expect(canAccessAdmin("TIMETABLE_ADMIN")).toBe(true);
-    expect(canAccessAdmin("SYSTEM_ADMIN")).toBe(true);
+    expect(canAccessAdmin("ADMIN")).toBe(true);
+    expect(canAccessAdmin("SUPER_ADMIN")).toBe(true);
   });
 });
 
 describe("defaultLandingPath", () => {
   it("sends requesters to /app and staff to /admin", () => {
     expect(defaultLandingPath("REQUESTER")).toBe("/app");
-    expect(defaultLandingPath("SYSTEM_ADMIN")).toBe("/admin");
+    expect(defaultLandingPath("SUPER_ADMIN")).toBe("/admin");
   });
 });
 

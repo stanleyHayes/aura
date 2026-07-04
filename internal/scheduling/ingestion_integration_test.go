@@ -39,7 +39,7 @@ func TestCSVIngestionEndToEnd(t *testing.T) {
 	require.NoError(t, err)
 	uploader, err := store.CreateUser(ctx, dbgen.CreateUserParams{
 		Email: "tt-" + suffix + "@x.edu", PasswordHash: "x", FullName: "TT",
-		Role: dbgen.UserRoleTIMETABLEADMIN, Status: dbgen.UserStatusACTIVE,
+		Role: dbgen.UserRoleADMIN, Status: dbgen.UserStatusACTIVE,
 	})
 	require.NoError(t, err)
 	sem, err := store.CreateSemester(ctx, dbgen.CreateSemesterParams{
@@ -95,7 +95,7 @@ func TestRealExportProvisioningEndToEnd(t *testing.T) {
 	suffix := uuid.NewString()[:8]
 	uploader, err := store.CreateUser(ctx, dbgen.CreateUserParams{
 		Email: "tt2-" + suffix + "@x.edu", PasswordHash: "x", FullName: "TT2",
-		Role: dbgen.UserRoleTIMETABLEADMIN, Status: dbgen.UserStatusACTIVE,
+		Role: dbgen.UserRoleADMIN, Status: dbgen.UserStatusACTIVE,
 	})
 	require.NoError(t, err)
 	sem, err := store.CreateSemester(ctx, dbgen.CreateSemesterParams{

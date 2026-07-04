@@ -3,9 +3,8 @@ import { z } from "zod";
 /** Domain enums mirroring the Postgres custom types (§6.1). */
 
 export const UserRole = z.enum([
-  "SYSTEM_ADMIN",
-  "TIMETABLE_ADMIN",
-  "BOOKING_OFFICER",
+  "SUPER_ADMIN",
+  "ADMIN",
   "REQUESTER",
 ]);
 export type UserRole = z.infer<typeof UserRole>;
@@ -94,9 +93,8 @@ export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
 };
 
 export const ROLE_LABELS: Record<UserRole, string> = {
-  SYSTEM_ADMIN: "System administrator",
-  TIMETABLE_ADMIN: "Timetable administrator",
-  BOOKING_OFFICER: "Booking officer",
+  SUPER_ADMIN: "Super administrator",
+  ADMIN: "Administrator",
   REQUESTER: "Requester",
 };
 

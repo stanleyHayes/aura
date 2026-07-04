@@ -66,9 +66,11 @@ func TestAPIFullSurface(t *testing.T) {
 	t.Cleanup(srv.Close)
 	c := &apiClient{t: t, base: srv.URL}
 
-	admin := c.login(mkUser(t, store, dbgen.UserRoleSYSTEMADMIN))
-	ttadmin := c.login(mkUser(t, store, dbgen.UserRoleTIMETABLEADMIN))
-	officer := c.login(mkUser(t, store, dbgen.UserRoleBOOKINGOFFICER))
+	admin := c.login(mkUser(t, store, dbgen.UserRoleSUPERADMIN))
+	// Two independent ADMIN accounts (the merged timetable-admin + booking-officer
+	// role): one drives the timetable flow, the other the approvals flow.
+	ttadmin := c.login(mkUser(t, store, dbgen.UserRoleADMIN))
+	officer := c.login(mkUser(t, store, dbgen.UserRoleADMIN))
 	requester := c.login(mkUser(t, store, dbgen.UserRoleREQUESTER))
 
 	// ── Catalogue (admin) ─────────────────────────────────────────────────────
@@ -119,7 +121,7 @@ func TestAPIFullSurface(t *testing.T) {
 	require.Equal(t, 201, c.do("POST", "/api/v1/users", admin, map[string]any{
 		"email": "made-" + uniq() + "@x.edu", "password": "Password123!", "full_name": "Made", "role": "REQUESTER",
 	}, &newUser))
-	require.Equal(t, 200, c.status("PATCH", "/api/v1/users/"+newUser.ID.String()+"/role", admin, map[string]any{"role": "BOOKING_OFFICER"}))
+	require.Equal(t, 200, c.status("PATCH", "/api/v1/users/"+newUser.ID.String()+"/role", admin, map[string]any{"role": "ADMIN"}))
 	require.Equal(t, 200, c.status("POST", "/api/v1/users/"+newUser.ID.String()+"/suspend", admin, nil))
 	require.Equal(t, 200, c.status("POST", "/api/v1/users/"+newUser.ID.String()+"/reactivate", admin, nil))
 

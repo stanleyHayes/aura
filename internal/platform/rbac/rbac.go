@@ -24,20 +24,18 @@ const (
 )
 
 // matrix is the §9.4 permission matrix. Permissions are additive by hierarchy:
-// SYSTEM_ADMIN ⊇ BOOKING_OFFICER ⊇ REQUESTER, and TIMETABLE_ADMIN ⊇ REQUESTER.
+// SUPER_ADMIN ⊇ ADMIN ⊇ REQUESTER. ADMIN merges the former timetable-admin and
+// booking-officer duties: timetable management + booking approvals + reports.
 var matrix = map[dbgen.UserRole]map[Permission]bool{
 	dbgen.UserRoleREQUESTER: set(
 		BookingCreate, BookingReadOwn, AvailabilitySearch,
 	),
-	dbgen.UserRoleBOOKINGOFFICER: set(
+	dbgen.UserRoleADMIN: set(
 		BookingCreate, BookingReadOwn, AvailabilitySearch,
 		BookingReadAny, BookingApprove, ReportView,
-	),
-	dbgen.UserRoleTIMETABLEADMIN: set(
-		BookingCreate, BookingReadOwn, AvailabilitySearch,
 		TimetableManage,
 	),
-	dbgen.UserRoleSYSTEMADMIN: set(
+	dbgen.UserRoleSUPERADMIN: set(
 		BookingCreate, BookingReadOwn, AvailabilitySearch,
 		BookingReadAny, BookingApprove, ReportView,
 		TimetableManage,

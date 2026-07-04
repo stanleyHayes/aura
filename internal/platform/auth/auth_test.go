@@ -57,7 +57,7 @@ func TestJWTSignVerify(t *testing.T) {
 		t.Fatal(err)
 	}
 	uid := uuid.New()
-	tok, err := signer.Sign(uid, dbgen.UserRoleBOOKINGOFFICER, "a@x.edu", time.Minute)
+	tok, err := signer.Sign(uid, dbgen.UserRoleADMIN, "a@x.edu", time.Minute)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func TestJWTSignVerify(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if claims.Subject != uid.String() || claims.Role != dbgen.UserRoleBOOKINGOFFICER || claims.Email != "a@x.edu" {
+	if claims.Subject != uid.String() || claims.Role != dbgen.UserRoleADMIN || claims.Email != "a@x.edu" {
 		t.Fatalf("claims mismatch: %+v", claims)
 	}
 }

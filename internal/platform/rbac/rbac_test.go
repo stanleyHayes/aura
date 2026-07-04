@@ -19,28 +19,25 @@ func TestCanMatrix(t *testing.T) {
 		{dbgen.UserRoleREQUESTER, BookingReadAny, false},
 		{dbgen.UserRoleREQUESTER, BookingApprove, false},
 		{dbgen.UserRoleREQUESTER, UserManage, false},
-		// BOOKING_OFFICER ⊇ REQUESTER + approve/read.any/report
-		{dbgen.UserRoleBOOKINGOFFICER, BookingApprove, true},
-		{dbgen.UserRoleBOOKINGOFFICER, BookingReadAny, true},
-		{dbgen.UserRoleBOOKINGOFFICER, ReportView, true},
-		{dbgen.UserRoleBOOKINGOFFICER, BookingCreate, true},
-		{dbgen.UserRoleBOOKINGOFFICER, UserManage, false},
-		{dbgen.UserRoleBOOKINGOFFICER, BookingOverride, false},
-		{dbgen.UserRoleBOOKINGOFFICER, TimetableManage, false},
-		// TIMETABLE_ADMIN is orthogonal: timetable + requester perms, no approvals
-		{dbgen.UserRoleTIMETABLEADMIN, TimetableManage, true},
-		{dbgen.UserRoleTIMETABLEADMIN, BookingCreate, true},
-		{dbgen.UserRoleTIMETABLEADMIN, BookingApprove, false},
-		{dbgen.UserRoleTIMETABLEADMIN, UserManage, false},
-		// SYSTEM_ADMIN ⊇ everything
-		{dbgen.UserRoleSYSTEMADMIN, UserManage, true},
-		{dbgen.UserRoleSYSTEMADMIN, RoomManage, true},
-		{dbgen.UserRoleSYSTEMADMIN, SemesterManage, true},
-		{dbgen.UserRoleSYSTEMADMIN, BookingOverride, true},
-		{dbgen.UserRoleSYSTEMADMIN, MaintenanceManage, true},
-		{dbgen.UserRoleSYSTEMADMIN, TimetableManage, true},
-		{dbgen.UserRoleSYSTEMADMIN, AuditView, true},
-		{dbgen.UserRoleSYSTEMADMIN, BookingApprove, true},
+		// ADMIN merges the old timetable-admin + booking-officer duties:
+		// approvals + read.any + reports + timetable, but no super-admin powers.
+		{dbgen.UserRoleADMIN, BookingApprove, true},
+		{dbgen.UserRoleADMIN, BookingReadAny, true},
+		{dbgen.UserRoleADMIN, ReportView, true},
+		{dbgen.UserRoleADMIN, TimetableManage, true},
+		{dbgen.UserRoleADMIN, BookingCreate, true},
+		{dbgen.UserRoleADMIN, UserManage, false},
+		{dbgen.UserRoleADMIN, BookingOverride, false},
+		{dbgen.UserRoleADMIN, AuditView, false},
+		// SUPER_ADMIN ⊇ everything
+		{dbgen.UserRoleSUPERADMIN, UserManage, true},
+		{dbgen.UserRoleSUPERADMIN, RoomManage, true},
+		{dbgen.UserRoleSUPERADMIN, SemesterManage, true},
+		{dbgen.UserRoleSUPERADMIN, BookingOverride, true},
+		{dbgen.UserRoleSUPERADMIN, MaintenanceManage, true},
+		{dbgen.UserRoleSUPERADMIN, TimetableManage, true},
+		{dbgen.UserRoleSUPERADMIN, AuditView, true},
+		{dbgen.UserRoleSUPERADMIN, BookingApprove, true},
 	}
 	for _, c := range cases {
 		if got := Can(c.role, c.perm); got != c.want {
@@ -57,7 +54,7 @@ func TestDenyByDefaultUnknownRole(t *testing.T) {
 
 func TestPermissionsListMatchesCan(t *testing.T) {
 	for _, role := range []dbgen.UserRole{
-		dbgen.UserRoleREQUESTER, dbgen.UserRoleBOOKINGOFFICER, dbgen.UserRoleTIMETABLEADMIN, dbgen.UserRoleSYSTEMADMIN,
+		dbgen.UserRoleREQUESTER, dbgen.UserRoleADMIN, dbgen.UserRoleSUPERADMIN,
 	} {
 		for _, p := range Permissions(role) {
 			if !Can(role, Permission(p)) {

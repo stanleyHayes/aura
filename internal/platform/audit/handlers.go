@@ -29,7 +29,7 @@ func NewHandler(q Lister, log *slog.Logger) *Handler {
 	return &Handler{q: q, log: log}
 }
 
-// Routes mounts /audit-logs/* (SYSTEM_ADMIN only; §8.3, §9.4).
+// Routes mounts /audit-logs/* (SUPER_ADMIN only; §8.3, §9.4).
 func (h *Handler) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Use(httpx.RequirePermission(rbac.AuditView, h.log))

@@ -507,7 +507,7 @@ func (h *Handler) recordChange(r *http.Request, action, entity string, id uuid.U
 
 func parseRole(s string) (dbgen.UserRole, bool) {
 	switch dbgen.UserRole(s) {
-	case dbgen.UserRoleSYSTEMADMIN, dbgen.UserRoleTIMETABLEADMIN, dbgen.UserRoleBOOKINGOFFICER, dbgen.UserRoleREQUESTER:
+	case dbgen.UserRoleSUPERADMIN, dbgen.UserRoleADMIN, dbgen.UserRoleREQUESTER:
 		return dbgen.UserRole(s), true
 	default:
 		return "", false

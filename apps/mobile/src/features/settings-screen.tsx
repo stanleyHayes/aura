@@ -18,9 +18,8 @@ import {
 import { palette } from '@/theme/tokens';
 
 const ROLE_LABELS: Record<string, string> = {
-  SYSTEM_ADMIN: 'System administrator',
-  TIMETABLE_ADMIN: 'Timetable administrator',
-  BOOKING_OFFICER: 'Booking officer',
+  SUPER_ADMIN: 'Super administrator',
+  ADMIN: 'Administrator',
   REQUESTER: 'Requester',
 };
 

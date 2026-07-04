@@ -76,7 +76,7 @@ type recipient struct {
 func (s *Service) recipientsFor(ctx context.Context, event string, b bookings.BookingView) ([]recipient, error) {
 	if event == "BOOKING_SUBMITTED" {
 		var out []recipient
-		for _, role := range []dbgen.UserRole{dbgen.UserRoleBOOKINGOFFICER, dbgen.UserRoleSYSTEMADMIN} {
+		for _, role := range []dbgen.UserRole{dbgen.UserRoleADMIN, dbgen.UserRoleSUPERADMIN} {
 			r := role
 			users, err := s.store.ListUsers(ctx, dbgen.ListUsersParams{Role: &r, Lim: 200})
 			if err != nil {

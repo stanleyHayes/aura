@@ -177,13 +177,9 @@ export function useHasPermission(permission: string): boolean {
   return user?.permissions.includes(permission) ?? false;
 }
 
-/** Convenience: is the signed-in user a booking officer or higher? */
+/** Convenience: can the signed-in user act on approvals (ADMIN / SUPER_ADMIN)?
+ *  Driven by the permission, so it's agnostic to the role rename/merge. */
 export function useIsOfficer(): boolean {
   const { user } = useAuth();
-  if (!user) return false;
-  return (
-    user.role === 'BOOKING_OFFICER' ||
-    user.role === 'SYSTEM_ADMIN' ||
-    user.permissions.includes('booking.approve')
-  );
+  return user?.permissions.includes('booking.approve') ?? false;
 }

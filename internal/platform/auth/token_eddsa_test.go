@@ -32,7 +32,7 @@ func TestEdDSASignVerify(t *testing.T) {
 		t.Fatal(err)
 	}
 	uid := uuid.New()
-	tok, err := signer.Sign(uid, dbgen.UserRoleSYSTEMADMIN, "a@x.edu", time.Minute)
+	tok, err := signer.Sign(uid, dbgen.UserRoleSUPERADMIN, "a@x.edu", time.Minute)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestEdDSASignVerify(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if claims.Subject != uid.String() || claims.Role != dbgen.UserRoleSYSTEMADMIN {
+	if claims.Subject != uid.String() || claims.Role != dbgen.UserRoleSUPERADMIN {
 		t.Fatalf("claims mismatch: %+v", claims)
 	}
 }

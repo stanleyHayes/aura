@@ -45,9 +45,9 @@ func TestUserAndDepartmentManagement(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "New Name", prof.FullName)
 
-	roled, err := svc.ChangeRole(ctx, u.ID, dbgen.UserRoleBOOKINGOFFICER)
+	roled, err := svc.ChangeRole(ctx, u.ID, dbgen.UserRoleADMIN)
 	require.NoError(t, err)
-	require.Equal(t, dbgen.UserRoleBOOKINGOFFICER, roled.Role)
+	require.Equal(t, dbgen.UserRoleADMIN, roled.Role)
 
 	susp, err := svc.SetStatus(ctx, u.ID, dbgen.UserStatusSUSPENDED)
 	require.NoError(t, err)

@@ -257,7 +257,7 @@ func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, currentP
 	return nil
 }
 
-// ── User & department management (SYSTEM_ADMIN) ──────────────────────────────
+// ── User & department management (SUPER_ADMIN) ──────────────────────────────
 
 type CreateUserInput struct {
 	Email        string
