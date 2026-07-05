@@ -17,11 +17,11 @@ import {
 // Colour per occupied-block source (see AvailabilityLegend).
 const SOURCE_CLASS: Record<string, string> = {
   LECTURE:
-    "border-[color-mix(in_oklch,var(--color-maroon)_40%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-maroon)_14%,var(--color-card))] text-[var(--color-maroon)]",
+    "border-[color-mix(in_oklch,var(--color-lecture)_45%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-lecture)_16%,var(--color-card))] text-[color-mix(in_oklch,var(--color-lecture)_72%,var(--color-foreground))]",
   BOOKING:
-    "border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-muted)_78%,var(--color-card))] text-[var(--color-foreground)]",
+    "border-[color-mix(in_oklch,var(--color-booking)_45%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-booking)_16%,var(--color-card))] text-[color-mix(in_oklch,var(--color-booking)_72%,var(--color-foreground))]",
   MAINTENANCE:
-    "border-[color-mix(in_oklch,var(--color-rejected)_38%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-rejected)_12%,var(--color-card))] text-[color-mix(in_oklch,var(--color-rejected)_65%,var(--color-foreground))]",
+    "border-[color-mix(in_oklch,var(--color-maintenance)_45%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-maintenance)_18%,var(--color-card))] text-[color-mix(in_oklch,var(--color-maintenance)_74%,var(--color-foreground))]",
 };
 const SOURCE_LABEL: Record<string, string> = {
   LECTURE: "Lecture",
@@ -90,7 +90,7 @@ export function AvailabilityGrid({
             </div>
             <div className="relative h-16 flex-1 border-l border-[var(--color-border)]">
               {/* Available base */}
-              <div className="absolute inset-0 bg-[color-mix(in_oklch,var(--color-booking)_6%,transparent)]" />
+              <div className="absolute inset-0 bg-[color-mix(in_oklch,var(--color-approved)_5%,transparent)]" />
               {/* Hour gridlines */}
               {ticks.map((m) => {
                 const pos = bandPosition(m, m, window);
@@ -120,12 +120,14 @@ export function AvailabilityGrid({
                       "absolute top-1/2 flex h-9 -translate-y-1/2 items-center overflow-hidden rounded border px-1.5 text-[11px] font-medium",
                       SOURCE_CLASS[b.source] ?? SOURCE_CLASS.BOOKING,
                     )}
-                    style={{ left: `${pos.left}%`, width: `${pos.width}%` }}
+                    style={{ left: `${pos.left}%`, width: `calc(${pos.width}% - 2px)` }}
                     title={`${SOURCE_LABEL[b.source] ?? b.source}: ${b.label} · ${hhmm(b.start)}–${hhmm(b.end)}`}
                   >
-                    <span className="truncate">
-                      {b.label || SOURCE_LABEL[b.source] || b.source}
-                    </span>
+                    {pos.width > 5 ? (
+                      <span className="truncate">
+                        {b.label || SOURCE_LABEL[b.source] || b.source}
+                      </span>
+                    ) : null}
                   </div>
                 );
               })}
@@ -139,9 +141,9 @@ export function AvailabilityGrid({
                     type="button"
                     onClick={() => onPick(room.id, iv)}
                     className={cn(
-                      "absolute top-1/2 h-9 -translate-y-1/2 justify-center rounded border border-dashed border-[var(--color-booking)] bg-[color-mix(in_oklch,var(--color-booking)_16%,transparent)] px-1.5 text-[11px] font-medium text-[var(--color-booking)] hover:bg-[color-mix(in_oklch,var(--color-booking)_30%,transparent)]",
+                      "absolute top-1/2 h-9 -translate-y-1/2 justify-center rounded border border-dashed border-[color-mix(in_oklch,var(--color-approved)_55%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-approved)_12%,transparent)] px-1.5 text-[11px] font-medium text-[color-mix(in_oklch,var(--color-approved)_78%,var(--color-foreground))] hover:bg-[color-mix(in_oklch,var(--color-approved)_26%,transparent)]",
                     )}
-                    style={{ left: `${pos.left}%`, width: `${pos.width}%` }}
+                    style={{ left: `${pos.left}%`, width: `calc(${pos.width}% - 2px)` }}
                     aria-label={`Book ${room.name} from ${hhmm(iv.start)} to ${hhmm(iv.end)}`}
                   >
                     <span className="truncate">
@@ -160,10 +162,10 @@ export function AvailabilityGrid({
 
 export function AvailabilityLegend() {
   const items = [
-    { label: "Free (click to book)", cls: "border border-dashed border-[var(--color-booking)] bg-[color-mix(in_oklch,var(--color-booking)_18%,transparent)]" },
-    { label: "Lecture", cls: "border border-[color-mix(in_oklch,var(--color-maroon)_40%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-maroon)_16%,var(--color-card))]" },
-    { label: "Booking", cls: "border border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-muted)_78%,var(--color-card))]" },
-    { label: "Maintenance", cls: "border border-[color-mix(in_oklch,var(--color-rejected)_38%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-rejected)_14%,var(--color-card))]" },
+    { label: "Free (click to book)", cls: "border border-dashed border-[color-mix(in_oklch,var(--color-approved)_55%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-approved)_16%,transparent)]" },
+    { label: "Lecture", cls: "border border-[color-mix(in_oklch,var(--color-lecture)_45%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-lecture)_18%,var(--color-card))]" },
+    { label: "Booking", cls: "border border-[color-mix(in_oklch,var(--color-booking)_45%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-booking)_18%,var(--color-card))]" },
+    { label: "Maintenance", cls: "border border-[color-mix(in_oklch,var(--color-maintenance)_45%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-maintenance)_20%,var(--color-card))]" },
     { label: "Requested window", cls: "border-x-2 border-dashed border-[var(--color-ink-400)] bg-[color-mix(in_oklch,var(--color-ink-300)_8%,transparent)]" },
   ];
   return (
