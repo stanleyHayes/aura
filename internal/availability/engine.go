@@ -104,7 +104,9 @@ func (e *Engine) dayOccupancy(ctx context.Context, roomID uuid.UUID, date time.T
 	dayEnd := day.Add(24 * time.Hour)
 	weekday := weekdayEnum[int(day.Weekday())]
 
-	var busy []BusyBlock
+	// Initialise (not nil) so the JSON is always [] not null — the web grid maps
+	// over it directly.
+	busy := []BusyBlock{}
 	var occupied []Interval
 
 	lectures, err := e.store.Read.ListRoomLecturesOnDay(ctx, dbgen.ListRoomLecturesOnDayParams{

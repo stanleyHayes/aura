@@ -110,7 +110,7 @@ export function AvailabilityGrid({
                 style={{ left: `${reqPos.left}%`, width: `${reqPos.width}%` }}
               />
               {/* Occupied blocks — labelled with the course/booking/maintenance */}
-              {busy.map((b, i) => {
+              {(busy ?? []).map((b, i) => {
                 const pos = bandPosition(b.start, b.end, window);
                 if (pos.width <= 0) return null;
                 return (
@@ -130,7 +130,7 @@ export function AvailabilityGrid({
                 );
               })}
               {/* Free gaps — click to book */}
-              {free_intervals.map((iv) => {
+              {(free_intervals ?? []).map((iv) => {
                 const pos = bandPosition(iv.start, iv.end, window);
                 if (pos.width <= 0) return null;
                 return (
