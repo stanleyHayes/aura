@@ -67,15 +67,30 @@ func TestEngineSearchAndCalendar(t *testing.T) {
 	// rooms created by other tests.
 	scope := catalogue.RoomFilter{BuildingID: &buildingID}
 
-	// Search 10:00–12:00 → the room is excluded (booked).
-	booked, err := eng.Search(ctx, availability.SearchQuery{Date: date, StartMin: 600, EndMin: 720, Filter: scope})
+	// Search now returns every matching room with its labelled occupancy and the
+	// free gaps between (the requested window is a client-side highlight only).
+	res, err := eng.Search(ctx, availability.SearchQuery{Date: date, StartMin: 600, EndMin: 720, Filter: scope})
 	require.NoError(t, err)
-	require.False(t, containsRoom(booked, roomID), "booked room must be excluded during its slot")
+	r := findRoom(res, roomID)
+	require.NotNil(t, r, "matching room must be present")
 
-	// Search 12:00–13:00 (adjacent, free) → the room is present.
-	free, err := eng.Search(ctx, availability.SearchQuery{Date: date, StartMin: 720, EndMin: 780, Filter: scope})
-	require.NoError(t, err)
-	require.True(t, containsRoom(free, roomID), "room must be free immediately after its booking")
+	// The approved booking shows as a labelled BUSY block over 10:00–12:00.
+	var sawBusyBooking bool
+	for _, bb := range r.Busy {
+		if bb.Source == "BOOKING" && bb.Start == 600 && bb.End == 720 {
+			sawBusyBooking = true
+		}
+	}
+	require.True(t, sawBusyBooking, "approved booking must appear as a busy block")
+
+	// There is free time after the booking.
+	var freeAfter bool
+	for _, iv := range r.FreeIntervals {
+		if iv.Start >= 720 {
+			freeAfter = true
+		}
+	}
+	require.True(t, freeAfter, "there must be free time after the booking")
 
 	// Calendar day view → contains a BOOKING block (APPROVED) and AVAILABLE gaps.
 	blocks, err := eng.Calendar(ctx, availability.CalendarQuery{View: "day", Date: date, RoomID: &roomID})
@@ -93,11 +108,11 @@ func TestEngineSearchAndCalendar(t *testing.T) {
 	require.True(t, sawAvailable, "calendar must show available gaps")
 }
 
-func containsRoom(results []availability.Result, id uuid.UUID) bool {
-	for _, r := range results {
-		if r.Room.ID == id {
-			return true
+func findRoom(results []availability.Result, id uuid.UUID) *availability.Result {
+	for i := range results {
+		if results[i].Room.ID == id {
+			return &results[i]
 		}
 	}
-	return false
+	return nil
 }

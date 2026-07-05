@@ -220,6 +220,14 @@ export interface components {
       room: components["schemas"]["Room"];
       /** Minutes from midnight: inclusive start, exclusive end. */
       free_intervals: { start: number; end: number }[];
+      /** Labelled occupied blocks (lectures/bookings/maintenance) for the day. */
+      busy: {
+        start: number;
+        end: number;
+        source: "LECTURE" | "BOOKING" | "MAINTENANCE";
+        status?: string;
+        label: string;
+      }[];
     };
     CalendarBlock: {
       date: string;

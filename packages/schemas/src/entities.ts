@@ -269,9 +269,19 @@ export const FreeInterval = z.object({
 });
 export type FreeInterval = z.infer<typeof FreeInterval>;
 
+export const BusyBlock = z.object({
+  start: z.number().int(),
+  end: z.number().int(),
+  source: z.enum(["LECTURE", "BOOKING", "MAINTENANCE"]),
+  status: z.string().optional(),
+  label: z.string(),
+});
+export type BusyBlock = z.infer<typeof BusyBlock>;
+
 export const AvailabilityResult = z.object({
   room: Room,
   free_intervals: z.array(FreeInterval),
+  busy: z.array(BusyBlock),
 });
 export type AvailabilityResult = z.infer<typeof AvailabilityResult>;
 

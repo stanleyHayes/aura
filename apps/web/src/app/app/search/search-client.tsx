@@ -318,7 +318,14 @@ export function SearchClient() {
                       type="number"
                       min={1}
                       placeholder="Any"
-                      {...form.register("min_capacity", { valueAsNumber: true })}
+                      {...form.register("min_capacity", {
+                        // Empty means "Any" — map to undefined (valueAsNumber
+                        // would produce NaN, which fails the optional schema).
+                        setValueAs: (v) =>
+                          v === "" || v === null || v === undefined
+                            ? undefined
+                            : Number(v),
+                      })}
                     />
                   )}
                 </Field>
@@ -366,8 +373,8 @@ export function SearchClient() {
           {submitted === null ? (
             <EmptyState
               icon={CalendarSearch}
-              title="Search to see free rooms"
-              description="Choose a date and time window, then refine with building, capacity, type and equipment."
+              title="Search to see rooms and their day"
+              description="Choose a date and time window, then refine by building, capacity, type and equipment. Each room shows its lectures and bookings, with free slots highlighted."
             />
           ) : query.isLoading ? (
             <div className="flex flex-col gap-2">
@@ -380,15 +387,15 @@ export function SearchClient() {
           ) : results.length === 0 ? (
             <EmptyState
               icon={DoorClosed}
-              title="No rooms free for that window"
-              description="Try widening the time window, lowering the minimum capacity, or relaxing the equipment requirements."
+              title="No rooms match those filters"
+              description="Try a different building, a lower minimum capacity, another room type, or fewer equipment requirements."
             />
           ) : (
             <>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-[var(--color-muted-foreground)]">
-                  {results.length} room{results.length === 1 ? "" : "s"} free for
-                  the entire window
+                  {results.length} matching room{results.length === 1 ? "" : "s"} ·
+                  click any free (dashed) slot to book
                 </p>
                 <AvailabilityLegend />
               </div>
