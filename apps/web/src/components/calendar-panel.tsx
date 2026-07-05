@@ -5,12 +5,13 @@ import { useQuery } from "@tanstack/react-query";
 import {
   CalendarClock,
   CheckCircle2,
+  DoorOpen,
   Hammer,
   Layers3,
   MapPinned,
   ShieldCheck,
 } from "lucide-react";
-import type { Building, CalendarBlock } from "@cbs/schemas";
+import type { Building, CalendarBlock, Room } from "@cbs/schemas";
 import {
   Card,
   CardContent,
@@ -67,6 +68,15 @@ function buildingOptions(buildings: Building[]): ComboboxOption[] {
   }));
 }
 
+function roomOptions(rooms: Room[]): ComboboxOption[] {
+  return rooms.map((room) => ({
+    value: room.id,
+    label: room.name,
+    description: room.room_code,
+    keywords: room.room_code,
+  }));
+}
+
 /** Building-scoped calendar panel reused in app + admin (§7.7, FR10). */
 export function CalendarPanel() {
   const buildings = useBuildings();
@@ -74,15 +84,40 @@ export function CalendarPanel() {
     () => buildings.data ?? [],
     [buildings.data],
   );
-  // The calendar endpoint requires a room_id or building_id (§8.3). Until the
-  // user picks one, default to the first building from the reference list.
+  // Default to the first building from the reference list until one is picked.
   const [selected, setSelected] = React.useState<string>("");
   const buildingId =
     selected || (buildingList.length > 0 ? buildingList[0]!.id : "");
 
-  const query = useQuery({
-    queryKey: qk.calendar({ buildingId, view: "week" }),
+  // Rooms in the selected building. The calendar shows ONE room at a time — a
+  // Schedule-X day/week grid can't separate resources, so a building-wide feed
+  // piles every room's lectures and available gaps on top of each other.
+  const roomsQuery = useQuery({
+    queryKey: qk.rooms({ buildingId, scope: "calendar" }),
     enabled: buildingId !== "",
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<Room[]> => {
+      const page = unwrap(
+        await api.GET("/api/v1/rooms", {
+          params: { query: { building_id: buildingId, limit: 200 } },
+        }),
+      );
+      return page.data as Room[];
+    },
+  });
+  const roomList = React.useMemo(() => roomsQuery.data ?? [], [roomsQuery.data]);
+  const [selectedRoom, setSelectedRoom] = React.useState<string>("");
+  // Use the chosen room if it still belongs to the building, else the first one.
+  const roomId =
+    selectedRoom && roomList.some((r) => r.id === selectedRoom)
+      ? selectedRoom
+      : roomList.length > 0
+        ? roomList[0]!.id
+        : "";
+
+  const query = useQuery({
+    queryKey: qk.calendar({ roomId, view: "week" }),
+    enabled: roomId !== "",
     queryFn: async (): Promise<CalendarBlock[]> => {
       const res = unwrap(
         await api.GET("/api/v1/calendar", {
@@ -90,7 +125,7 @@ export function CalendarPanel() {
             query: {
               view: "week",
               date: todayKey(),
-              building_id: buildingId,
+              room_id: roomId,
             },
           },
         }),
@@ -129,30 +164,56 @@ export function CalendarPanel() {
                   Campus schedule layer
                 </h2>
                 <p className="mt-1 max-w-xl text-sm leading-6 text-[var(--color-muted-foreground)]">
-                  Pick a building and scan lectures, bookings, maintenance, and
-                  available gaps from one live timeline.
+                  Pick a building and room to scan its lectures, bookings,
+                  maintenance, and available gaps on one live timeline.
                 </p>
               </div>
             </div>
 
-            <div className="w-full shrink-0 lg:w-72">
-              <label
-                className="mb-1.5 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]"
-                htmlFor="cal-building"
-              >
-                <MapPinned className="size-3.5" aria-hidden="true" />
-                Building
-              </label>
-              <Combobox
-                id="cal-building"
-                value={buildingId}
-                onValueChange={setSelected}
-                placeholder="Select a building"
-                searchPlaceholder="Search buildings by name or code"
-                emptyText="No buildings match your search."
-                align="end"
-                options={buildingOptions(buildingList)}
-              />
+            <div className="grid w-full shrink-0 gap-3 sm:grid-cols-2 lg:w-[34rem]">
+              <div>
+                <label
+                  className="mb-1.5 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]"
+                  htmlFor="cal-building"
+                >
+                  <MapPinned className="size-3.5" aria-hidden="true" />
+                  Building
+                </label>
+                <Combobox
+                  id="cal-building"
+                  value={buildingId}
+                  onValueChange={(v) => {
+                    setSelected(v);
+                    setSelectedRoom("");
+                  }}
+                  placeholder="Select a building"
+                  searchPlaceholder="Search buildings by name or code"
+                  emptyText="No buildings match your search."
+                  align="end"
+                  options={buildingOptions(buildingList)}
+                />
+              </div>
+              <div>
+                <label
+                  className="mb-1.5 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]"
+                  htmlFor="cal-room"
+                >
+                  <DoorOpen className="size-3.5" aria-hidden="true" />
+                  Room
+                </label>
+                <Combobox
+                  id="cal-room"
+                  value={roomId}
+                  onValueChange={setSelectedRoom}
+                  placeholder={
+                    roomsQuery.isLoading ? "Loading rooms…" : "Select a room"
+                  }
+                  searchPlaceholder="Search rooms by name or code"
+                  emptyText="No rooms in this building."
+                  align="end"
+                  options={roomOptions(roomList)}
+                />
+              </div>
             </div>
           </div>
 
@@ -192,10 +253,10 @@ export function CalendarPanel() {
 
       <Card className="overflow-hidden">
         <CardHeader className="border-b border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-muted)_36%,var(--color-card))]">
-          <CardTitle>Building timeline</CardTitle>
+          <CardTitle>Room timeline</CardTitle>
           <CardDescription>
-            Switch between day, week, and month views without leaving the selected
-            building.
+            One room at a time — switch between day, week, and month views for the
+            selected room.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -203,7 +264,7 @@ export function CalendarPanel() {
             <div className="p-5">
               <ProblemAlert error={query.error} />
             </div>
-          ) : query.isPending || buildingId === "" ? (
+          ) : query.isPending || roomId === "" ? (
             <div className="p-5">
               <Skeleton className="h-[32rem] w-full rounded-xl" />
             </div>
