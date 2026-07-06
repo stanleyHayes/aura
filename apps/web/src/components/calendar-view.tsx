@@ -21,6 +21,8 @@ import "@schedule-x/theme-default/dist/index.css";
 import type { CalendarBlock } from "@cbs/schemas";
 import { env } from "@/lib/env";
 import { scheduleXEventId } from "@/lib/calendar-events";
+import { Button } from "@cbs/ui/components/button";
+import { Maximize2, Minimize2 } from "lucide-react";
 
 /**
  * Day/week/month calendar of the unified block feed (§7.7) via Schedule-X
@@ -143,7 +145,63 @@ function subscribeToThemeChanges(onStoreChange: () => void) {
   return () => observer.disconnect();
 }
 
+// Operating hours the timetable opens on by default (staff are used to an
+// 8am–6:15pm grid). The rest of the day stays collapsed until a user expands it.
+const OPERATING_HOURS = { start: "08:00", end: "18:15" } as const;
+const EXPANDED_HOURS = { start: "06:00", end: "22:00" } as const;
+// Grid height (px) for the visible window. Fewer visible hours + a tall grid =
+// the bigger, roomier rows staff expect. Tuned so an hour is ~85px.
+const OPERATING_GRID_HEIGHT = 880;
+const EXPANDED_GRID_HEIGHT = 1120;
+
 export function CalendarView({ blocks }: { blocks: CalendarBlock[] }) {
+  // Schedule-X has no runtime setter for dayBoundaries/gridHeight, so toggling
+  // the window remounts the inner calendar (via `key`) with a fresh config.
+  const [expanded, setExpanded] = React.useState(false);
+
+  return (
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[color-mix(in_oklch,var(--color-muted)_24%,var(--color-card))] px-4 py-2.5">
+        <p className="text-xs text-[var(--color-muted-foreground)]">
+          {expanded
+            ? "Showing 06:00–22:00"
+            : "Showing operating hours 08:00–18:15"}
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? (
+            <>
+              <Minimize2 className="size-4" aria-hidden="true" />
+              Operating hours
+            </>
+          ) : (
+            <>
+              <Maximize2 className="size-4" aria-hidden="true" />
+              Expand hours
+            </>
+          )}
+        </Button>
+      </div>
+      <CalendarInner
+        key={expanded ? "expanded" : "operating"}
+        blocks={blocks}
+        expanded={expanded}
+      />
+    </div>
+  );
+}
+
+function CalendarInner({
+  blocks,
+  expanded,
+}: {
+  blocks: CalendarBlock[];
+  expanded: boolean;
+}) {
   const isDark = React.useSyncExternalStore(
     subscribeToThemeChanges,
     getDarkSnapshot,
@@ -184,6 +242,12 @@ export function CalendarView({ blocks }: { blocks: CalendarBlock[] }) {
   const calendar: CalendarApp | null = useNextCalendarApp({
     views: [createViewDay(), createViewWeek(), createViewMonthGrid()],
     defaultView: createViewWeek().name,
+    // Clamp the visible day to the operating window (or the expanded one); the
+    // grid then only draws those hours, so each row is larger.
+    dayBoundaries: expanded ? EXPANDED_HOURS : OPERATING_HOURS,
+    weekOptions: {
+      gridHeight: expanded ? EXPANDED_GRID_HEIGHT : OPERATING_GRID_HEIGHT,
+    },
     isDark,
     locale: "en-GB",
     events,
