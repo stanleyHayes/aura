@@ -106,6 +106,11 @@ export function BookDialog({
     const endMin = minutesOfDay(end);
     return !blocks.some((block) => {
       if (block.source === "AVAILABLE") return false;
+      // Pending bookings are allowed to compete; only approved bookings, lectures
+      // and maintenance windows actually block a new request.
+      if (block.source === "BOOKING" && block.status !== "APPROVED") {
+        return false;
+      }
       const blockStart = minutesOfDay(block.start);
       const blockEnd = minutesOfDay(block.end);
       // Two intervals overlap when the requested start is before the block ends
@@ -123,22 +128,22 @@ export function BookDialog({
       return;
     }
 
-    const available = await checkAvailability(
-      values.room_id,
-      values.date,
-      values.start,
-      values.end,
-    );
-    if (!available) {
-      setSubmitError(
-        new Error(
-          "That time is no longer available for this room. Please choose a different slot.",
-        ),
-      );
-      return;
-    }
-
     try {
+      const available = await checkAvailability(
+        values.room_id,
+        values.date,
+        values.start,
+        values.end,
+      );
+      if (!available) {
+        setSubmitError(
+          new Error(
+            "That time is no longer available for this room. Please choose a different slot.",
+          ),
+        );
+        return;
+      }
+
       // Combine local date + time (institution TZ) into RFC 3339 instants,
       // which the create endpoint expects as starts_at / ends_at (§8.3).
       const idempotencyKey = crypto.randomUUID();

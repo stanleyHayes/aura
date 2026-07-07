@@ -41,7 +41,7 @@ const SelectContent = React.forwardRef<
       ref={ref}
       style={{ backgroundColor: "var(--color-popover)", ...style }}
       className={cn(
-        "relative z-[200] max-h-96 min-w-[8rem] overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-popover)] text-[var(--color-popover-foreground)] shadow-lg ring-1 ring-black/5",
+        "relative z-[220] max-h-96 min-w-[8rem] overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-popover)] text-[var(--color-popover-foreground)] shadow-lg ring-1 ring-black/5",
         "data-[state=open]:animate-[fade-in_160ms_ease-out]",
         position === "popper" &&
           "data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1",

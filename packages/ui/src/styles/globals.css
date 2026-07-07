@@ -319,10 +319,10 @@
     animation: splash-progress 1.35s var(--ease-out-quart) infinite;
   }
 
-  /* AURA buttons use a uniform, medium border-radius on every corner so all
+  /* AURA buttons use a uniform, small border-radius on every corner so all
      button sizes and variants share the same silhouette. */
   .aura-button-shape {
-    border-radius: 0.5rem;
+    border-radius: 0.25rem;
   }
 
   @media (prefers-reduced-motion: reduce) {

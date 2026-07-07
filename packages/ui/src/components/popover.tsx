@@ -19,7 +19,7 @@ const PopoverContent = React.forwardRef<
       sideOffset={sideOffset}
       style={{ backgroundColor: "var(--color-popover)", ...style }}
       className={cn(
-        "z-[200] w-72 rounded-lg border border-[var(--color-border)] bg-[var(--color-popover)] p-4 text-[var(--color-popover-foreground)] shadow-lg ring-1 ring-black/5 outline-none",
+        "z-[220] w-72 rounded-lg border border-[var(--color-border)] bg-[var(--color-popover)] p-4 text-[var(--color-popover-foreground)] shadow-lg ring-1 ring-black/5 outline-none",
         "data-[state=open]:animate-[slide-up_180ms_ease-out]",
         className,
       )}
