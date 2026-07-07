@@ -412,7 +412,230 @@ not yet run on a physical device.
 
 ---
 
-## 11. How to navigate / extend, by task
+## 11. Core algorithms
+
+This section describes the important algorithms that drive the domain. They are
+implemented in the Go modules; the web/mobile apps mirror the rules for UX but
+the API is the source of truth.
+
+### 11.1 Interval arithmetic (the availability primitive)
+
+All time-window calculations work in **minutes-from-midnight** on a local
+(`Africa/Accra`) day using half-open intervals `[start, end)`.
+
+```go
+type Interval struct { Start, End int } // 0 ≤ Start ≤ End ≤ 1440
+```
+
+Half-open semantics matter: a lecture ending at 10:00 and a booking starting at
+10:00 **do not overlap**, so the room is free at exactly 10:00. The primitives in
+`internal/availability/intervals.go` are:
+
+- **`Overlaps(a, b)`** — true iff `a.Start < b.End && b.Start < a.End`.
+- **`Merge(intervals)`** — sort by start, then coalesce overlapping or adjacent
+  intervals into a minimal disjoint set.
+- **`Subtract(window, occupied)`** — merge and clamp `occupied` to the window,
+  then emit the free gaps before, between, and after occupied blocks.
+- **`FullyFree(window, occupied)`** — true iff no occupied interval overlaps the
+  requested window (used to reject rooms that are busy for any part of the slot).
+
+These functions are pure and fully unit-tested; they are the only place interval
+math lives.
+
+### 11.2 Availability search
+
+`GET /api/v1/availability/search` answers "which rooms are free for my whole
+window, and what smaller free gaps do they have around it?"
+
+1. Force the filter to `Status = ACTIVE` (only bookable rooms).
+2. Call `catalogue.SearchRooms` for candidates.
+3. For each room, call `dayOccupancy(roomID, date)`:
+   - Load active-semester lectures for that weekday.
+   - Load `APPROVED` bookings on that day.
+   - Load maintenance windows on that day.
+   - Convert lecture `time` columns and clamp booking/maintenance UTC instants to
+     local minutes `[0, 1440]`.
+4. Return `Busy` blocks (labelled `LECTURE`/`BOOKING`/`MAINTENANCE`) and
+   `FreeIntervals = Subtract([0, 1440], occupied)`.
+
+The requested `start`/`end` is a **client highlight**, not a server filter. This
+lets users see the full day and click any free gap, even one smaller or larger
+than their original search.
+
+### 11.3 Calendar block generation
+
+`GET /api/v1/calendar` builds the unified day/week/month view.
+
+1. `rangeFor(view, date)` expands the query date into a local range:
+   - `day` — the single date.
+   - `week` — ISO Monday–Sunday.
+   - `month` — full calendar month.
+2. `scopeRooms` resolves to one room or all rooms in a building (capped at 200).
+3. For every date × room:
+   - Load lectures, **approved and pending** bookings, and maintenance.
+   - Emit a labelled block for every source.
+   - Add only **APPROVED** bookings to the occupancy set; pending bookings are
+     visible but do not reduce availability.
+   - Emit `AVAILABLE` gaps with `Subtract([0, 1440], occupied)`.
+
+This is why the booking dialog's pre-submit availability check must ignore
+`PENDING` booking blocks even though they appear on the calendar.
+
+### 11.4 Booking a room (submit)
+
+`POST /api/v1/bookings` creates a `PENDING` request.
+
+1. Validate `purpose`, `attendee_count` in `[1, 100000]`, and `ends_at > starts_at`.
+2. Run `hardConflicts` against **lectures and maintenance only**:
+   - Build the request interval in local minutes.
+   - Load the room's lectures for that weekday and maintenance for that day.
+   - Reject with `CONFLICTS_WITH_LECTURE` or `CONFLICTS_WITH_MAINTENANCE` on any
+     overlap (BR1).
+3. Insert the row as `PENDING`.
+   - The `fn_validate_booking` trigger independently rejects:
+     - past times (`BOOKING_IN_PAST`);
+     - multi-day spans (`BOOKING_SPANS_MULTIPLE_DAYS`);
+     - capacity exceeded (`ATTENDEES_EXCEED_CAPACITY`).
+4. Count competing `PENDING` overlaps (excluding the new row) and return
+   `SubmitResult{Booking, CompetingPending}` so the UI can warn the requester
+   that others want the same slot (FR8).
+
+Approved bookings are **not** checked at submit time; the database resolves that
+race at approval time.
+
+### 11.5 Booking approval and the double-booking race
+
+`PATCH /api/v1/bookings/{id}/approve` moves a booking to `APPROVED`.
+
+1. `FOR UPDATE` lock the booking row and validate the state transition.
+2. Acquire a **per-room PostgreSQL advisory lock** keyed on the room ID string.
+   This serialises concurrent approval attempts for the same room.
+3. Update status to `APPROVED` inside a transaction.
+4. The partial exclusion constraint `excl_booking_overlap`
+   (`room_id WITH =, during WITH && WHERE status = 'APPROVED'`) is the ultimate
+   race resolver. If another officer approved a conflicting booking first, this
+   transaction gets a constraint violation, mapped to `409 SLOT_NO_LONGER_AVAILABLE`.
+5. Commit and notify.
+
+A concurrency test proves that *N* officers approving competing requests for the
+same slot result in exactly one `APPROVED` booking and *N‑1* `409` responses.
+
+### 11.6 Booking state machine
+
+`internal/bookings/state.go` encodes the transition table:
+
+```text
+PENDING  → APPROVED | REJECTED | CANCELLED | EXPIRED
+APPROVED → CANCELLED
+REJECTED, CANCELLED, EXPIRED are terminal
+```
+
+Every transition is validated before any DB update. Terminal states have no
+outgoing transitions, so a rejected or cancelled booking cannot be resurrected.
+
+### 11.7 Maintenance windows
+
+`POST /api/v1/maintenance-windows` inserts an occupied window.
+
+1. Validate `ends_at > starts_at`.
+2. Insert the row.
+3. The exclusion constraint `excl_maint_overlap` prevents two maintenance windows
+   for the same room from overlapping.
+4. The symmetric trigger `fn_validate_maintenance` also blocks a maintenance
+   window from being created on top of an existing `APPROVED` booking.
+
+Maintenance windows are treated exactly like lectures in availability and
+approval calculations.
+
+### 11.8 Room search and filtering
+
+`GET /api/v1/rooms` builds dynamic SQL with parameter binding only (no string
+interpolation of values).
+
+1. Join `rooms` → `buildings`.
+2. Apply optional filters: `status`, `building_id`, `capacity >= min`, `room_type`,
+   `name ILIKE '%query%'`.
+3. For each equipment term, add an `EXISTS` subquery matching
+   `lower(e.code) = term OR lower(e.name) = term`.
+4. Cursor pagination on `r.id > cursor`, ordered by `r.id`.
+5. Enforce limit bounds (default/capped).
+
+The same `RoomFilter` is reused by the availability engine.
+
+### 11.9 Timetable import / ingestion
+
+`POST /api/v1/timetable/import` ingests CSV or XLSX timetable events for a
+semester.
+
+1. Parse the file with a 64 MB unzip/size limit and a 20,000-row cap.
+2. `mapHeaders` resolves canonical columns via case-insensitive aliases
+   (`course code`, `course name`, `staff name`, `location`, `day`, `from time`,
+   `to time`, etc.).
+3. `ParseClock` normalises `08:00`, `8:00 AM`, `0800`, `1430`, etc. to 24-hour
+   `(hour, min)`.
+4. `ParseDay` maps `MON`/`MONDAY`/three-letter forms to `day_of_week`.
+5. In `replace` mode, delete all existing events for the semester first
+   (bookings are untouched).
+6. For each row:
+   - Resolve the room by code, then by name; if `createMissing` is true,
+     provision a building + room on the fly.
+   - Deduplicate within the upload using a signature `room|day|start|end`.
+   - Validate `end > start` and semester bounds.
+   - Insert valid rows; collect invalid rows as `RowError{row, field, message}`.
+7. Persist the final status (`COMPLETED`, `PARTIALLY_COMPLETED`, or `FAILED`) and
+   an `error_report` JSONB.
+
+The one-active-semester rule (`uq_one_active_semester`) and the lecture overlap
+exclusion (`excl_tt_overlap`) are enforced by the database.
+
+### 11.10 Reporting / utilisation
+
+`GET /api/v1/reports/utilisation` computes room usage over a date range.
+
+1. CTE `booked`: sum approved booking durations in hours.
+2. CTE `lectures`: sum active-semester timetable-event durations multiplied by
+   the number of matching weekdays inside the semester date range.
+3. Join rooms; compute:
+   - `used = lecture_hours + booked_hours`
+   - `available = workingHoursPerDay × days_in_range - used`
+   - `utilisation_pct = used / available × 100`
+4. Return per-room rows plus an average.
+
+Other reports (`/reports/bookings`, `/reports/conflicts`, `/reports/overview`)
+use similar SQL CTEs and `generate_series` spines for daily/hourly series.
+
+### 11.11 Authentication and session refresh
+
+`POST /api/v1/auth/login`:
+
+1. Look up user by email. If missing, verify against a precomputed dummy Argon2
+   hash to equalise timing (no user enumeration).
+2. Check account lock (`locked_until`).
+3. Verify password with Argon2id.
+4. Reject `SUSPENDED` users.
+5. If MFA is enabled, require and verify a TOTP code (failures count as login
+   failures).
+6. Issue tokens.
+
+`issueTokens`:
+
+1. Sign a short-lived access JWT (user ID, role, email).
+2. Generate an opaque refresh token, hash it, and store it with a `family_id`,
+   user-agent, IP, and expiry.
+
+`POST /api/v1/auth/refresh`:
+
+1. Look up the token by hash.
+2. If already revoked, revoke the **whole family** and return `ErrTokenReuse`.
+3. If expired or user suspended, reject.
+4. Revoke the current token (rotation) and issue a new pair in the same family.
+
+Password changes, role changes, and suspension revoke all refresh tokens for the
+user, forcing re-login.
+
+---
+
+## 12. How to navigate / extend, by task
 
 | You want to… | Start here |
 |---|---|
