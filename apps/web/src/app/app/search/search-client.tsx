@@ -410,7 +410,12 @@ export function SearchClient() {
         </div>
       </div>
 
-      <BookDialog draft={draft} open={bookOpen} onOpenChange={setBookOpen} />
+      <BookDialog
+        draft={draft}
+        rooms={results.map((r) => r.room)}
+        open={bookOpen}
+        onOpenChange={setBookOpen}
+      />
     </>
   );
 }

@@ -319,13 +319,10 @@
     animation: splash-progress 1.35s var(--ease-out-quart) infinite;
   }
 
-  /* AURA buttons keep a subtle dynamic silhouette via an asymmetric radius
-     (sharp top-left / bottom-right, soft top-right / bottom-left) — a nod to the
-     brand slant WITHOUT a clip-path, which previously sheared off the first and
-     last glyphs of the label (e.g. "Sign in", "Get started", "Try again"). A
-     border-radius never clips content. */
+  /* AURA buttons use a uniform, medium border-radius on every corner so all
+     button sizes and variants share the same silhouette. */
   .aura-button-shape {
-    border-radius: 0.1875rem 0.625rem 0.1875rem 0.625rem;
+    border-radius: 0.5rem;
   }
 
   @media (prefers-reduced-motion: reduce) {

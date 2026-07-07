@@ -24,7 +24,7 @@ const buttonVariants = cva(
         default: "aura-button-shape h-10 px-7 py-2",
         sm: "aura-button-shape h-9 px-6 text-sm",
         lg: "aura-button-shape h-12 px-10 text-base",
-        icon: "size-10 rounded-md",
+        icon: "aura-button-shape size-10",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

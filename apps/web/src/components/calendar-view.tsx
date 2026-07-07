@@ -146,12 +146,14 @@ function subscribeToThemeChanges(onStoreChange: () => void) {
 }
 
 // Operating hours the timetable opens on by default (staff are used to an
-// 8am–6:15pm grid). The rest of the day stays collapsed until a user expands it.
-const OPERATING_HOURS = { start: "08:00", end: "18:15" } as const;
+// 8am–7pm grid). The rest of the day stays collapsed until a user expands it.
+// Schedule-X requires dayBoundaries to be whole hours (HH:00), so 18:15 is not
+// valid and is rounded up to 19:00 to keep the full operating window visible.
+const OPERATING_HOURS = { start: "08:00", end: "19:00" } as const;
 const EXPANDED_HOURS = { start: "06:00", end: "22:00" } as const;
 // Grid height (px) for the visible window. Fewer visible hours + a tall grid =
 // the bigger, roomier rows staff expect. Tuned so an hour is ~85px.
-const OPERATING_GRID_HEIGHT = 880;
+const OPERATING_GRID_HEIGHT = 935;
 const EXPANDED_GRID_HEIGHT = 1120;
 
 export function CalendarView({ blocks }: { blocks: CalendarBlock[] }) {
@@ -165,7 +167,7 @@ export function CalendarView({ blocks }: { blocks: CalendarBlock[] }) {
         <p className="text-xs text-[var(--color-muted-foreground)]">
           {expanded
             ? "Showing 06:00–22:00"
-            : "Showing operating hours 08:00–18:15"}
+            : "Showing operating hours 08:00–19:00"}
         </p>
         <Button
           type="button"
