@@ -14,26 +14,11 @@ import {
   type DisplayWindow,
 } from "@/lib/intervals";
 
-// Colour per occupied-block source (see AvailabilityLegend).
-const SOURCE_CLASS: Record<string, string> = {
-  LECTURE:
-    "border-[color-mix(in_oklch,var(--color-lecture)_45%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-lecture)_16%,var(--color-card))] text-[color-mix(in_oklch,var(--color-lecture)_72%,var(--color-foreground))]",
-  BOOKING:
-    "border-[color-mix(in_oklch,var(--color-booking)_45%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-booking)_16%,var(--color-card))] text-[color-mix(in_oklch,var(--color-booking)_72%,var(--color-foreground))]",
-  MAINTENANCE:
-    "border-[color-mix(in_oklch,var(--color-maintenance)_45%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-maintenance)_18%,var(--color-card))] text-[color-mix(in_oklch,var(--color-maintenance)_74%,var(--color-foreground))]",
-};
-const SOURCE_LABEL: Record<string, string> = {
-  LECTURE: "Lecture",
-  BOOKING: "Booking",
-  MAINTENANCE: "Maintenance",
-};
-
 /**
  * Custom availability grid (ADR-0005): rooms down the y-axis, time across the
- * x-axis. Occupied blocks (lectures, approved bookings, maintenance) are drawn
- * in place and labelled; the free gaps between them are green dashed bands the
- * requester can click to pre-fill a booking. Keyboard-operable (§12.2).
+ * x-axis. Only free (available) intervals are shown as clickable dashed bands.
+ * Occupied blocks (lectures, bookings, maintenance) are hidden because the
+ * requester only needs to see what can be booked. Keyboard-operable (§12.2).
  */
 export function AvailabilityGrid({
   results,
@@ -79,7 +64,7 @@ export function AvailabilityGrid({
       </div>
 
       <ul className="divide-y divide-[var(--color-border)]">
-        {results.map(({ room, free_intervals, busy }) => (
+        {results.map(({ room, free_intervals }) => (
           <li key={room.id} className="flex items-stretch">
             <div className="flex w-48 shrink-0 flex-col justify-center px-4 py-3">
               <p className="truncate text-sm font-medium">{room.name}</p>
@@ -89,8 +74,8 @@ export function AvailabilityGrid({
               </p>
             </div>
             <div className="relative h-16 flex-1 border-l border-[var(--color-border)]">
-              {/* Available base */}
-              <div className="absolute inset-0 bg-[color-mix(in_oklch,var(--color-approved)_5%,transparent)]" />
+              {/* Neutral base */}
+              <div className="absolute inset-0 bg-[var(--color-muted)]/20" />
               {/* Hour gridlines */}
               {ticks.map((m) => {
                 const pos = bandPosition(m, m, window);
@@ -109,28 +94,6 @@ export function AvailabilityGrid({
                 className="absolute inset-y-0 border-x-2 border-dashed border-[var(--color-ink-400)] bg-[color-mix(in_oklch,var(--color-ink-300)_8%,transparent)]"
                 style={{ left: `${reqPos.left}%`, width: `${reqPos.width}%` }}
               />
-              {/* Occupied blocks — labelled with the course/booking/maintenance */}
-              {(busy ?? []).map((b, i) => {
-                const pos = bandPosition(b.start, b.end, window);
-                if (pos.width <= 0) return null;
-                return (
-                  <div
-                    key={`busy-${b.start}-${b.end}-${i}`}
-                    className={cn(
-                      "absolute top-1/2 flex h-9 -translate-y-1/2 items-center overflow-hidden rounded border px-1.5 text-[11px] font-medium",
-                      SOURCE_CLASS[b.source] ?? SOURCE_CLASS.BOOKING,
-                    )}
-                    style={{ left: `${pos.left}%`, width: `calc(${pos.width}% - 2px)` }}
-                    title={`${SOURCE_LABEL[b.source] ?? b.source}: ${b.label} · ${hhmm(b.start)}–${hhmm(b.end)}`}
-                  >
-                    {pos.width > 5 ? (
-                      <span className="truncate">
-                        {b.label || SOURCE_LABEL[b.source] || b.source}
-                      </span>
-                    ) : null}
-                  </div>
-                );
-              })}
               {/* Free gaps — click to book */}
               {(free_intervals ?? []).map((iv) => {
                 const pos = bandPosition(iv.start, iv.end, window);
@@ -163,9 +126,6 @@ export function AvailabilityGrid({
 export function AvailabilityLegend() {
   const items = [
     { label: "Free (click to book)", cls: "border border-dashed border-[color-mix(in_oklch,var(--color-approved)_55%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-approved)_16%,transparent)]" },
-    { label: "Lecture", cls: "border border-[color-mix(in_oklch,var(--color-lecture)_45%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-lecture)_18%,var(--color-card))]" },
-    { label: "Booking", cls: "border border-[color-mix(in_oklch,var(--color-booking)_45%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-booking)_18%,var(--color-card))]" },
-    { label: "Maintenance", cls: "border border-[color-mix(in_oklch,var(--color-maintenance)_45%,var(--color-border))] bg-[color-mix(in_oklch,var(--color-maintenance)_20%,var(--color-card))]" },
     { label: "Requested window", cls: "border-x-2 border-dashed border-[var(--color-ink-400)] bg-[color-mix(in_oklch,var(--color-ink-300)_8%,transparent)]" },
   ];
   return (
