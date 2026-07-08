@@ -24,7 +24,7 @@ export function BookingTimeline({ booking }: { booking: Booking }) {
     steps.push({ label: "Awaiting review", state: "current" });
   } else if (booking.status === "APPROVED") {
     steps.push({
-      label: "Approved",
+      label: "Accepted",
       at: booking.reviewed_at,
       state: "done",
       detail: booking.review_note,
@@ -41,6 +41,7 @@ export function BookingTimeline({ booking }: { booking: Booking }) {
       label: "Cancelled",
       at: booking.cancelled_at,
       state: "rejected",
+      detail: booking.cancel_note,
     });
   } else if (booking.status === "EXPIRED") {
     steps.push({

@@ -51,10 +51,10 @@ export default async function AppDashboard() {
       value: pending.length,
       icon: Clock,
       tone: "warning" as const,
-      subtext: "Waiting for an approval decision",
+      subtext: "Waiting for a decision",
     },
     {
-      label: "Approved bookings",
+      label: "Accepted bookings",
       value: approved.length,
       icon: CheckCircle2,
       tone: "success" as const,
@@ -78,7 +78,7 @@ export default async function AppDashboard() {
         actions={
           <Button asChild>
             <Link href="/app/search">
-              <CalendarSearch className="size-4" /> Find a room
+              <CalendarSearch className="size-4" /> Book a room
             </Link>
           </Button>
         }
@@ -92,19 +92,19 @@ export default async function AppDashboard() {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Upcoming approved bookings</CardTitle>
+          <CardTitle>Upcoming accepted bookings</CardTitle>
         </CardHeader>
         <CardContent>
           {upcoming.length === 0 ? (
             <EmptyState
               icon={CalendarSearch}
               title="No upcoming bookings yet"
-              description="Approved future bookings will collect here. Start with live room availability when you need a space."
+              description="Accepted future bookings will collect here. Start with live room availability when you need a space."
               action={
                 <Button asChild>
                   <Link href="/app/search">
                     <CalendarSearch className="size-4" aria-hidden="true" />
-                    Find a room
+                    Book a room
                   </Link>
                 </Button>
               }

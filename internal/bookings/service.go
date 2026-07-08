@@ -202,7 +202,7 @@ func (s *Service) Reject(ctx context.Context, bookingID, officerID uuid.UUID, no
 
 // Cancel transitions PENDING/APPROVED→CANCELLED. Ownership is checked by caller.
 // Locks the row (FOR UPDATE) to avoid the same TOCTOU race as Reject.
-func (s *Service) Cancel(ctx context.Context, bookingID, actorID uuid.UUID) (BookingView, error) {
+func (s *Service) Cancel(ctx context.Context, bookingID, actorID uuid.UUID, note *string) (BookingView, error) {
 	var view BookingView
 	err := s.store.WithinTxDefault(ctx, func(q *dbgen.Queries, _ pgx.Tx) error {
 		b, err := q.GetBookingForUpdate(ctx, bookingID)
@@ -215,9 +215,13 @@ func (s *Service) Cancel(ctx context.Context, bookingID, actorID uuid.UUID) (Boo
 		if !CanTransition(b.Status, dbgen.BookingStatusCANCELLED) {
 			return apperr.ErrInvalidTransition.WithDetail("cannot cancel a %s booking", b.Status)
 		}
-		row, err := q.SetBookingStatus(ctx, dbgen.SetBookingStatusParams{
+		params := dbgen.SetBookingStatusParams{
 			ID: bookingID, Status: dbgen.BookingStatusCANCELLED, ReviewedBy: &actorID,
-		})
+		}
+		if note != nil {
+			params.CancelNote = note
+		}
+		row, err := q.SetBookingStatus(ctx, params)
 		if err != nil {
 			return db.MapError(err)
 		}

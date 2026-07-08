@@ -8,7 +8,7 @@ const sections: NavSection[] = [
     icon: "dashboard",
     items: [
       { href: "/app", label: "Overview", icon: "dashboard", exact: true },
-      { href: "/app/search", label: "Find a room", icon: "search" },
+      { href: "/app/search", label: "Book a room", icon: "search" },
       { href: "/app/bookings", label: "My bookings", icon: "ticket" },
       { href: "/app/calendar", label: "Calendar", icon: "calendar" },
       { href: "/app/notifications", label: "Notifications", icon: "bell" },

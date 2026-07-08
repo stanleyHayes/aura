@@ -79,7 +79,7 @@ export default function OpengraphImage() {
           </div>
           <div style={{ fontSize: "30px", opacity: 0.85, maxWidth: "880px" }}>
             Reserve classrooms and campus facilities with real-time availability,
-            approvals and conflict detection.
+            request handling and conflict detection.
           </div>
         </div>
       </div>

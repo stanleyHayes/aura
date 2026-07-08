@@ -643,7 +643,7 @@ export function AccountSettingsClient({ session }: { session: AppSession }) {
               <PreferenceRow
                 checked={preferences.inAppAlerts}
                 title="In-app alerts"
-                description="Show booking and approval alerts in the top navigation."
+                description="Show booking and request alerts in the top navigation."
                 onChange={(checked) => updatePreference("inAppAlerts", checked)}
               />
               <Button

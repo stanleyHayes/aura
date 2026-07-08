@@ -86,7 +86,7 @@ export const ROOM_TYPE_LABELS: Record<RoomType, string> = {
 
 export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   PENDING: "Pending",
-  APPROVED: "Approved",
+  APPROVED: "Accepted",
   REJECTED: "Rejected",
   CANCELLED: "Cancelled",
   EXPIRED: "Expired",

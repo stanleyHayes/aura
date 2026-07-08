@@ -5,22 +5,22 @@
 INSERT INTO bookings (room_id, requested_by, purpose, attendee_count, starts_at, ends_at, status)
 VALUES ($1, $2, $3, $4, $5, $6, 'PENDING')
 RETURNING id, room_id, requested_by, purpose, attendee_count, starts_at, ends_at, status,
-          reviewed_by, review_note, reviewed_at, cancelled_at, created_at, updated_at;
+          reviewed_by, review_note, reviewed_at, cancelled_at, cancel_note, created_at, updated_at;
 
 -- name: GetBooking :one
 SELECT id, room_id, requested_by, purpose, attendee_count, starts_at, ends_at, status,
-       reviewed_by, review_note, reviewed_at, cancelled_at, created_at, updated_at
+       reviewed_by, review_note, reviewed_at, cancelled_at, cancel_note, created_at, updated_at
 FROM bookings WHERE id = $1;
 
 -- name: GetBookingForUpdate :one
 -- Lock the row for the approval re-check (§7.3).
 SELECT id, room_id, requested_by, purpose, attendee_count, starts_at, ends_at, status,
-       reviewed_by, review_note, reviewed_at, cancelled_at, created_at, updated_at
+       reviewed_by, review_note, reviewed_at, cancelled_at, cancel_note, created_at, updated_at
 FROM bookings WHERE id = $1 FOR UPDATE;
 
 -- name: ListBookings :many
 SELECT id, room_id, requested_by, purpose, attendee_count, starts_at, ends_at, status,
-       reviewed_by, review_note, reviewed_at, cancelled_at, created_at, updated_at
+       reviewed_by, review_note, reviewed_at, cancelled_at, cancel_note, created_at, updated_at
 FROM bookings
 WHERE (sqlc.narg('requester_id')::uuid IS NULL OR requested_by = sqlc.narg('requester_id'))
   AND (sqlc.narg('room_id')::uuid IS NULL OR room_id = sqlc.narg('room_id'))
@@ -37,7 +37,7 @@ LIMIT sqlc.arg('lim');
 -- approvability blockers are then computed per row in the service layer.
 SELECT b.id, b.room_id, b.requested_by, b.purpose, b.attendee_count,
        b.starts_at, b.ends_at, b.status, b.reviewed_by, b.review_note,
-       b.reviewed_at, b.cancelled_at, b.created_at, b.updated_at,
+       b.reviewed_at, b.cancelled_at, b.cancel_note, b.created_at, b.updated_at,
        r.room_code        AS room_code,
        r.name             AS room_name,
        r.capacity         AS room_capacity,
@@ -62,10 +62,11 @@ SET status = $2,
     review_note = COALESCE(sqlc.narg('review_note'), review_note),
     reviewed_at = CASE WHEN $2 IN ('APPROVED'::booking_status,'REJECTED'::booking_status) THEN now() ELSE reviewed_at END,
     cancelled_at = CASE WHEN $2 = 'CANCELLED'::booking_status THEN now() ELSE cancelled_at END,
+    cancel_note = COALESCE(sqlc.narg('cancel_note'), cancel_note),
     updated_at = now()
 WHERE id = $1
 RETURNING id, room_id, requested_by, purpose, attendee_count, starts_at, ends_at, status,
-          reviewed_by, review_note, reviewed_at, cancelled_at, created_at, updated_at;
+          reviewed_by, review_note, reviewed_at, cancelled_at, cancel_note, created_at, updated_at;
 
 -- name: ExpireStalePending :execrows
 -- Set EXPIRED for PENDING bookings whose start time has passed (§7.2).

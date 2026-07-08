@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Ticket } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   BOOKING_STATUS_LABELS,
   BookingStatus,
@@ -17,7 +17,6 @@ import {
   TabsList,
   TabsTrigger,
 } from "@cbs/ui/components/tabs";
-import { useToast } from "@cbs/ui/components/toast";
 import { formatDate, formatTimeRange } from "@cbs/ui/lib/datetime";
 import { api, unwrap } from "@/lib/api/client";
 import { qk } from "@/lib/query-keys";
@@ -25,14 +24,13 @@ import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { ProblemAlert } from "@/components/problem-alert";
 import { StatusBadge } from "@/components/status-badge";
+import { CancelDialog } from "@/components/cancel-dialog";
 
 const FILTERS = ["all", ...BookingStatus.options] as const;
 type Filter = (typeof FILTERS)[number];
 
 export function MyBookingsClient() {
   const [filter, setFilter] = React.useState<Filter>("all");
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   const query = useQuery({
     queryKey: qk.bookings({ scope: "mine" }),
@@ -46,25 +44,7 @@ export function MyBookingsClient() {
     },
   });
 
-  const cancel = useMutation({
-    mutationFn: async (id: string) =>
-      unwrap(
-        await api.POST("/api/v1/bookings/{id}/cancel", {
-          params: { path: { id } },
-        }),
-      ),
-    onSuccess: () => {
-      toast({ variant: "success", title: "Booking cancelled" });
-      void queryClient.invalidateQueries({ queryKey: ["bookings"] });
-    },
-    onError: (err) => {
-      toast({
-        variant: "destructive",
-        title: "Couldn't cancel",
-        description: err instanceof Error ? err.message : undefined,
-      });
-    },
-  });
+  const [cancelId, setCancelId] = React.useState<string | null>(null);
 
   const all = query.data ?? [];
   const visible =
@@ -78,7 +58,7 @@ export function MyBookingsClient() {
         description="Track the status of every request you've made."
         actions={
           <Button asChild>
-            <Link href="/app/search">Find a room</Link>
+            <Link href="/app/search">Book a room</Link>
           </Button>
         }
       />
@@ -98,6 +78,11 @@ export function MyBookingsClient() {
         </TabsList>
       </Tabs>
 
+      <CancelDialog
+        bookingId={cancelId}
+        onOpenChange={(open) => !open && setCancelId(null)}
+      />
+
       {query.isLoading ? (
         <div className="flex flex-col gap-2">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -113,7 +98,7 @@ export function MyBookingsClient() {
           description="When you submit a request it will appear in this list with its live status."
           action={
             <Button asChild>
-              <Link href="/app/search">Find a room</Link>
+              <Link href="/app/search">Book a room</Link>
             </Button>
           }
         />
@@ -143,8 +128,7 @@ export function MyBookingsClient() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => cancel.mutate(b.id)}
-                        disabled={cancel.isPending}
+                        onClick={() => setCancelId(b.id)}
                       >
                         Cancel
                       </Button>

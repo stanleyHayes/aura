@@ -127,6 +127,14 @@ export const RejectBookingForm = z.object({
 });
 export type RejectBookingForm = z.infer<typeof RejectBookingForm>;
 
+export const CancelBookingForm = z.object({
+  note: z
+    .string()
+    .max(500, "Keep the note under 500 characters.")
+    .optional(),
+});
+export type CancelBookingForm = z.infer<typeof CancelBookingForm>;
+
 export const OverrideBookingForm = z.object({
   note: z.string().min(3, "Record why you are overriding.").max(500),
   cancel_conflicting: z.boolean(),

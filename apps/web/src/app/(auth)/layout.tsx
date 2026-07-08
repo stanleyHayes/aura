@@ -12,7 +12,7 @@ const TRUST_POINTS = [
   },
   {
     icon: ShieldCheck,
-    title: "Approval-aware booking",
+    title: "Request-aware booking",
     detail: "Requests route to the right officer automatically.",
   },
   {
@@ -53,7 +53,7 @@ export default function AuthLayout({
             Reserve campus spaces without the back-and-forth.
           </p>
           <p className="mt-2 text-sm leading-6 text-[color-mix(in_oklch,var(--color-paper-50)_76%,transparent)]">
-            Live availability, approvals, and timetable checks in one secure place.
+            Live availability, request handling, and timetable checks in one secure place.
           </p>
         </div>
 
@@ -96,7 +96,7 @@ export default function AuthLayout({
           </p>
           <p className="mt-4 text-base leading-7 text-[color-mix(in_oklch,var(--color-paper-50)_84%,transparent)]">
             Reserve classrooms and campus facilities, see real-time availability,
-            and manage approvals — all in one place.
+            and manage requests — all in one place.
           </p>
           <div className="mt-8 grid gap-3">
             {TRUST_POINTS.map((point) => (

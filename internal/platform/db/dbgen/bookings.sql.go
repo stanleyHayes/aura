@@ -45,7 +45,7 @@ const createBooking = `-- name: CreateBooking :one
 INSERT INTO bookings (room_id, requested_by, purpose, attendee_count, starts_at, ends_at, status)
 VALUES ($1, $2, $3, $4, $5, $6, 'PENDING')
 RETURNING id, room_id, requested_by, purpose, attendee_count, starts_at, ends_at, status,
-          reviewed_by, review_note, reviewed_at, cancelled_at, created_at, updated_at
+          reviewed_by, review_note, reviewed_at, cancelled_at, cancel_note, created_at, updated_at
 `
 
 type CreateBookingParams struct {
@@ -70,6 +70,7 @@ type CreateBookingRow struct {
 	ReviewNote    *string            `json:"review_note"`
 	ReviewedAt    pgtype.Timestamptz `json:"reviewed_at"`
 	CancelledAt   pgtype.Timestamptz `json:"cancelled_at"`
+	CancelNote    *string            `json:"cancel_note"`
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 }
@@ -99,6 +100,7 @@ func (q *Queries) CreateBooking(ctx context.Context, arg CreateBookingParams) (C
 		&i.ReviewNote,
 		&i.ReviewedAt,
 		&i.CancelledAt,
+		&i.CancelNote,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -121,7 +123,7 @@ func (q *Queries) ExpireStalePending(ctx context.Context) (int64, error) {
 
 const getBooking = `-- name: GetBooking :one
 SELECT id, room_id, requested_by, purpose, attendee_count, starts_at, ends_at, status,
-       reviewed_by, review_note, reviewed_at, cancelled_at, created_at, updated_at
+       reviewed_by, review_note, reviewed_at, cancelled_at, cancel_note, created_at, updated_at
 FROM bookings WHERE id = $1
 `
 
@@ -138,6 +140,7 @@ type GetBookingRow struct {
 	ReviewNote    *string            `json:"review_note"`
 	ReviewedAt    pgtype.Timestamptz `json:"reviewed_at"`
 	CancelledAt   pgtype.Timestamptz `json:"cancelled_at"`
+	CancelNote    *string            `json:"cancel_note"`
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 }
@@ -158,6 +161,7 @@ func (q *Queries) GetBooking(ctx context.Context, id uuid.UUID) (GetBookingRow, 
 		&i.ReviewNote,
 		&i.ReviewedAt,
 		&i.CancelledAt,
+		&i.CancelNote,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -166,7 +170,7 @@ func (q *Queries) GetBooking(ctx context.Context, id uuid.UUID) (GetBookingRow, 
 
 const getBookingForUpdate = `-- name: GetBookingForUpdate :one
 SELECT id, room_id, requested_by, purpose, attendee_count, starts_at, ends_at, status,
-       reviewed_by, review_note, reviewed_at, cancelled_at, created_at, updated_at
+       reviewed_by, review_note, reviewed_at, cancelled_at, cancel_note, created_at, updated_at
 FROM bookings WHERE id = $1 FOR UPDATE
 `
 
@@ -183,6 +187,7 @@ type GetBookingForUpdateRow struct {
 	ReviewNote    *string            `json:"review_note"`
 	ReviewedAt    pgtype.Timestamptz `json:"reviewed_at"`
 	CancelledAt   pgtype.Timestamptz `json:"cancelled_at"`
+	CancelNote    *string            `json:"cancel_note"`
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 }
@@ -204,6 +209,7 @@ func (q *Queries) GetBookingForUpdate(ctx context.Context, id uuid.UUID) (GetBoo
 		&i.ReviewNote,
 		&i.ReviewedAt,
 		&i.CancelledAt,
+		&i.CancelNote,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -268,7 +274,7 @@ func (q *Queries) ListApprovedBookingsForRoomInRange(ctx context.Context, arg Li
 
 const listBookings = `-- name: ListBookings :many
 SELECT id, room_id, requested_by, purpose, attendee_count, starts_at, ends_at, status,
-       reviewed_by, review_note, reviewed_at, cancelled_at, created_at, updated_at
+       reviewed_by, review_note, reviewed_at, cancelled_at, cancel_note, created_at, updated_at
 FROM bookings
 WHERE ($1::uuid IS NULL OR requested_by = $1)
   AND ($2::uuid IS NULL OR room_id = $2)
@@ -303,6 +309,7 @@ type ListBookingsRow struct {
 	ReviewNote    *string            `json:"review_note"`
 	ReviewedAt    pgtype.Timestamptz `json:"reviewed_at"`
 	CancelledAt   pgtype.Timestamptz `json:"cancelled_at"`
+	CancelNote    *string            `json:"cancel_note"`
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 }
@@ -337,6 +344,7 @@ func (q *Queries) ListBookings(ctx context.Context, arg ListBookingsParams) ([]L
 			&i.ReviewNote,
 			&i.ReviewedAt,
 			&i.CancelledAt,
+			&i.CancelNote,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -415,7 +423,7 @@ func (q *Queries) ListConflictingApprovedBookings(ctx context.Context, arg ListC
 const listPendingForApproval = `-- name: ListPendingForApproval :many
 SELECT b.id, b.room_id, b.requested_by, b.purpose, b.attendee_count,
        b.starts_at, b.ends_at, b.status, b.reviewed_by, b.review_note,
-       b.reviewed_at, b.cancelled_at, b.created_at, b.updated_at,
+       b.reviewed_at, b.cancelled_at, b.cancel_note, b.created_at, b.updated_at,
        r.room_code        AS room_code,
        r.name             AS room_name,
        r.capacity         AS room_capacity,
@@ -452,6 +460,7 @@ type ListPendingForApprovalRow struct {
 	ReviewNote              *string            `json:"review_note"`
 	ReviewedAt              pgtype.Timestamptz `json:"reviewed_at"`
 	CancelledAt             pgtype.Timestamptz `json:"cancelled_at"`
+	CancelNote              *string            `json:"cancel_note"`
 	CreatedAt               pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt               pgtype.Timestamptz `json:"updated_at"`
 	RoomCode                string             `json:"room_code"`
@@ -487,6 +496,7 @@ func (q *Queries) ListPendingForApproval(ctx context.Context, arg ListPendingFor
 			&i.ReviewNote,
 			&i.ReviewedAt,
 			&i.CancelledAt,
+			&i.CancelNote,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.RoomCode,
@@ -513,10 +523,11 @@ SET status = $2,
     review_note = COALESCE($4, review_note),
     reviewed_at = CASE WHEN $2 IN ('APPROVED'::booking_status,'REJECTED'::booking_status) THEN now() ELSE reviewed_at END,
     cancelled_at = CASE WHEN $2 = 'CANCELLED'::booking_status THEN now() ELSE cancelled_at END,
+    cancel_note = COALESCE($5, cancel_note),
     updated_at = now()
 WHERE id = $1
 RETURNING id, room_id, requested_by, purpose, attendee_count, starts_at, ends_at, status,
-          reviewed_by, review_note, reviewed_at, cancelled_at, created_at, updated_at
+          reviewed_by, review_note, reviewed_at, cancelled_at, cancel_note, created_at, updated_at
 `
 
 type SetBookingStatusParams struct {
@@ -524,6 +535,7 @@ type SetBookingStatusParams struct {
 	Status     BookingStatus `json:"status"`
 	ReviewedBy *uuid.UUID    `json:"reviewed_by"`
 	ReviewNote *string       `json:"review_note"`
+	CancelNote *string       `json:"cancel_note"`
 }
 
 type SetBookingStatusRow struct {
@@ -539,6 +551,7 @@ type SetBookingStatusRow struct {
 	ReviewNote    *string            `json:"review_note"`
 	ReviewedAt    pgtype.Timestamptz `json:"reviewed_at"`
 	CancelledAt   pgtype.Timestamptz `json:"cancelled_at"`
+	CancelNote    *string            `json:"cancel_note"`
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 }
@@ -550,6 +563,7 @@ func (q *Queries) SetBookingStatus(ctx context.Context, arg SetBookingStatusPara
 		arg.Status,
 		arg.ReviewedBy,
 		arg.ReviewNote,
+		arg.CancelNote,
 	)
 	var i SetBookingStatusRow
 	err := row.Scan(
@@ -565,6 +579,7 @@ func (q *Queries) SetBookingStatus(ctx context.Context, arg SetBookingStatusPara
 		&i.ReviewNote,
 		&i.ReviewedAt,
 		&i.CancelledAt,
+		&i.CancelNote,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

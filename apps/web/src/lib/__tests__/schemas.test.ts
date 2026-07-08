@@ -191,7 +191,7 @@ describe("entity schemas", () => {
 describe("enum labels", () => {
   it("maps every booking status to a human label", () => {
     expect(BOOKING_STATUS_LABELS.PENDING).toBe("Pending");
-    expect(BOOKING_STATUS_LABELS.APPROVED).toBe("Approved");
+    expect(BOOKING_STATUS_LABELS.APPROVED).toBe("Accepted");
     expect(Object.keys(BOOKING_STATUS_LABELS)).toHaveLength(5);
   });
 });

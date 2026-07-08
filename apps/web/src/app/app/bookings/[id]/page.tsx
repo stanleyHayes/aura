@@ -82,6 +82,12 @@ export default async function BookingDetailPage({
                   {booking.attendee_count === 1 ? "" : "s"}
                 </dd>
               </div>
+              {booking.cancel_note ? (
+                <div>
+                  <dt className="text-xs text-[var(--color-muted-foreground)]">Cancellation reason</dt>
+                  <dd className="text-sm">{booking.cancel_note}</dd>
+                </div>
+              ) : null}
             </dl>
           </CardContent>
         </Card>

@@ -53,7 +53,7 @@ export function NotificationsClient() {
       <PageHeader
         icon={Bell}
         title="Notifications"
-        description="Review booking updates, approval decisions and system messages."
+        description="Review booking updates, request decisions and system messages."
         actions={
           items.some((n) => !n.read_at) ? (
             <Button variant="outline" size="sm" onClick={() => markAll.mutate()}>

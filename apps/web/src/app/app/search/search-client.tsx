@@ -52,7 +52,7 @@ import {
   AvailabilityLegend,
 } from "@/components/availability-grid";
 import { BookDialog, type BookDraft } from "@/components/book-dialog";
-import { hhmm } from "@/lib/intervals";
+import { hhmm, minutesOfDay } from "@/lib/intervals";
 
 const roomTypes = RoomType.options;
 
@@ -169,7 +169,15 @@ export function SearchClient() {
     setBookOpen(true);
   }
 
-  const results = query.data ?? [];
+  const results = React.useMemo(() => {
+    const all = query.data ?? [];
+    if (!submitted) return all;
+    const reqStart = minutesOfDay(submitted.start);
+    const reqEnd = minutesOfDay(submitted.end);
+    return all.filter((r) =>
+      r.free_intervals.some((iv) => iv.start <= reqStart && iv.end >= reqEnd),
+    );
+  }, [query.data, submitted]);
   const selectedEquipment = useWatch({
     control: form.control,
     name: "equipment",
@@ -201,8 +209,8 @@ export function SearchClient() {
     <>
       <PageHeader
         icon={CalendarSearch}
-        title="Find a room"
-        description="Search availability derived from the live timetable, approved bookings and maintenance. All times are West Africa Time (Africa/Accra)."
+        title="Book a room"
+        description="Search availability and book a room derived from the live timetable, approved bookings and maintenance. All times are West Africa Time (Africa/Accra)."
       />
 
       <div className="flex flex-col gap-6">
@@ -387,15 +395,15 @@ export function SearchClient() {
           ) : results.length === 0 ? (
             <EmptyState
               icon={DoorClosed}
-              title="No rooms match those filters"
-              description="Try a different building, a lower minimum capacity, another room type, or fewer equipment requirements."
+              title="No rooms are available for that time"
+              description="Try a different time, building, room type, capacity, or equipment requirements."
             />
           ) : (
             <>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-[var(--color-muted-foreground)]">
-                  {results.length} matching room{results.length === 1 ? "" : "s"} ·
-                  click any free (dashed) slot to book
+                  {results.length} available room{results.length === 1 ? "" : "s"} for
+                  your selected time
                 </p>
                 <AvailabilityLegend />
               </div>

@@ -155,7 +155,7 @@ export function SeriesChart({ series }: { series: SeriesPoint[] }) {
         />
         <Area
           type="monotone"
-          name="Approved"
+          name="Accepted"
           dataKey="approved"
           stroke="var(--color-approved)"
           strokeWidth={2}

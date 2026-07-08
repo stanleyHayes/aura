@@ -28,6 +28,6 @@ describe("StatusBadge", () => {
 
   it("applies the status-specific badge variant class", () => {
     render(<StatusBadge status="APPROVED" />);
-    expect(screen.getByText("Approved").className).toContain("--color-approved");
+    expect(screen.getByText(BOOKING_STATUS_LABELS.APPROVED).className).toContain("--color-approved");
   });
 });

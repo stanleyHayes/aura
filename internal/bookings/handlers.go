@@ -301,7 +301,16 @@ func (h *Handler) cancel(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, r, h.log, apperr.ErrForbidden)
 		return
 	}
-	view, err := h.svc.Cancel(r.Context(), bookingID, id.UserID)
+	var body struct {
+		Note *string `json:"note"`
+	}
+	if r.ContentLength > 0 {
+		if err := httpx.DecodeJSON(r, &body); err != nil {
+			httpx.Error(w, r, h.log, err)
+			return
+		}
+	}
+	view, err := h.svc.Cancel(r.Context(), bookingID, id.UserID, body.Note)
 	if err != nil {
 		httpx.Error(w, r, h.log, err)
 		return

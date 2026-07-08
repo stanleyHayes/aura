@@ -84,12 +84,12 @@ func TestCancelTransitions(t *testing.T) {
 	b, err := svc.Create(ctx, bookings.CreateInput{RoomID: f.roomID, RequestedBy: f.requester, Purpose: "C", AttendeeCount: 5, StartsAt: start, EndsAt: end})
 	require.NoError(t, err)
 
-	v, err := svc.Cancel(ctx, b.Booking.ID, f.requester)
+	v, err := svc.Cancel(ctx, b.Booking.ID, f.requester, nil)
 	require.NoError(t, err)
 	require.Equal(t, "CANCELLED", v.Status)
 
 	// Cancelling a cancelled booking is an illegal transition.
-	_, err = svc.Cancel(ctx, b.Booking.ID, f.requester)
+	_, err = svc.Cancel(ctx, b.Booking.ID, f.requester, nil)
 	ae, ok := apperr.As(err)
 	require.True(t, ok)
 	require.Equal(t, "INVALID_STATE_TRANSITION", ae.Code)

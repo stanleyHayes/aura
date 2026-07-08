@@ -520,6 +520,13 @@ paths:
       tags: [Bookings]
       summary: Cancel (owner or ADMIN)
       parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note: { type: string, nullable: true, maxLength: 500 }
       responses: { "200": { description: Cancelled } }
   /api/v1/bookings/{id}/override:
     post:
@@ -705,6 +712,7 @@ components:
         ends_at: { type: string, format: date-time }
         status: { $ref: "#/components/schemas/BookingStatus" }
         review_note: { type: string, nullable: true }
+        cancel_note: { type: string, nullable: true }
         # Optional nested relations, returned on the enriched approvals projection.
         room: { allOf: [ { $ref: "#/components/schemas/Room" } ], nullable: true }
         requester: { allOf: [ { $ref: "#/components/schemas/User" } ], nullable: true }

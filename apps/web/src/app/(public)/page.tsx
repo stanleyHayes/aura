@@ -20,12 +20,12 @@ import { Reveal3D } from "@/components/reveal-3d";
 export const metadata: Metadata = {
   title: "Smart Space Management for Ashesi",
   description:
-    "AURA is Ashesi University's resource-allocation platform — reserve classrooms and campus facilities with real-time availability from the live timetable, transparent approvals and conflict detection.",
+    "AURA is Ashesi University's resource-allocation platform — reserve classrooms and campus facilities with real-time availability from the live timetable, transparent request handling and conflict detection.",
   alternates: { canonical: "/" },
   openGraph: {
     title: "AURA — Smart Space Management for Ashesi",
     description:
-      "Reserve Ashesi classrooms and campus facilities with real-time availability, approvals and conflict detection.",
+      "Reserve Ashesi classrooms and campus facilities with real-time availability, request handling and conflict detection.",
     url: "/",
   },
 };
@@ -48,8 +48,8 @@ const features = [
   },
   {
     icon: ShieldCheck,
-    title: "Approvals with reasons",
-    body: "Booking officers see precisely why a request can or cannot be approved — competing requests, maintenance, or capacity.",
+    title: "Requests with reasons",
+    body: "Booking officers see precisely why a request can or cannot be accepted — competing requests, maintenance, or capacity.",
   },
   {
     icon: Upload,
@@ -90,7 +90,7 @@ export default function LandingPage() {
             <p className="mt-5 max-w-full text-pretty text-lg text-[var(--color-muted-foreground)]">
               AURA lets you reserve Ashesi classrooms and campus facilities with
               real-time availability drawn from the live semester timetable,
-              existing bookings and maintenance — with transparent approvals and
+              existing bookings and maintenance — with transparent request handling and
               conflict detection built in.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">

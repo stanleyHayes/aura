@@ -281,13 +281,13 @@ export function BookDialog({
 
           <Field
             id="purpose"
-            label="Purpose"
+            label="Additional notes"
             error={form.formState.errors.purpose?.message}
           >
             {(p) => (
               <Textarea
                 {...p}
-                placeholder="e.g. Departmental seminar, makeup lecture, club meeting"
+                placeholder="e.g. Departmental seminar, makeup lecture, club meeting — any details the room officer should know."
                 {...form.register("purpose")}
               />
             )}

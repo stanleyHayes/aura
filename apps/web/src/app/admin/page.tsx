@@ -83,7 +83,7 @@ type OverviewReport = {
 
 const dashboardTitle = "Overview";
 const dashboardDescription =
-  "An at-a-glance view of bookings, approvals, utilisation and demand across the institution.";
+  "An at-a-glance view of bookings, requests, utilisation and demand across the institution.";
 const dashboardGuide = [
   "Start with the KPI tiles for the headline numbers across the last 30 days.",
   "Read the activity trend and status split to see how requests are flowing.",
@@ -189,7 +189,7 @@ export default async function AdminDashboard() {
       show: canApprove || canReport,
     },
     {
-      label: "Approved",
+      label: "Accepted",
       value: kpis ? kpis.approved.toLocaleString() : "—",
       subtext: "Accepted by the review flow",
       icon: CheckCircle2,
@@ -198,9 +198,9 @@ export default async function AdminDashboard() {
       show: canReport,
     },
     {
-      label: "Approval rate",
+      label: "Acceptance rate",
       value: kpis ? `${Math.round(kpis.approval_rate_pct)}%` : "—",
-      subtext: "Approved share of decided requests",
+      subtext: "Accepted share of decided requests",
       icon: PieChart,
       href: "/admin/reports",
       tone: "info" as const,
@@ -240,7 +240,7 @@ export default async function AdminDashboard() {
     if (canApprove) {
       return {
         href: "/admin/approvals",
-        label: "Review approvals",
+        label: "Review requests",
         icon: ClipboardCheck,
       };
     }
@@ -349,7 +349,7 @@ export default async function AdminDashboard() {
               <div>
                 <CardTitle>Activity trend</CardTitle>
                 <CardDescription>
-                  Submitted vs approved bookings per day over the last 30 days.
+                  Submitted vs accepted bookings per day over the last 30 days.
                 </CardDescription>
               </div>
               <Button variant="outline" size="sm" asChild>
@@ -439,7 +439,7 @@ export default async function AdminDashboard() {
           aria-labelledby="admin-dashboard-actions"
         >
           <h2 id="admin-dashboard-actions" className="sr-only">
-            Quick actions and pending approvals
+            Quick actions and pending requests
           </h2>
 
           {quickActions.length > 0 ? (
@@ -497,7 +497,7 @@ export default async function AdminDashboard() {
                 {pending.length === 0 ? (
                   <EmptyState
                     icon={ClipboardCheck}
-                    title="No approvals pending"
+                    title="No requests pending"
                     description="The queue is clear. New requests will appear here when departments submit them."
                     className="border-0 bg-transparent px-4 py-8 shadow-none"
                   />

@@ -15,18 +15,18 @@ export const PAGE_GUIDES = [
     title: "Overview",
     description: "Your bookings at a glance.",
     steps: [
-      "Check the three summary tiles first: pending requests, approved bookings, and total requests.",
-      "Open Find a room when you need to search for an available classroom.",
-      "Use Upcoming approved bookings to jump into the details for your next confirmed reservation.",
+      "Check the three summary tiles first: pending requests, accepted bookings, and total requests.",
+      "Open Book a room when you need to search for an available classroom.",
+      "Use Upcoming accepted bookings to jump into the details for your next confirmed reservation.",
     ],
   },
   {
     key: "find-room",
     section: "Requester workspace",
     href: "/app/search",
-    title: "Find a room",
+    title: "Book a room",
     description:
-      "Search availability derived from the live timetable, approved bookings and maintenance.",
+      "Search availability and book a room derived from the live timetable, approved bookings and maintenance.",
     steps: [
       "Choose the date and time window you want to reserve.",
       "Narrow the search with building, room type, capacity, and equipment only when those constraints matter.",
@@ -40,9 +40,9 @@ export const PAGE_GUIDES = [
     title: "My bookings",
     description: "Track the status of every request you've made.",
     steps: [
-      "Use the status tabs to separate pending, approved, rejected, and cancelled requests.",
+      "Use the status tabs to separate pending, accepted, rejected, and cancelled requests.",
       "Open a booking to inspect its timeline, room, date, and attendee details.",
-      "Cancel a pending or approved request when the room is no longer needed.",
+      "Cancel a pending or accepted request when the room is no longer needed.",
     ],
   },
   {
@@ -62,10 +62,10 @@ export const PAGE_GUIDES = [
     section: "Requester workspace",
     href: "/app/notifications",
     title: "Notifications",
-    description: "Review booking updates, approval decisions and system messages.",
+    description: "Review booking updates, request decisions and system messages.",
     steps: [
       "Scan unread messages first; they are visually highlighted in the list.",
-      "Open booking-related messages from newest to oldest so you do not miss approval decisions.",
+      "Open booking-related messages from newest to oldest so you do not miss request decisions.",
       "Mark individual messages or the full list as read once you have acted on them.",
     ],
   },
@@ -74,9 +74,9 @@ export const PAGE_GUIDES = [
     section: "Admin console",
     href: "/admin",
     title: "Overview",
-    description: "A role-aware overview of approvals, utilisation and the next admin tasks.",
+    description: "A role-aware overview of requests, utilisation and the next admin tasks.",
     steps: [
-      "Start with the KPI tiles to spot approvals, room coverage and utilisation movement.",
+      "Start with the KPI tiles to spot requests, room coverage and utilisation movement.",
       "Use Quick actions for the common admin jobs your role can access.",
       "Review the pending queue first, then open reports for deeper utilisation details.",
     ],
@@ -85,13 +85,13 @@ export const PAGE_GUIDES = [
     key: "approvals",
     section: "Admin console",
     href: "/admin/approvals",
-    title: "Approvals queue",
+    title: "Requests queue",
     description:
-      "Each request shows exactly why it can or cannot be approved, so you can resolve conflicts without guessing.",
+      "Each request shows exactly why it can or cannot be accepted, so you can resolve conflicts without guessing.",
     steps: [
       "Read each request card from top to bottom: room, requester, time, attendees, and reason.",
-      "Use the decision panel to understand whether lectures, maintenance, capacity, or competing requests block approval.",
-      "Approve clear requests, reject requests that cannot proceed, or use override only when your role and policy allow it.",
+      "Use the decision panel to understand whether lectures, maintenance, capacity, or competing requests block acceptance.",
+      "Accept clear requests, reject requests that cannot proceed, or use override only when your role and policy allow it.",
     ],
   },
   {
@@ -258,9 +258,9 @@ export const PAGE_GUIDES = [
 ] satisfies PageGuide[];
 
 const DESCRIPTION_ALIASES: Record<string, string> = {
-  "A role-aware overview of approvals, utilisation and the next admin tasks.":
+  "A role-aware overview of requests, utilisation and the next admin tasks.":
     "admin-overview",
-  "Search availability derived from the live timetable, approved bookings and maintenance. All times are West Africa Time (Africa/Accra).":
+  "Search availability and book a room derived from the live timetable, approved bookings and maintenance. All times are West Africa Time (Africa/Accra).":
     "find-room",
   "Lectures, approved bookings and maintenance, colour-coded by source. All times West Africa Time (Africa/Accra).":
     "app-calendar",

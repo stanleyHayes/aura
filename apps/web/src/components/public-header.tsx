@@ -42,7 +42,7 @@ export function PublicHeader() {
   );
   const dashboardLabel = session ? "Open dashboard" : "Sign in";
   const dashboardDescription = session
-    ? "Return to your bookings, approvals and space tools."
+    ? "Return to your bookings, requests and space tools."
     : "Use your Ashesi account to reserve classrooms and facilities.";
   const publicNavItems: PublicNavItem[] = [
     {
@@ -111,7 +111,7 @@ export function PublicHeader() {
                     </SheetTitle>
                     <SheetDescription className="mt-1 text-sm leading-6 text-[color-mix(in_oklch,var(--color-paper-50)_82%,transparent)]">
                       Reserve Ashesi classrooms and facilities with live
-                      availability, approvals and conflict checks.
+                      availability, request handling and conflict checks.
                     </SheetDescription>
                   </div>
                 </SheetHeader>
@@ -166,7 +166,7 @@ export function PublicHeader() {
                     Smart Space Management for Ashesi
                   </p>
                   <p className="mt-1 text-xs leading-5 text-[var(--color-maroon-dark)]">
-                    Live timetable awareness, transparent approvals and conflict
+                    Live timetable awareness, transparent request handling and conflict
                     detection in one university booking workflow.
                   </p>
                 </div>

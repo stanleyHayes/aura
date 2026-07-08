@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ApprovalsClient } from "./approvals-client";
 
 export const metadata: Metadata = {
-  title: "Approvals",
+  title: "Requests",
   robots: { index: false, follow: false },
 };
 

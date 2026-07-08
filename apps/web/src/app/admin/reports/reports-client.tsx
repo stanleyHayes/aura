@@ -248,7 +248,7 @@ export function ReportsClient() {
                     subtext: "Submitted in the selected range",
                   },
                   {
-                    label: "Approved",
+                    label: "Accepted",
                     value: bookings.data?.by_status?.APPROVED ?? 0,
                     icon: CheckCircle2,
                     tone: "success" as const,
@@ -262,11 +262,11 @@ export function ReportsClient() {
                     subtext: "Declined after review",
                   },
                   {
-                    label: "Approval rate",
+                    label: "Acceptance rate",
                     value: `${Math.round(bookings.data?.approval_rate_pct ?? 0)}%`,
                     icon: Percent,
                     tone: "info" as const,
-                    subtext: "Approved share of requests",
+                    subtext: "Accepted share of requests",
                   },
                 ].map((s) => (
                   <MetricCard key={s.label} {...s} />
@@ -314,7 +314,7 @@ export function ReportsClient() {
                     value: conflicts.data?.cancelled_bookings ?? 0,
                     icon: Ban,
                     tone: "neutral" as const,
-                    subtext: "Bookings withdrawn after approval",
+                    subtext: "Bookings withdrawn after acceptance",
                   },
                   {
                     label: "Expired requests",

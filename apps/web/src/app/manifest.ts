@@ -10,7 +10,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "AURA — Ashesi University Resource Allocation",
     short_name: "AURA",
     description:
-      "AURA is Ashesi University's resource-allocation and reservation platform — reserve classrooms and campus facilities with real-time availability, approvals, conflict detection and scheduling.",
+      "AURA is Ashesi University's resource-allocation and reservation platform — reserve classrooms and campus facilities with real-time availability, request handling, conflict detection and scheduling.",
     start_url: "/",
     display: "standalone",
     theme_color: "#7B1113",

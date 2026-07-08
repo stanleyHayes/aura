@@ -98,7 +98,7 @@ export function AppTour({
         selector: "[data-tour='notifications']",
         title: "Notifications",
         description:
-          "Approval decisions, booking updates, and system messages collect here as you work.",
+          "Booking decisions, booking updates, and system messages collect here as you work.",
       },
       {
         selector: "[data-tour='user-menu']",

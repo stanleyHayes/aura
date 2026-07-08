@@ -27,7 +27,7 @@ const allSections: GatedSection[] = [
       { href: "/admin", label: "Overview", icon: "dashboard", exact: true },
       {
         href: "/admin/approvals",
-        label: "Approvals",
+        label: "Requests",
         icon: "clipboard-check",
         permission: "booking.approve",
       },

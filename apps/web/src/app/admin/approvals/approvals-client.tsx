@@ -104,7 +104,7 @@ function WhyPanel({ item }: { item: BookingApprovability }) {
           </span>
           <div className="min-w-0">
             <p className="font-semibold text-[var(--color-approved)]">
-              Ready for approval
+              Ready to accept
             </p>
             <p className="mt-1 text-sm text-[var(--color-foreground)]">
               {item.competing_pending_count > 0
@@ -126,7 +126,7 @@ function WhyPanel({ item }: { item: BookingApprovability }) {
         </span>
         <div className="min-w-0">
           <p className="font-semibold text-[var(--color-rejected)]">
-            Needs attention before approval
+            Needs attention before acceptance
           </p>
           <ul className="mt-3 grid gap-2">
             {item.blockers.map((b, i) => (
@@ -200,14 +200,14 @@ function ApprovalMetricsBand({
         tone="warning"
       />
       <MetricCard
-        label="Approved requests"
+        label="Accepted requests"
         value={approved.toLocaleString()}
         subtext={`${decided.toLocaleString()} decided request${decided === 1 ? "" : "s"} so far.`}
         icon={CheckCircle2}
         tone="success"
       />
       <MetricCard
-        label="Rejected requests"
+        label="Declined requests"
         value={rejected.toLocaleString()}
         subtext="Requests declined after review."
         icon={XCircle}
@@ -273,7 +273,7 @@ export function ApprovalsClient() {
     onSuccess: () => {
       setCursor(undefined);
       setCursorStack([]);
-      toast({ variant: "success", title: "Booking approved" });
+      toast({ variant: "success", title: "Booking accepted" });
       void queryClient.invalidateQueries({ queryKey: ["approvals"] });
       void queryClient.invalidateQueries({ queryKey: ["bookings"] });
       void queryClient.invalidateQueries({ queryKey: qk.bookingMetrics });
@@ -281,7 +281,7 @@ export function ApprovalsClient() {
     onError: (err) =>
       toast({
         variant: "destructive",
-        title: "Couldn't approve",
+        title: "Couldn't accept",
         description: err instanceof Error ? err.message : undefined,
       }),
   });
@@ -314,8 +314,8 @@ export function ApprovalsClient() {
     <>
       <PageHeader
         icon={ClipboardCheck}
-        title="Approvals queue"
-        description="Each request shows exactly why it can — or cannot — be approved, so you can resolve conflicts without guessing."
+        title="Requests queue"
+        description="Each request shows exactly why it can — or cannot — be accepted, so you can resolve conflicts without guessing."
       />
       <ApprovalMetricsBand
         metrics={metrics.data}
@@ -377,7 +377,7 @@ export function ApprovalsClient() {
                               </span>
                               <div className="min-w-0">
                                 <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
-                                  Approval request
+                                  Booking request
                                 </p>
                                 <h3 className="mt-1 font-serif text-2xl font-semibold leading-tight tracking-tight text-[var(--color-foreground)]">
                                   {b.room?.name ?? "Room"}
@@ -393,7 +393,7 @@ export function ApprovalsClient() {
                               }
                               className="w-fit px-3 py-1"
                             >
-                              {item.can_approve ? "Approvable" : "Blocked"}
+                              {item.can_approve ? "Acceptable" : "Blocked"}
                             </Badge>
                           </div>
 
@@ -437,11 +437,11 @@ export function ApprovalsClient() {
                               className="w-full sm:w-auto"
                               disabled={!item.can_approve || approve.isPending}
                               loading={approvingThis}
-                              loadingLabel="Approving request"
+                              loadingLabel="Accepting request"
                               onClick={() => approve.mutate(b.id)}
                             >
                               <CheckCircle2 className="size-4" />
-                              Approve
+                              Accept
                             </Button>
                             <Button
                               size="sm"

@@ -1263,7 +1263,13 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        note?: string | null;
+                    };
+                };
+            };
             responses: {
                 /** @description Cancelled */
                 200: {
@@ -1723,6 +1729,7 @@ export interface components {
             ends_at?: string;
             status?: components["schemas"]["BookingStatus"];
             review_note?: string | null;
+            cancel_note?: string | null;
             room?: components["schemas"]["Room"] | null;
             requester?: components["schemas"]["User"] | null;
         };

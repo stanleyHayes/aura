@@ -480,6 +480,7 @@ type Booking struct {
 	During        pgtype.Range[pgtype.Timestamptz] `json:"during"`
 	CreatedAt     pgtype.Timestamptz               `json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz               `json:"updated_at"`
+	CancelNote    *string                          `json:"cancel_note"`
 }
 
 type Building struct {

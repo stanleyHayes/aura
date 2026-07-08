@@ -188,6 +188,7 @@ export const Booking = z.object({
   review_note: z.string().nullable().optional(),
   reviewed_at: Instant.nullable().optional(),
   cancelled_at: Instant.nullable().optional(),
+  cancel_note: z.string().nullable().optional(),
   created_at: Instant,
   updated_at: Instant,
 });
